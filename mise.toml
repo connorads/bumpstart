@@ -1,0 +1,23 @@
+[tools]
+bats = "1"
+shellcheck = "0.11"
+
+[tasks.lint]
+description = "Shellcheck all scripts"
+run = "shellcheck -x lib/*.sh blocks/*/apply.sh install.sh vibe tests/helpers/*.sh"
+
+[tasks.test]
+description = "Run the bats suite (product code runs under /bin/bash via the isolated PATH)"
+run = "bats tests/"
+
+[tasks.test-fast]
+description = "Run the bats suite, skipping integration-tagged tests"
+run = "bats --filter-tags '!integration' tests/"
+
+[tasks.test-bash32]
+description = "Run the whole suite under macOS /bin/bash (3.2) — the support contract"
+run = "/bin/bash \"$(command -v bats)\" tests/"
+
+[tasks.check]
+description = "Lint + full suite"
+depends = ["lint", "test"]
