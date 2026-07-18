@@ -45,9 +45,19 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 @test "a dependency pulled in twice appears once (node -> mise)" {
   plan claude node node
   [ "$status" -eq 0 ]
-  # exactly one mise step
+  # the dependent itself survives (regression: recursion once clobbered it)...
+  [[ "$output" == *"Install Node.js"* ]]
+  # ...and its dependency appears exactly once
   count="$(printf '%s\n' "$output" | grep -c -F 'Install mise')"
   [ "$count" -eq 1 ]
+}
+
+@test "dep appears before dependent (mise before node)" {
+  plan claude node
+  [ "$status" -eq 0 ]
+  m="$(line_of 'Install mise')"
+  n="$(line_of 'Install Node.js')"
+  [ "$m" -lt "$n" ]
 }
 
 @test "include cycle is a domain error" {

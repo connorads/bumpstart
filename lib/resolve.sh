@@ -33,7 +33,9 @@ _kind_rank() {
 # self last) to the _EXPANDED string. Deps land before dependents; a block's own
 # id follows its includes. Sets PLAN_ERROR + returns 1 on unknown id or cycle.
 _expand() {
-  _ex_root="$1"; _ex_id="$2"; _ex_stack="$3"
+  # These MUST be local: _expand recurses, and a clobbered id/dir/inc from an
+  # inner call would corrupt the outer frame (e.g. node -> mise mise).
+  local _ex_root="$1" _ex_id="$2" _ex_stack="$3" _ex_dir _ex_inc
   case " $_ex_stack " in
     *" $_ex_id "*) PLAN_ERROR="include cycle:$_ex_stack -> $_ex_id"; return 1 ;;
   esac

@@ -1,0 +1,3 @@
+KIND=preset
+DESC="Web starter: Claude + GitHub + Node + React skill + concise + Context7"
+INCLUDE="claude gh-auth node react concise context7"
