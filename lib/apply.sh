@@ -72,6 +72,13 @@ fi
 # Homebrew underpins the auth + desktop/cask installs; get it in place first.
 ensure_brew
 
+# Instruction targets (harness files) handed to every block as newline-separated
+# VIBE_TARGETS; instructions blocks merge into them. Guard the empty array (set -u).
+VIBE_TARGETS=""
+if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
+  VIBE_TARGETS="$(printf '%s\n' "${PLAN_TARGETS[@]}")"
+fi
+
 # run_block <id> — execute a block's apply.sh in a fresh bash with the block
 # contract in the environment. Best-effort: a failure warns and continues so one
 # fast-moving vendor step can't sink the whole setup.
@@ -82,6 +89,7 @@ run_block() {
     return 0
   fi
   VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_DESKTOP="$DESKTOP" \
+    VIBE_TARGETS="$VIBE_TARGETS" \
     bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
 }
 
