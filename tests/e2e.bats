@@ -50,6 +50,14 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"already installed"* ]]
 }
 
+@test "codex run pre-trusts the starter dir in ~/.codex/config.toml" {
+  apply codex --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  starter="$(cd "$HOME/code/first-project" && pwd -P)"
+  grep -Fq "[projects.\"$starter\"]" "$HOME/.codex/config.toml"
+  grep -Fq 'trust_level = "trusted"' "$HOME/.codex/config.toml"
+}
+
 @test "unknown id fails at plan time and applies nothing" {
   apply bogus --yes --no-launch --no-desktop
   [ "$status" -ne 0 ]

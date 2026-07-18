@@ -20,6 +20,8 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/plan.sh"
 # shellcheck source=lib/brew.sh
 . "$LIB/brew.sh"
+# shellcheck source=lib/trust.sh
+. "$LIB/trust.sh"
 
 ROOT="${VIBE_ROOT:-$(cd "$LIB/.." && pwd -P)}"
 
@@ -103,17 +105,23 @@ done
 echo ""
 success "Setup complete."
 
+# ── Starter project + trust preseed ───────────────────────────────────────────
+
+# A dedicated dir we create and pre-trust (never blanket-trust $HOME), so the
+# only prompt left is the browser login.
+STARTER="$(ensure_starter_dir)"
+preseed_trust "$PLAN_DEFAULT_HARNESS" "$STARTER"
+
 # ── Launch ────────────────────────────────────────────────────────────────────
 
 # Freshly-installed CLIs may not be on PATH yet.
 fixup_path
 
 if [ "$LAUNCH" = true ] && command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; then
-  echo ""
-  info "Starting $PLAN_DEFAULT_HARNESS — sign in when prompted..."
-  echo ""
+  frame_login "$PLAN_DEFAULT_HARNESS"
+  cd "$STARTER"
   exec "$PLAN_DEFAULT_HARNESS"
 else
   echo ""
-  info "Run '$PLAN_DEFAULT_HARNESS' to start (you'll sign in on first launch)."
+  info "Run '$PLAN_DEFAULT_HARNESS' in $STARTER to start (you'll sign in on first launch)."
 fi
