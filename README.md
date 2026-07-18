@@ -22,7 +22,7 @@ Install Claude Code and go:
 Or compose your own setup with `vibe` and a list of block ids:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude gh-auth node react concise context7
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude gh-auth node concise
 ```
 
 Or use a named preset:
@@ -50,15 +50,16 @@ single-choice is which agent launches, and there **last in the list wins**
 | `gh-auth`    | auth         | Install GitHub CLI + offer sign-in                                 |
 | `mise`       | tool         | Install mise (runtime version manager)                             |
 | `node`       | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
-| `react`      | skill        | Add a React coding skill                                           |
 | `concise`    | instructions | Ask the agent to keep answers concise                              |
-| `context7`   | mcp          | Add the Context7 docs MCP server                                   |
+
+The `skill` and `mcp` kinds are supported by the applier, but no recommended
+skill or MCP block ships yet - better none than a redundant one.
 
 Presets are just a block whose content is a list of other ids:
 
-| preset         | expands to                                   |
-| -------------- | -------------------------------------------- |
-| `web-starter`  | `claude gh-auth node react concise context7` |
+| preset         | expands to                    |
+| -------------- | ----------------------------- |
+| `web-starter`  | `claude gh-auth node concise` |
 
 ## What happens when you run it
 

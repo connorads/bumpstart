@@ -81,17 +81,6 @@ if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
   VIBE_TARGETS="$(printf '%s\n' "${PLAN_TARGETS[@]}")"
 fi
 
-# Harness ids in the plan, handed to blocks as space-separated VIBE_HARNESSES so
-# harness-aware blocks (skills, mcp) know which agents to configure.
-VIBE_HARNESSES=""
-_h_i=0
-while [ "$_h_i" -lt ${#PLAN_STEP_IDS[@]} ]; do
-  if [ "${PLAN_STEP_KINDS[$_h_i]}" = "harness" ]; then
-    VIBE_HARNESSES="$VIBE_HARNESSES ${PLAN_STEP_IDS[$_h_i]}"
-  fi
-  _h_i=$((_h_i + 1))
-done
-
 # run_block <id> — execute a block's apply.sh in a fresh bash with the block
 # contract in the environment. Best-effort: a failure warns and continues so one
 # fast-moving vendor step can't sink the whole setup.
@@ -102,7 +91,7 @@ run_block() {
     return 0
   fi
   VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_DESKTOP="$DESKTOP" \
-    VIBE_TARGETS="$VIBE_TARGETS" VIBE_HARNESSES="$VIBE_HARNESSES" \
+    VIBE_TARGETS="$VIBE_TARGETS" \
     bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
 }
 

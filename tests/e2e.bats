@@ -17,7 +17,6 @@ setup() {
   make_fake codex
   make_fake mise
   make_fake node
-  make_fake npx
 }
 
 apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
@@ -65,9 +64,9 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   apply web-starter --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
-  [ -f "$HOME/.claude/skills/react/SKILL.md" ]              # skill payload
-  grep -Fq "<!-- vibe:concise start -->" "$HOME/.claude/CLAUDE.md"   # instructions
-  fake_logged "claude mcp add -s user context7 -- npx -y @upstash/context7-mcp"
+  # node (via mise dep) is in the plan, and instructions land where Claude reads them
+  [[ "$output" == *"Node.js"* ]]
+  grep -Fq "<!-- vibe:concise start -->" "$HOME/.claude/CLAUDE.md"
 }
 
 @test "an id after a preset overrides its harness (web-starter codex -> codex)" {
