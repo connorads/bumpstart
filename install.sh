@@ -31,20 +31,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# ── Colours + formatting ────────────────────────────────────────────────────────
+# ── Shared libs ──────────────────────────────────────────────────────────────────
 
-if [ -n "${NO_COLOR:-}" ] || [ ! -t 1 ]; then
-  GREEN="" BLUE="" RED="" YELLOW="" DIM="" BOLD="" RESET=""
-else
-  GREEN=$'\033[32m' BLUE=$'\033[34m' RED=$'\033[31m'
-  YELLOW=$'\033[33m' DIM=$'\033[2m' BOLD=$'\033[1m' RESET=$'\033[0m'
-fi
-
-info()    { printf "  %s>%s %s\n" "$BLUE" "$RESET" "$1"; }
-success() { printf "  %s✓%s %s\n" "$GREEN" "$RESET" "$1"; }
-warn()    { printf "  %s!%s %s\n" "$YELLOW" "$RESET" "$1" >&2; }
-error()   { printf "  %s✗%s %s\n" "$RED" "$RESET" "$1" >&2; }
-step()    { printf "\n  %s[%s/%s]%s %s\n" "$BOLD" "$1" "$2" "$RESET" "$3"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+. "$SCRIPT_DIR/lib/common.sh"
+. "$SCRIPT_DIR/lib/brew.sh"
 
 # ── Preflight: macOS only ────────────────────────────────────────────────────────
 
@@ -88,20 +79,7 @@ agent_meta() {
 step 1 3 "Installing Homebrew + GitHub CLI"
 echo ""
 
-if ! command -v brew >/dev/null 2>&1 && [ ! -x /opt/homebrew/bin/brew ] && [ ! -x /usr/local/bin/brew ]; then
-  info "Installing Homebrew (may prompt for your password + Xcode CLT)..."
-  [ -t 0 ] && sudo -v
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-else
-  success "Homebrew already installed"
-fi
-
-# Put brew on PATH for the rest of this run (Apple Silicon or Intel prefix)
-if [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [ -x /usr/local/bin/brew ]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
+ensure_brew
 
 if command -v gh >/dev/null 2>&1; then
   success "gh already installed"
@@ -187,7 +165,7 @@ if [ "$DESKTOP" = true ]; then
 fi
 
 # Freshly-installed CLIs often land in ~/.local/bin — make sure this shell sees them
-export PATH="$HOME/.local/bin:$HOME/.codex/bin:$PATH"
+fixup_path
 
 # ── Done ─────────────────────────────────────────────────────────────────────────
 
