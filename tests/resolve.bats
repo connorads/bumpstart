@@ -15,11 +15,16 @@ plan() { run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --plan "$@"; }
 # index of the first output line containing $1 (or empty if absent)
 line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1; }
 
-@test "single id: harness resolves, launches, targets its file" {
+@test "single id: harness resolves and launches" {
   plan claude
   [ "$status" -eq 0 ]
   [[ "$output" == *"[harness]"* ]]
   [[ "$output" == *"Agent to launch: claude"* ]]
+}
+
+@test "harness + instructions targets the harness file" {
+  plan claude concise
+  [ "$status" -eq 0 ]
   [[ "$output" == *".claude/CLAUDE.md"* ]]
 }
 
@@ -92,11 +97,17 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *".codex/AGENTS.md"* ]]
 }
 
-@test "codex alone targets AGENTS.md, not CLAUDE.md" {
-  plan codex
+@test "codex + instructions targets AGENTS.md, not CLAUDE.md" {
+  plan codex concise
   [ "$status" -eq 0 ]
   [[ "$output" == *".codex/AGENTS.md"* ]]
   [[ "$output" != *".claude/CLAUDE.md"* ]]
+}
+
+@test "a harness with no instructions block shows no instruction target" {
+  plan codex
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Instructions written to"* ]]
 }
 
 # --- metamorphic properties (by hand; no bash PBT framework) -------------------

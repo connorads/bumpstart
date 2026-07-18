@@ -55,6 +55,11 @@ make_fake_gh() {
   make_fake gh
 }
 
+# gh fake that reports NOT authenticated (auth status -> non-zero).
+make_fake_gh_unauth() {
+  make_fake gh 'if [ "$1 ${2:-}" = "auth status" ]; then exit 1; fi'
+}
+
 # --- tiny assertions (avoid a bats-assert dependency) ---------------------------
 
 # fake_logged <pattern> — grep -F the invocation log.

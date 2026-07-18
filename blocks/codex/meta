@@ -1,0 +1,4 @@
+KIND=harness
+DESC="Install Codex (CLI + ChatGPT app)"
+SLOT=default-harness
+TARGET="$HOME/.codex/AGENTS.md"

@@ -18,6 +18,8 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/resolve.sh"
 # shellcheck source=lib/plan.sh
 . "$LIB/plan.sh"
+# shellcheck source=lib/brew.sh
+. "$LIB/brew.sh"
 
 ROOT="${VIBE_ROOT:-$(cd "$LIB/.." && pwd -P)}"
 
@@ -65,5 +67,45 @@ if [ "$ASSUME_YES" != true ]; then
   confirm_plan || die "Aborted."
 fi
 
-# ── Apply + launch: wired in the following build steps. ───────────────────────
-warn "apply loop not yet wired — run with --plan to preview."
+# ── Apply ─────────────────────────────────────────────────────────────────────
+
+# Homebrew underpins the auth + desktop/cask installs; get it in place first.
+ensure_brew
+
+# run_block <id> — execute a block's apply.sh in a fresh bash with the block
+# contract in the environment. Best-effort: a failure warns and continues so one
+# fast-moving vendor step can't sink the whole setup.
+run_block() {
+  _b_dir="$(block_dir "$ROOT" "$1")"
+  if [ ! -f "$_b_dir/apply.sh" ]; then
+    warn "block '$1' has no apply.sh — skipping"
+    return 0
+  fi
+  VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_DESKTOP="$DESKTOP" \
+    bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
+}
+
+_n=${#PLAN_STEP_IDS[@]}
+_i=0
+while [ "$_i" -lt "$_n" ]; do
+  run_block "${PLAN_STEP_IDS[$_i]}"
+  _i=$((_i + 1))
+done
+
+echo ""
+success "Setup complete."
+
+# ── Launch ────────────────────────────────────────────────────────────────────
+
+# Freshly-installed CLIs may not be on PATH yet.
+fixup_path
+
+if [ "$LAUNCH" = true ] && command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; then
+  echo ""
+  info "Starting $PLAN_DEFAULT_HARNESS — sign in when prompted..."
+  echo ""
+  exec "$PLAN_DEFAULT_HARNESS"
+else
+  echo ""
+  info "Run '$PLAN_DEFAULT_HARNESS' to start (you'll sign in on first launch)."
+fi

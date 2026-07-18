@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#
+# vibe: fetch the vibe-setup repo at VIBE_REF and hand the id list to the applier.
+#
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude react node
+#   VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/vibe)" _ web-starter   # pinned workshop
+#
+# The `bash -c "SCRIPT" _ a b` form sets $@ = a b. exec keeps stdin on the tty
+# for the interactive prompts; the curl|tar pipe below uses its own stdin.
+
+VIBE_REF="${VIBE_REF:-main}"
+REPO="connorads/vibe-setup"
+
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe.XXXXXX")"
+
+if ! curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$VIBE_REF" | tar -xz -C "$tmp"; then
+  printf 'vibe: could not fetch %s@%s — check the ref and your connection.\n' "$REPO" "$VIBE_REF" >&2
+  rm -rf "$tmp"
+  exit 1
+fi
+
+# The extracted top-level dir is named after the ref (e.g. vibe-setup-main), and
+# that name varies, so glob for it rather than hard-code.
+root=""
+for d in "$tmp"/*/; do root="$d"; break; done
+
+if [ -z "$root" ] || [ ! -f "${root}lib/apply.sh" ]; then
+  printf 'vibe: unexpected tarball layout under %s\n' "$tmp" >&2
+  rm -rf "$tmp"
+  exit 1
+fi
+
+# exec replaces this process, so the tmpdir persists for the applier to use.
+exec bash "${root}lib/apply.sh" "$@"
