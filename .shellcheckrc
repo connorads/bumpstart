@@ -1,0 +1,6 @@
+# The Plan is a contract of shared globals across sourced files, and meta.sh
+# reads fields via ${!name} indirection — both invisible to SC2034's per-file
+# scope. Disable it project-wide rather than scatter directives.
+disable=SC2034
+# Sourced libs are resolved at runtime; static following needs -x, which we pass.
+disable=SC1091

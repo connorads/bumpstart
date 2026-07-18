@@ -1,0 +1,3 @@
+KIND=tool
+DESC="cycle fixture B"
+INCLUDE="cyc-a"
