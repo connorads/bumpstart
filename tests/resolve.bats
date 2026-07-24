@@ -35,6 +35,19 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *".claude/CLAUDE.md"* ]]
 }
 
+@test "the plan sets honest expectations, harness-accurate (brew absent)" {
+  # the isolated PATH has no brew, so the password heads-up shows
+  plan claude
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"What will happen"* ]]
+  [[ "$output" == *"Mac password"* ]]
+  [[ "$output" == *"Claude account"* ]]
+  [[ "$output" == *"asks before changing files"* ]]
+  plan codex
+  [[ "$output" == *"Codex account"* ]]
+  [[ "$output" != *"Claude account"* ]]
+}
+
 @test "no ids default to the web-starter plan" {
   plan
   [ "$status" -eq 0 ]

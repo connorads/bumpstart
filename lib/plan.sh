@@ -4,10 +4,14 @@
 # colour helpers in common.sh. bash-3.2-clean (index loops, guarded array
 # expansion — never expand a possibly-empty array under set -u).
 
-# render_plan: print the ordered steps, the agent that will launch, and (when the
-# plan writes instructions) the one canonical file plus the harness paths linked
-# to it.
+# render_plan [full]: print the ordered steps, the agent that will launch, and a
+# short "what will happen" heads-up so the confirm promise ("one prompt that
+# stays") survives contact with a cold Mac. In "full" mode (the --plan dry-run
+# and the author wizard) it also prints the canonical instructions file and the
+# harness paths linked to it — author/debug detail that is noise to a beginner at
+# the confirm gate, so the plain confirm view omits it.
 render_plan() {
+  _p_mode="${1:-}"
   _p_n=${#PLAN_STEP_IDS[@]}
   _p_i=0
   printf "\n  This will set up:\n\n"
@@ -17,14 +21,40 @@ render_plan() {
     _p_i=$((_p_i + 1))
   done
   printf "\n  Agent to launch: %s%s%s\n" "$BOLD" "$PLAN_DEFAULT_HARNESS" "$RESET"
-  if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
+  if [ "$_p_mode" = full ] && [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
     printf "  Instructions file: %s\n" "$(canonical_path)"
     printf "  linked from:\n"
     for _p_t in "${PLAN_TARGETS[@]}"; do
       printf "    %s\n" "$_p_t"
     done
   fi
+  _render_expectations
   printf "\n"
+}
+
+# _render_expectations: set honest expectations once, from the resolved plan plus
+# a couple of cheap probes. No pricing claims (tiers change); no duplicate of the
+# just-in-time password narration (that fires at the prompt itself).
+_render_expectations() {
+  printf "\n  %sWhat will happen:%s\n" "$BOLD" "$RESET"
+  # Homebrew's install prompts for the Mac password once; a cold Mac without the
+  # Command Line Tools also fetches them, which can be slow.
+  if ! command -v brew >/dev/null 2>&1; then
+    printf "    - macOS will ask for your Mac password once.\n"
+    if ! xcode-select -p >/dev/null 2>&1; then
+      printf "    - A one-time download may take ~10-15 min.\n"
+    fi
+  fi
+  # Account sign-in — harness-accurate wording, no pricing.
+  case "$PLAN_DEFAULT_HARNESS" in
+    claude) _p_acct="Claude" ;;
+    codex)  _p_acct="Codex" ;;
+    *)      _p_acct="$PLAN_DEFAULT_HARNESS" ;;
+  esac
+  printf "    - At the end you'll sign into your %s account in the browser - create one first if you don't have it.\n" "$_p_acct"
+  # Where it works + the safety habit.
+  printf "    - The agent works in %s and asks before changing files or running commands.\n" \
+    "${STARTER_DIR:-$HOME/code/first-project}"
 }
 
 # confirm_plan: the one interactive gate. 0 = proceed, 1 = abort. Non-tty (no

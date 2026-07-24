@@ -116,7 +116,7 @@ fi
 # ── --plan dry-run: print the Plan and stop before any effect ─────────────────
 
 if [ "$PLAN_ONLY" = true ]; then
-  render_plan
+  render_plan full
   exit 0
 fi
 

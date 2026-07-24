@@ -108,7 +108,7 @@ run_wizard() {
     error "$PLAN_ERROR"
     return 1
   fi
-  render_plan
+  render_plan full
 
   emit_paste_command "${WIZARD_IDS[@]}"
 

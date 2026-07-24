@@ -122,6 +122,14 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   refute_fake_logged "claude"
 }
 
+@test "the plain confirm omits the instruction-file paths but keeps expectations" {
+  apply claude concise --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  # author/debug detail, hidden from the novice confirm (present only in --plan)
+  [[ "$output" != *"Instructions file:"* ]]
+  [[ "$output" == *"What will happen"* ]]
+}
+
 @test "the starter prompt is copied to the clipboard with paste guidance" {
   apply claude --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
