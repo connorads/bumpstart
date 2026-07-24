@@ -84,6 +84,9 @@ the rest of the file untouched.
 | flag             | effect                                        |
 | ---------------- | --------------------------------------------- |
 | `--plan`         | Print the resolved plan and exit - no changes |
+| `--list`         | Print the block/preset catalogue and exit     |
+| `--show <id>`    | Print one block's detail (kind, deps, target) |
+| `--build`        | Interactive wizard - assemble a bundle, emit the paste |
 | `--yes` / `-y`   | Skip the confirm (for headless / VM runs)     |
 | `--no-launch`    | Don't drop into the agent at the end          |
 | `--no-desktop`   | Install the CLI only, skip the desktop app    |
@@ -93,6 +96,24 @@ Preview a setup without touching anything:
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ web-starter --plan
 ```
+
+## Composing a bundle (workshop leaders)
+
+Whoever hands out the paste can discover and assemble it in the CLI rather than
+recalling ids from the table above.
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --list       # what blocks exist
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --show node  # one block's detail
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --build      # wizard
+```
+
+`--build` asks which agent launches (required), then offers every other block as
+opt-in. It previews the resolved plan, then **prints the one-paste command** to
+hand out (and copies it to the clipboard where `pbcopy` exists), and offers to
+run the setup now. The emitted command inherits the run's `VIBE_REF`: pin the
+run (`VIBE_REF=<sha> … --build`) and the paste carries the same `VIBE_REF=<sha>`
+prefix, so a workshop stays reproducible.
 
 ## Pinning (workshops)
 

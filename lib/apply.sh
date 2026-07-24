@@ -18,6 +18,10 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/resolve.sh"
 # shellcheck source=lib/plan.sh
 . "$LIB/plan.sh"
+# shellcheck source=lib/catalogue.sh
+. "$LIB/catalogue.sh"
+# shellcheck source=lib/build.sh
+. "$LIB/build.sh"
 # shellcheck source=lib/brew.sh
 . "$LIB/brew.sh"
 # shellcheck source=lib/trust.sh
@@ -32,6 +36,10 @@ die() { error "$1"; exit 1; }
 IDS=()
 PLAN_ONLY=false
 ASSUME_YES=false
+LIST_ONLY=false
+SHOW=false
+SHOW_ID=""
+BUILD=false
 # LAUNCH / DESKTOP are consumed by the apply loop + launch (wired in later steps).
 LAUNCH=true
 DESKTOP=true
@@ -40,6 +48,9 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --plan)       PLAN_ONLY=true ;;
     --yes|-y)     ASSUME_YES=true ;;
+    --list)       LIST_ONLY=true ;;
+    --show)       SHOW=true; SHOW_ID="${2:-}"; [ $# -gt 1 ] && shift ;;
+    --build)      BUILD=true ;;
     --no-launch)  LAUNCH=false ;;
     --no-desktop) DESKTOP=false ;;
     --) shift; while [ $# -gt 0 ]; do IDS+=("$1"); shift; done; break ;;
@@ -48,6 +59,31 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# ── Author-facing discovery + wizard (read-only; short-circuit before resolve) ─
+#
+# resolve errors on an empty/harness-less id list, so these must answer BEFORE it.
+# --build with run-now=yes is the exception: it hands its ids to IDS and falls
+# through into the normal resolve→confirm→apply→launch path below.
+
+if [ "$LIST_ONLY" = true ]; then
+  render_catalogue "$ROOT"
+  exit 0
+fi
+
+if [ "$SHOW" = true ]; then
+  render_block "$ROOT" "$SHOW_ID" && exit 0
+  exit 1
+fi
+
+if [ "$BUILD" = true ]; then
+  run_wizard "$ROOT" || exit $?
+  if [ "$WIZARD_RUN_NOW" = true ]; then
+    IDS=("${WIZARD_IDS[@]}")
+  else
+    exit 0
+  fi
+fi
 
 # ── Resolve (pure core): all domain errors surface here, before any effect ────
 
