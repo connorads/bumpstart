@@ -87,6 +87,17 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
 }
 
+@test "bare paste (no ids) defaults to the full web-starter setup" {
+  apply --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Agent to launch: claude"* ]]
+  [[ "$output" == *"Node.js"* ]]
+  [[ "$output" == *"Setup complete"* ]]
+  # not the old bare-agent error path
+  [[ "$output" != *"no blocks requested"* ]]
+  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+}
+
 @test "an id after a preset overrides its harness (web-starter codex -> codex)" {
   apply web-starter codex --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]

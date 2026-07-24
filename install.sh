@@ -10,7 +10,9 @@ set -euo pipefail
 # Any other flags (--no-desktop, --no-launch, --yes, --plan, extra ids) pass
 # straight through to the applier.
 
-AGENT=claude
+# No --agent → pass no ids, so the applier's bare-paste default (web-starter)
+# gives the full beginner setup rather than a tool-less, sign-in-less bare agent.
+AGENT=""
 ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -26,7 +28,7 @@ if [ -n "${BASH_SOURCE[0]:-}" ]; then
 fi
 
 if [ -n "$dir" ] && [ -f "$dir/lib/apply.sh" ]; then
-  exec bash "$dir/lib/apply.sh" "$AGENT" ${ARGS[@]+"${ARGS[@]}"}
+  exec bash "$dir/lib/apply.sh" ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
 else
-  exec /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ "$AGENT" ${ARGS[@]+"${ARGS[@]}"}
+  exec /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
 fi

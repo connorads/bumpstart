@@ -43,6 +43,8 @@ SHOW=false
 SHOW_ID=""
 BUILD=false
 FORCE=false
+# Bare paste (no ids) → the full beginner setup, not a bare agent or an error.
+DEFAULT_PRESET=web-starter
 # LAUNCH / DESKTOP are consumed by the apply loop + launch (wired in later steps).
 LAUNCH=true
 DESKTOP=true
@@ -99,6 +101,11 @@ if [ "$(uname -s)" != "Darwin" ]; then
   info "vibe-setup is macOS-only for now."
   exit 0
 fi
+
+# No ids → the beginner default (web-starter). Kept out of resolve.sh so the pure
+# core stays free of a hardcoded preset; resolve's own empty-list error remains
+# the last-line guard for any caller that bypasses this.
+[ ${#IDS[@]} -eq 0 ] && IDS=("$DEFAULT_PRESET")
 
 # ── Resolve (pure core): all domain errors surface here, before any effect ────
 

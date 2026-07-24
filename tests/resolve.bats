@@ -35,6 +35,17 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *".claude/CLAUDE.md"* ]]
 }
 
+@test "no ids default to the web-starter plan" {
+  plan
+  [ "$status" -eq 0 ]
+  # identical to naming the preset explicitly — the bare paste is web-starter
+  a="$output"
+  plan web-starter
+  [ "$output" = "$a" ]
+  [[ "$output" == *"Agent to launch: claude"* ]]
+  [[ "$output" == *"[instructions]"* ]]
+}
+
 @test "preset expands to its included blocks" {
   plan web-starter
   [ "$status" -eq 0 ]

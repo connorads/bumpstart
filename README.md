@@ -13,11 +13,14 @@ macOS only (for now).
 
 ## Quick start
 
-Install Claude Code and go:
+Paste this and go — no ids, no choices. You get the full beginner setup
+(`web-starter`: Claude Code + GitHub + Node + concise instructions):
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
 ```
+
+`vibe _` (bare, no ids) does the same. Both default to `web-starter`.
 
 Or compose your own setup with `vibe` and a list of block ids:
 
@@ -25,7 +28,7 @@ Or compose your own setup with `vibe` and a list of block ids:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude gh-auth node concise
 ```
 
-Or use a named preset:
+Or name a preset explicitly:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ web-starter

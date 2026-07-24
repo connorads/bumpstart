@@ -35,10 +35,13 @@ setup() {
   [[ "$output" == *"Setup complete"* ]]
 }
 
-@test "defaults to Claude with no --agent" {
+@test "no --agent gives the full web-starter setup (not a bare agent)" {
   run bash "$REPO_ROOT/install.sh" --yes --no-desktop --no-launch
   [ "$status" -eq 0 ]
+  # web-starter installs the Claude CLI and its instructions land
   fake_logged "INSTALL claude"
+  [[ "$output" == *"Agent to launch: claude"* ]]
+  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
 }
 
 @test "rejects an unknown agent at plan time, applying nothing" {
