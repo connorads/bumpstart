@@ -13,6 +13,8 @@ setup_isolated_env() {
   export HOME="$BATS_TEST_TMPDIR/home"
   export FAKES="$BATS_TEST_TMPDIR/bin"
   export VIBE_FAKE_LOG="$BATS_TEST_TMPDIR/fake.log"
+  # Canonical instructions path resolves under the temp HOME, not the real one.
+  unset XDG_CONFIG_HOME
   mkdir -p "$HOME" "$FAKES"
   : > "$VIBE_FAKE_LOG"
   export PATH="$FAKES:/usr/bin:/bin:/usr/sbin:/sbin"

@@ -12,7 +12,7 @@ run_block() {
   id="$1"; shift
   run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
     VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_BLOCK_ID="$id" \
-    VIBE_TARGETS="${VIBE_TARGETS:-}" VIBE_DESKTOP=false \
+    VIBE_DESKTOP=false \
     bash "$REPO_ROOT/blocks/$id/apply.sh" "$@"
 }
 
@@ -41,36 +41,32 @@ run_block() {
   [ "$count" -eq 1 ]
 }
 
-@test "mise block merges its guidance into the instruction target" {
-  make_fake mise
-  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
+@test "mise block installs via brew when absent" {
+  make_fake brew
   run_block mise
   [ "$status" -eq 0 ]
-  grep -Fq "<!-- vibe:mise start -->" "$HOME/.claude/CLAUDE.md"
+  fake_logged "brew install mise"
 }
 
-@test "node block merges its guidance into the instruction target" {
-  make_fake node
-  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
+@test "mise block installs nothing when mise is present" {
+  make_fake mise
+  run_block mise
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"already installed"* ]]
+}
+
+@test "node block installs via mise when absent" {
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
   run_block node
   [ "$status" -eq 0 ]
-  grep -Fq "<!-- vibe:node start -->" "$HOME/.claude/CLAUDE.md"
+  fake_logged "mise use -g node@lts"
 }
 
 @test "pnpm block installs via mise when absent" {
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
-  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
   run_block pnpm
   [ "$status" -eq 0 ]
   fake_logged "mise use -g pnpm"
-}
-
-@test "pnpm block merges its guidance into the instruction target" {
-  make_fake pnpm
-  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
-  run_block pnpm
-  [ "$status" -eq 0 ]
-  grep -Fq "<!-- vibe:pnpm start -->" "$HOME/.claude/CLAUDE.md"
 }
 
 @test "gh-auth block installs gh via brew when absent" {

@@ -31,7 +31,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 @test "a tool block that ships content.md targets the harness file (no instructions block needed)" {
   plan claude mise
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Instructions written to"* ]]
+  [[ "$output" == *"Instructions file"* ]]
   [[ "$output" == *".claude/CLAUDE.md"* ]]
 }
 
@@ -124,7 +124,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 @test "a harness with no instructions block shows no instruction target" {
   plan codex
   [ "$status" -eq 0 ]
-  [[ "$output" != *"Instructions written to"* ]]
+  [[ "$output" != *"Instructions file"* ]]
 }
 
 # --- metamorphic properties (by hand; no bash PBT framework) -------------------

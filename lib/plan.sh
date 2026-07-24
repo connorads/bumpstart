@@ -4,8 +4,9 @@
 # colour helpers in common.sh. bash-3.2-clean (index loops, guarded array
 # expansion — never expand a possibly-empty array under set -u).
 
-# render_plan: print the ordered steps, the agent that will launch, and the
-# files instructions will be written to.
+# render_plan: print the ordered steps, the agent that will launch, and (when the
+# plan writes instructions) the one canonical file plus the harness paths linked
+# to it.
 render_plan() {
   _p_n=${#PLAN_STEP_IDS[@]}
   _p_i=0
@@ -17,7 +18,8 @@ render_plan() {
   done
   printf "\n  Agent to launch: %s%s%s\n" "$BOLD" "$PLAN_DEFAULT_HARNESS" "$RESET"
   if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
-    printf "  Instructions written to:\n"
+    printf "  Instructions file: %s\n" "$(canonical_path)"
+    printf "  linked from:\n"
     for _p_t in "${PLAN_TARGETS[@]}"; do
       printf "    %s\n" "$_p_t"
     done
@@ -32,7 +34,7 @@ confirm_plan() {
     error "No terminal to confirm. Re-run with --yes to proceed non-interactively."
     return 1
   fi
-  printf "  Proceed? %s[Y/n]%s " "$YELLOW" "$RESET"
+  printf "  %sPress Enter to set up, or Ctrl-C to cancel.%s " "$YELLOW" "$RESET"
   read -r _p_reply
   case "$_p_reply" in
     ""|[Yy]*) return 0 ;;

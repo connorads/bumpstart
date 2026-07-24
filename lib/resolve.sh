@@ -12,7 +12,8 @@
 #   PLAN_STEP_KINDS[]  parallel: each step's KIND
 #   PLAN_STEP_DESCS[]  parallel: each step's DESC
 #   PLAN_DEFAULT_HARNESS   id of the harness to launch (last-in-list-wins)
-#   PLAN_TARGETS[]     instruction target files (one per harness present, deduped)
+#   PLAN_TARGETS[]     harness-native instruction paths to symlink at the
+#                      canonical file (one per harness present, deduped)
 #   PLAN_ERROR         set on failure
 
 # Kind ordering: lower runs first; launch happens after all steps.
@@ -101,9 +102,10 @@ resolve() {
     PLAN_STEP_DESCS+=("$(meta_get "$_r_dir" DESC)")
   done < <(printf '%s' "$_r_decorated" | sort -k1,1n -k2,2n)
 
-  # Instruction targets = the TARGET of each harness present, deduped in order.
-  # Only meaningful when some step ships a content.md — that is what gets merged
-  # into the harness files. No content.md anywhere → nothing is written, so we
+  # Instruction targets = the native TARGET of each harness present, deduped in
+  # order — the paths we symlink at the canonical file. Only meaningful when some
+  # step ships a content.md (that is what the canonical file is assembled from).
+  # No content.md anywhere → nothing is written and nothing is linked, so we
   # leave PLAN_TARGETS empty and the preview stays honest.
   _r_n=${#PLAN_STEP_IDS[@]}
   _r_writes=false

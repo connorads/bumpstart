@@ -55,9 +55,10 @@ single-choice is which agent launches, and there **last in the list wins**
 | `ask-first`  | instructions | Ask before installing tools / deleting files                       |
 
 A tool block also teaches the agent how to use what it installs: its short
-guidance is merged into the agent's instructions file, but only when that block
-is in the plan - so `mise`/`node`/`pnpm` steer the agent to those tools instead
-of a hand-rolled installer, and the guidance is present exactly when the tool is.
+guidance is stacked into the canonical instructions file, but only when that
+block is in the plan - so `mise`/`node`/`pnpm` steer the agent to those tools
+instead of a hand-rolled installer, and the guidance is present exactly when the
+tool is.
 
 The `skill` and `mcp` kinds are supported by the applier, but no recommended
 skill or MCP block ships yet - better none than a redundant one.
@@ -77,14 +78,18 @@ Presets are just a block whose content is a list of other ids:
 3. Print the plan and ask **once** to proceed.
 4. Install Homebrew if needed, then apply each block (check-then-act, so re-runs
    skip what is already there).
-5. Merge any instructions into the file each agent actually reads
-   (`~/.claude/CLAUDE.md` for Claude, `~/.codex/AGENTS.md` for Codex).
+5. Assemble the block instructions into **one canonical file**
+   (`~/.config/agents/AGENTS.md`, honouring `$XDG_CONFIG_HOME`), then symlink
+   each installed agent's own path to it (`~/.claude/CLAUDE.md` for Claude,
+   `~/.codex/AGENTS.md` for Codex) so both agents read the single source.
 6. Create a starter project (`~/code/first-project`), pre-trust it, then launch
    the agent there. A browser opens for sign-in - that one prompt stays.
 
-Everything is idempotent: run it again and already-done steps are skipped;
-managed instruction blocks live between markers and are updated in place, leaving
-the rest of the file untouched.
+Everything is idempotent: run it again and already-done steps are skipped; a
+symlink already pointing at the canonical file is left alone. vibe never scribbles
+in files you own - if the canonical file or a real agent config already exists, it
+backs off and points you at it (use `--force` to replace: real files are moved to
+`.bak` first).
 
 ## Flags
 
@@ -95,6 +100,7 @@ the rest of the file untouched.
 | `--show <id>`    | Print one block's detail (kind, deps, target) |
 | `--build`        | Interactive wizard - assemble a bundle, emit the paste |
 | `--yes` / `-y`   | Skip the confirm (for headless / VM runs)     |
+| `--force`        | Rewrite an existing canonical file; back real agent configs up to `.bak` then link |
 | `--no-launch`    | Don't drop into the agent at the end          |
 | `--no-desktop`   | Install the CLI only, skip the desktop app    |
 
@@ -140,8 +146,9 @@ install the latest.
   a failed cask install warns and continues rather than aborting.
 - Codex's desktop experience lives inside the ChatGPT app (`brew install --cask
   chatgpt`) since the July 2026 Codex/ChatGPT merge.
-- Instructions are written to each agent's own file; neither agent reads
-  `~/.agents/AGENTS.md` by default, so nothing is written there.
+- Instructions live in one canonical file (`~/.config/agents/AGENTS.md`); each
+  agent's own path is a symlink to it (the documented `ln -s AGENTS.md CLAUDE.md`
+  pattern), so editing one file steers every agent and every session.
 
 ## Development
 
@@ -156,5 +163,6 @@ mise run check         # lint + test
 ```
 
 Tests are black-box with PATH-shadow fakes (no network, no real installs). The
-pure resolver is exercised via `--plan` against a fixture block tree; `merge.sh`
-and `trust.sh` are driven under `/bin/bash` against an isolated `HOME`.
+pure resolver is exercised via `--plan` against a fixture block tree;
+`instructions.sh` and `trust.sh` are driven under `/bin/bash` against an isolated
+`HOME`.

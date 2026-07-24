@@ -16,6 +16,8 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/meta.sh"
 # shellcheck source=lib/resolve.sh
 . "$LIB/resolve.sh"
+# shellcheck source=lib/instructions.sh
+. "$LIB/instructions.sh"
 # shellcheck source=lib/plan.sh
 . "$LIB/plan.sh"
 # shellcheck source=lib/catalogue.sh
@@ -40,6 +42,7 @@ LIST_ONLY=false
 SHOW=false
 SHOW_ID=""
 BUILD=false
+FORCE=false
 # LAUNCH / DESKTOP are consumed by the apply loop + launch (wired in later steps).
 LAUNCH=true
 DESKTOP=true
@@ -51,6 +54,7 @@ while [ $# -gt 0 ]; do
     --list)       LIST_ONLY=true ;;
     --show)       SHOW=true; SHOW_ID="${2:-}"; [ $# -gt 1 ] && shift ;;
     --build)      BUILD=true ;;
+    --force)      FORCE=true ;;
     --no-launch)  LAUNCH=false ;;
     --no-desktop) DESKTOP=false ;;
     --) shift; while [ $# -gt 0 ]; do IDS+=("$1"); shift; done; break ;;
@@ -110,24 +114,16 @@ fi
 # Homebrew underpins the auth + desktop/cask installs; get it in place first.
 ensure_brew
 
-# Instruction targets (harness files) handed to every block as newline-separated
-# VIBE_TARGETS; instructions blocks merge into them. Guard the empty array (set -u).
-VIBE_TARGETS=""
-if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
-  VIBE_TARGETS="$(printf '%s\n' "${PLAN_TARGETS[@]}")"
-fi
-
 # run_block <id> — execute a block's apply.sh in a fresh bash with the block
-# contract in the environment. Best-effort: a failure warns and continues so one
-# fast-moving vendor step can't sink the whole setup.
+# contract in the environment. A missing apply.sh is a silent skip: instruction
+# blocks (concise, ask-first) legitimately ship only meta + content.md, which the
+# applier assembles centrally. Best-effort otherwise: a failure warns and
+# continues so one fast-moving vendor step can't sink the whole setup.
 run_block() {
   _b_dir="$(block_dir "$ROOT" "$1")"
-  if [ ! -f "$_b_dir/apply.sh" ]; then
-    warn "block '$1' has no apply.sh — skipping"
-    return 0
-  fi
+  [ -f "$_b_dir/apply.sh" ] || return 0
   VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_BLOCK_ID="$1" \
-    VIBE_DESKTOP="$DESKTOP" VIBE_TARGETS="$VIBE_TARGETS" \
+    VIBE_DESKTOP="$DESKTOP" \
     bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
 }
 
@@ -140,6 +136,52 @@ done
 
 echo ""
 success "Setup complete."
+
+# ── Instructions: assemble the canonical file, symlink each harness to it ─────
+#
+# One editable source of truth at canonical_path; each installed harness's own
+# path becomes a symlink to it, so today's agents (which read their native path)
+# follow the link. Back off from anything the user already owns.
+LINK_BACKOFFS=""
+assemble_instructions "$ROOT" "$FORCE"
+if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
+  for _t in "${PLAN_TARGETS[@]}"; do
+    link_harness "$_t" "$FORCE"
+  done
+fi
+
+CANON="$(canonical_path)"
+if [ "$INSTRUCTIONS_WROTE" = true ]; then
+  echo ""
+  info "Your agent instructions live in one file:"
+  printf "    %s\n" "$CANON"
+  info "Both Claude and Codex read it (linked from their own config)."
+elif [ "$INSTRUCTIONS_BACKED_OFF" = true ]; then
+  echo ""
+  info "You already have an instructions file here — left as-is:"
+  printf "    %s\n" "$CANON"
+  info "Re-run with --force to replace it."
+fi
+
+if [ -n "$LINK_BACKOFFS" ]; then
+  echo ""
+  warn "These agent config files already exist and were left untouched:"
+  printf '%s' "$LINK_BACKOFFS" | while IFS= read -r _bk; do
+    [ -n "$_bk" ] || continue
+    printf "    %s\n" "$_bk"
+  done
+  warn "Point them at $CANON yourself, or re-run with --force to back them up and link."
+fi
+
+# Reveal the file so a novice can find and edit it (macOS, interactive only).
+if [ "$INSTRUCTIONS_WROTE" = true ] && [ -t 1 ] && command -v open >/dev/null 2>&1; then
+  open -R "$CANON" >/dev/null 2>&1 || :
+fi
+
+if [ "$INSTRUCTIONS_WROTE" = true ] || [ "$INSTRUCTIONS_BACKED_OFF" = true ]; then
+  echo ""
+  info "💡 Edit that file in plain language to steer every future session."
+fi
 
 # ── Starter project + trust preseed ───────────────────────────────────────────
 

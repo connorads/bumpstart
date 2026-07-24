@@ -28,34 +28,45 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Setup complete"* ]]
 }
 
-@test "instructions land where Claude reads them (~/.claude/CLAUDE.md)" {
+@test "instructions land in the canonical file; Claude's path links to it" {
   apply claude concise --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
-  grep -Fq "<!-- vibe:concise start -->" "$HOME/.claude/CLAUDE.md"
-  [ ! -f "$HOME/.agents/AGENTS.md" ]
+  canon="$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Be concise" "$canon"
+  ! grep -Fq "<!-- vibe" "$canon"
+  [ -L "$HOME/.claude/CLAUDE.md" ]
+  [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
 }
 
-@test "instructions land where Codex reads them (~/.codex/AGENTS.md)" {
+@test "Codex's path links to the same canonical file" {
   apply codex concise --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
-  grep -Fq "<!-- vibe:concise start -->" "$HOME/.codex/AGENTS.md"
-  [ ! -f "$HOME/.claude/CLAUDE.md" ]
+  canon="$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Be concise" "$canon"
+  [ -L "$HOME/.codex/AGENTS.md" ]
+  [ "$(readlink "$HOME/.codex/AGENTS.md")" = "$canon" ]
+  [ ! -e "$HOME/.claude/CLAUDE.md" ]
 }
 
-@test "a tool block's guidance lands in ~/.claude/CLAUDE.md" {
+@test "a tool block's guidance lands in the canonical file" {
   apply claude node --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
-  grep -Fq "<!-- vibe:node start -->" "$HOME/.claude/CLAUDE.md"
-  grep -Fq "<!-- vibe:mise start -->" "$HOME/.claude/CLAUDE.md"
+  canon="$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Node.js" "$canon"
+  grep -Fq "## Installing tools (mise)" "$canon"
+  [ -L "$HOME/.claude/CLAUDE.md" ]
 }
 
-@test "second run all-skips and the target file is byte-identical" {
+@test "second run leaves the canonical byte-identical and the link intact" {
   apply claude concise --yes --no-launch --no-desktop
-  once="$(cat "$HOME/.claude/CLAUDE.md")"
+  canon="$HOME/.config/agents/AGENTS.md"
+  once="$(cat "$canon")"
   apply claude concise --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
-  twice="$(cat "$HOME/.claude/CLAUDE.md")"
+  twice="$(cat "$canon")"
   [ "$once" = "$twice" ]
+  [ -L "$HOME/.claude/CLAUDE.md" ]
+  [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
   [[ "$output" == *"already installed"* ]]
 }
 
@@ -71,9 +82,9 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   apply web-starter --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
-  # node (via mise dep) is in the plan, and instructions land where Claude reads them
+  # node (via mise dep) is in the plan, and instructions land in the canonical file
   [[ "$output" == *"Node.js"* ]]
-  grep -Fq "<!-- vibe:concise start -->" "$HOME/.claude/CLAUDE.md"
+  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
 }
 
 @test "an id after a preset overrides its harness (web-starter codex -> codex)" {
