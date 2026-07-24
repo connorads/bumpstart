@@ -12,18 +12,27 @@ ensure_brew() {
     return 0
   fi
 
-  if [ -x /opt/homebrew/bin/brew ] || [ -x /usr/local/bin/brew ]; then
+  # The Apple-Silicon / Intel brew prefixes, overridable so the install branch is
+  # reachable in tests without a real uninstall (defaults are the real paths).
+  _eb_opt="${VIBE_BREW_OPT:-/opt/homebrew/bin/brew}"
+  _eb_usr="${VIBE_BREW_USR:-/usr/local/bin/brew}"
+
+  if [ -x "$_eb_opt" ] || [ -x "$_eb_usr" ]; then
     success "Homebrew already installed"
   else
     info "Installing Homebrew (may prompt for your password + Xcode CLT)..."
+    # Narrate the blank, non-echoing sudo prompt before it fires — to a
+    # first-timer it reads as "broken" otherwise. This is the canonical copy for
+    # the password moment (the confirm gate only foreshadows it).
+    info "macOS wants the password you use to log in to this Mac. Nothing appears as you type - that is normal. Press Return when you're done."
     [ -t 0 ] && sudo -v
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
   # Brew is installed but not yet on this shell's PATH — add it.
-  if [ -x /opt/homebrew/bin/brew ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [ -x /usr/local/bin/brew ]; then
-    eval "$(/usr/local/bin/brew shellenv)"
+  if [ -x "$_eb_opt" ]; then
+    eval "$("$_eb_opt" shellenv)"
+  elif [ -x "$_eb_usr" ]; then
+    eval "$("$_eb_usr" shellenv)"
   fi
 }
