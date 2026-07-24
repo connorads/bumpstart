@@ -130,6 +130,17 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"What will happen"* ]]
 }
 
+@test "a double-clickable return launcher lands in the starter dir" {
+  apply claude --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  starter="$(cd "$HOME/code/first-project" && pwd -P)"
+  launcher="$starter/Open first-project.command"
+  [ -f "$launcher" ]
+  [ -x "$launcher" ]
+  grep -Fq "cd \"$starter\"" "$launcher"
+  grep -Fq 'exec "claude"' "$launcher"
+}
+
 @test "the starter prompt is copied to the clipboard with paste guidance" {
   apply claude --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]

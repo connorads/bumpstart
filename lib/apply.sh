@@ -213,6 +213,9 @@ fi
 STARTER="$(ensure_starter_dir)"
 preseed_trust "$PLAN_DEFAULT_HARNESS" "$STARTER"
 
+# A double-clickable way back for the second sitting (no CLI recall needed).
+write_return_launcher "$PLAN_DEFAULT_HARNESS" "$STARTER"
+
 # ── Launch ────────────────────────────────────────────────────────────────────
 
 # Freshly-installed CLIs may not be on PATH yet.

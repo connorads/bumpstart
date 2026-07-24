@@ -73,6 +73,25 @@ preseed_trust() {
   esac
 }
 
+# write_return_launcher <harness> <dir>: drop a double-clickable
+# `Open first-project.command` in the starter dir so the second-sitting return
+# path isn't pure CLI recall (open Terminal, cd, run the agent). Prepends the
+# agent install dirs to PATH (mirrors fixup_path) because a double-clicked
+# .command runs a non-login /bin/bash that won't have sourced the shell profile.
+# Idempotent: overwrite is fine.
+write_return_launcher() {
+  _rl_harness="$1"; _rl_dir="$2"
+  _rl_file="$_rl_dir/Open first-project.command"
+  cat > "$_rl_file" <<EOF
+#!/bin/bash
+# Double-click to reopen your project with the agent. Created by vibe-setup.
+export PATH="\$HOME/.local/bin:\$HOME/.codex/bin:\$PATH"
+cd "$_rl_dir" && exec "$_rl_harness"
+EOF
+  chmod +x "$_rl_file"
+  success "Made a double-clickable launcher to come back: $_rl_file"
+}
+
 # copy_starter_prompt <root>: put the friendly first message on the clipboard so
 # it survives the browser sign-in and the novice can paste it into the empty
 # agent prompt. Reads <root>/starter-prompt.txt (no-op if missing/empty). When
