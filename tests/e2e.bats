@@ -100,6 +100,12 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
 }
 
+@test "web-starter includes the welcome block; its text lands in the canonical file" {
+  apply web-starter --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  grep -Fq "## Welcome" "$HOME/.config/agents/AGENTS.md"
+}
+
 @test "an id after a preset overrides its harness (web-starter codex -> codex)" {
   apply web-starter codex --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]

@@ -56,6 +56,7 @@ single-choice is which agent launches, and there **last in the list wins**
 | `pnpm`       | tool         | Install pnpm via mise (pulls in `mise`)                            |
 | `concise`    | instructions | Ask the agent to keep answers concise                              |
 | `ask-first`  | instructions | Ask before installing tools / deleting files                       |
+| `welcome`    | instructions | Greet the beginner + how to work with the agent every session      |
 
 A tool block also teaches the agent how to use what it installs: its short
 guidance is stacked into the canonical instructions file, but only when that
@@ -68,9 +69,9 @@ skill or MCP block ships yet - better none than a redundant one.
 
 Presets are just a block whose content is a list of other ids:
 
-| preset         | expands to                    |
-| -------------- | ----------------------------- |
-| `web-starter`  | `claude gh-auth node concise` |
+| preset         | expands to                            |
+| -------------- | ------------------------------------- |
+| `web-starter`  | `claude gh-auth node welcome concise` |
 
 ## What happens when you run it
 

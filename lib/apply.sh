@@ -129,6 +129,10 @@ fi
 
 # ── Apply ─────────────────────────────────────────────────────────────────────
 
+# A modest branded header as the real work begins (colour-gated via common.sh).
+printf "\n  %s✦ vibe-setup%s %s— let's get you building%s\n" \
+  "$BOLD$BLUE" "$RESET" "$DIM" "$RESET"
+
 # Homebrew underpins the auth + desktop/cask installs; get it in place first.
 ensure_brew
 
@@ -154,6 +158,7 @@ done
 
 echo ""
 success "Setup complete."
+printf "  %sYou're all set — the hard part is done.%s\n" "$GREEN" "$RESET"
 
 # ── Instructions: assemble the canonical file, symlink each harness to it ─────
 #
