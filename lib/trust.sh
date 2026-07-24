@@ -10,6 +10,10 @@
 # The dedicated starter dir. Never blanket-trust $HOME.
 STARTER_DIR="$HOME/code/first-project"
 
+# Set true once the starter prompt reaches the clipboard, so the finish message
+# only claims "on your clipboard" when it actually is.
+STARTER_PROMPT_COPIED=false
+
 # ensure_starter_dir: create the starter project, echo its symlink-resolved path
 # (pwd -P) — the key both harnesses match trust against.
 ensure_starter_dir() {
@@ -69,10 +73,34 @@ preseed_trust() {
   esac
 }
 
-# frame_login <harness>: reassure the novice about the one prompt that stays.
+# copy_starter_prompt <root>: put the friendly first message on the clipboard so
+# it survives the browser sign-in and the novice can paste it into the empty
+# agent prompt. Reads <root>/starter-prompt.txt (no-op if missing/empty). When
+# pbcopy is absent (non-macOS/headless) it prints the prompt to copy by hand and
+# leaves STARTER_PROMPT_COPIED false. Never fatal.
+copy_starter_prompt() {
+  _sp_file="$1/starter-prompt.txt"
+  [ -f "$_sp_file" ] || return 0
+  _sp_text="$(cat "$_sp_file")"
+  [ -n "$_sp_text" ] || return 0
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf '%s' "$_sp_text" | pbcopy && STARTER_PROMPT_COPIED=true
+  else
+    echo ""
+    info "Copy this and paste it as your first message to the agent:"
+    printf '\n%s\n\n' "$_sp_text"
+  fi
+}
+
+# frame_login <harness>: reassure the novice about the one prompt that stays,
+# and (when we copied it) point at the starter message waiting on the clipboard.
 frame_login() {
   echo ""
   info "Almost there — $1 will open your browser to sign in."
   info "Sign in there, then come back to this window."
+  if [ "${STARTER_PROMPT_COPIED:-false}" = true ]; then
+    info "I've put a starter message on your clipboard to get you going."
+    info "When you're back and see the empty prompt box, press Cmd+V to paste it, then Enter."
+  fi
   echo ""
 }

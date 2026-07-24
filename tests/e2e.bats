@@ -17,6 +17,8 @@ setup() {
   make_fake codex
   make_fake mise
   make_fake node
+  # Log what gets copied instead of touching the real clipboard.
+  make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'
 }
 
 apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
@@ -112,6 +114,15 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   # guard fires before ensure_brew / any block, so nothing ran
   refute_fake_logged "brew"
   refute_fake_logged "claude"
+}
+
+@test "the starter prompt is copied to the clipboard with paste guidance" {
+  apply claude --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  # a distinctive phrase from starter-prompt.txt reached pbcopy
+  fake_logged "build it together"
+  # and the novice is told how to paste it
+  [[ "$output" == *"Cmd+V"* ]]
 }
 
 @test "unknown id fails at plan time and applies nothing" {

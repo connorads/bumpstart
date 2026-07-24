@@ -213,6 +213,10 @@ preseed_trust "$PLAN_DEFAULT_HARNESS" "$STARTER"
 # Freshly-installed CLIs may not be on PATH yet.
 fixup_path
 
+# Last write to the clipboard before we exec the agent — covers both the launch
+# and --no-launch paths, and survives the browser sign-in in between.
+copy_starter_prompt "$ROOT"
+
 if [ "$LAUNCH" = true ] && command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; then
   frame_login "$PLAN_DEFAULT_HARNESS"
   cd "$STARTER"
@@ -220,4 +224,7 @@ if [ "$LAUNCH" = true ] && command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; t
 else
   echo ""
   info "Run '$PLAN_DEFAULT_HARNESS' in $STARTER to start (you'll sign in on first launch)."
+  if [ "${STARTER_PROMPT_COPIED:-false}" = true ]; then
+    info "A starter message is on your clipboard — press Cmd+V at the agent's prompt, then Enter."
+  fi
 fi

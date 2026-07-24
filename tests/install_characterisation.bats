@@ -11,6 +11,7 @@ setup() {
   make_fake brew   # ensure_brew finds it on PATH -> no install, no shellenv
   make_fake_curl
   make_fake_gh
+  make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'  # don't touch the real clipboard
 }
 
 @test "installs the Claude CLI when absent and reports success" {

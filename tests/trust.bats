@@ -10,6 +10,7 @@ setup() {
   DRIVER="$REPO_ROOT/tests/helpers/trust_driver.sh"
   DIR="$HOME/code/first-project"
   mkdir -p "$DIR"
+  make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'  # log copies, spare the real clipboard
 }
 
 trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
@@ -60,4 +61,19 @@ trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
   trust preseed_trust codex "$DIR"
   [ "$status" -eq 0 ]
   grep -Fq 'trust_level = "trusted"' "$HOME/.codex/config.toml"
+}
+
+@test "copy_starter_prompt copies the repo's starter-prompt.txt to the clipboard" {
+  trust copy_starter_prompt "$REPO_ROOT"
+  [ "$status" -eq 0 ]
+  # the file's text reached pbcopy
+  fake_logged "build it together"
+}
+
+@test "copy_starter_prompt is a no-op when the file is missing" {
+  root="$BATS_TEST_TMPDIR/noprompt"
+  mkdir -p "$root"
+  trust copy_starter_prompt "$root"
+  [ "$status" -eq 0 ]
+  refute_fake_logged "pbcopy"
 }
