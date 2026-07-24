@@ -71,5 +71,9 @@ render_block() {
   if [ -n "$_b_target" ]; then
     printf "    %sinstructions written to:%s %s\n" "$DIM" "$RESET" "$_b_target"
   fi
+  # A content.md means this block also merges guidance into the harness file.
+  if [ -f "$_b_dir/content.md" ]; then
+    printf "    %sadds agent guidance%s\n" "$DIM" "$RESET"
+  fi
   printf "\n"
 }

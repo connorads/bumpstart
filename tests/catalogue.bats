@@ -62,6 +62,12 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *".claude/CLAUDE.md"* ]]
 }
 
+@test "--show mise: notes it adds agent guidance" {
+  vibe --show mise
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"adds agent guidance"* ]]
+}
+
 @test "--show nope: unknown block is a non-zero error" {
   vibe --show nope
   [ "$status" -ne 0 ]

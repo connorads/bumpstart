@@ -50,7 +50,14 @@ single-choice is which agent launches, and there **last in the list wins**
 | `gh-auth`    | auth         | Install GitHub CLI + offer sign-in                                 |
 | `mise`       | tool         | Install mise (runtime version manager)                             |
 | `node`       | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
+| `pnpm`       | tool         | Install pnpm via mise (pulls in `mise`)                            |
 | `concise`    | instructions | Ask the agent to keep answers concise                              |
+| `ask-first`  | instructions | Ask before installing tools / deleting files                       |
+
+A tool block also teaches the agent how to use what it installs: its short
+guidance is merged into the agent's instructions file, but only when that block
+is in the plan - so `mise`/`node`/`pnpm` steer the agent to those tools instead
+of a hand-rolled installer, and the guidance is present exactly when the tool is.
 
 The `skill` and `mcp` kinds are supported by the applier, but no recommended
 skill or MCP block ships yet - better none than a redundant one.
