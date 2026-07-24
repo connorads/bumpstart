@@ -57,6 +57,22 @@ run_block() {
   grep -Fq "<!-- vibe:node start -->" "$HOME/.claude/CLAUDE.md"
 }
 
+@test "pnpm block installs via mise when absent" {
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
+  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
+  run_block pnpm
+  [ "$status" -eq 0 ]
+  fake_logged "mise use -g pnpm"
+}
+
+@test "pnpm block merges its guidance into the instruction target" {
+  make_fake pnpm
+  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
+  run_block pnpm
+  [ "$status" -eq 0 ]
+  grep -Fq "<!-- vibe:pnpm start -->" "$HOME/.claude/CLAUDE.md"
+}
+
 @test "gh-auth block installs gh via brew when absent" {
   make_fake brew
   run_block gh-auth
