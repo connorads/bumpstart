@@ -45,6 +45,11 @@ _render_expectations() {
       printf "    - A one-time download may take ~10-15 min.\n"
     fi
   fi
+  # GitHub sign-in needs an account a from-zero person may not have yet.
+  case " ${PLAN_STEP_IDS[*]} " in
+    *" gh-auth "*)
+      printf "    - You'll also sign into GitHub - create a free account first if you don't have one.\n" ;;
+  esac
   # Account sign-in — harness-accurate wording, no pricing.
   case "$PLAN_DEFAULT_HARNESS" in
     claude) _p_acct="Claude" ;;

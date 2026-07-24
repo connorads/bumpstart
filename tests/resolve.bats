@@ -48,6 +48,15 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" != *"Claude account"* ]]
 }
 
+@test "a plan with GitHub warns about needing a GitHub account; one without does not" {
+  plan claude gh-auth
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"sign into GitHub"* ]]
+  # a harness-only plan has no GitHub step, so no GitHub heads-up
+  plan claude
+  [[ "$output" != *"sign into GitHub"* ]]
+}
+
 @test "no ids default to the web-starter plan" {
   plan
   [ "$status" -eq 0 ]
