@@ -208,6 +208,13 @@ fi
 STARTER="$(ensure_starter_dir)"
 preseed_trust "$PLAN_DEFAULT_HARNESS" "$STARTER"
 
+# Make it a real git repo the agent can commit into — but only when the git
+# block is in the plan, so git is installed and an identity is set and the first
+# commit is authored, not rejected for a missing name/email.
+case " ${PLAN_STEP_IDS[*]} " in
+  *" git "*) init_starter_repo "$STARTER" ;;
+esac
+
 # ── Launch ────────────────────────────────────────────────────────────────────
 
 # Freshly-installed CLIs may not be on PATH yet.

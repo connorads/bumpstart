@@ -75,7 +75,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 @test "codex run pre-trusts the starter dir in ~/.codex/config.toml" {
   apply codex --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
-  starter="$(cd "$HOME/code/first-project" && pwd -P)"
+  starter="$(cd "$HOME/git/first-project" && pwd -P)"
   grep -Fq "[projects.\"$starter\"]" "$HOME/.codex/config.toml"
   grep -Fq 'trust_level = "trusted"' "$HOME/.codex/config.toml"
 }
@@ -87,6 +87,15 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   # node (via mise dep) is in the plan, and instructions land in the canonical file
   [[ "$output" == *"Node.js"* ]]
   grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+  # the git block is in the plan, so the starter dir is a real git repo
+  [ -d "$HOME/git/first-project/.git" ]
+}
+
+@test "a claude-only run (no git block) leaves the starter dir un-versioned" {
+  apply claude --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  [ -d "$HOME/git/first-project" ]
+  [ ! -d "$HOME/git/first-project/.git" ]
 }
 
 @test "bare paste (no ids) defaults to the full web-starter setup" {

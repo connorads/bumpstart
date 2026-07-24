@@ -8,7 +8,7 @@ load helpers/common
 setup() {
   setup_isolated_env
   DRIVER="$REPO_ROOT/tests/helpers/trust_driver.sh"
-  DIR="$HOME/code/first-project"
+  DIR="$HOME/git/first-project"
   mkdir -p "$DIR"
   make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'  # log copies, spare the real clipboard
 }
@@ -21,7 +21,19 @@ trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
   [ "$status" -eq 0 ]
   [ -d "$DIR" ]
   # pwd -P output ends with the starter path
-  [[ "$output" == *"/code/first-project" ]]
+  [[ "$output" == *"/git/first-project" ]]
+}
+
+@test "init_starter_repo makes the dir a git repo, and is a no-op the second time" {
+  [ -d "$DIR/.git" ] && rm -rf "$DIR/.git"
+  trust init_starter_repo "$DIR"
+  [ "$status" -eq 0 ]
+  [ -d "$DIR/.git" ]
+  [[ "$output" == *"git project"* ]]
+  # second call sees the existing .git and does nothing (no success line)
+  trust init_starter_repo "$DIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"git project"* ]]
 }
 
 @test "codex preseed writes a trusted project section" {

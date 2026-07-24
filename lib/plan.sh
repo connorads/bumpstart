@@ -54,7 +54,7 @@ _render_expectations() {
   printf "    - At the end you'll sign into your %s account in the browser - create one first if you don't have it.\n" "$_p_acct"
   # Where it works + the safety habit.
   printf "    - The agent works in %s and asks before changing files or running commands.\n" \
-    "${STARTER_DIR:-$HOME/code/first-project}"
+    "${STARTER_DIR:-$HOME/git/first-project}"
 }
 
 # confirm_plan: the one interactive gate. 0 = proceed, 1 = abort. Non-tty (no

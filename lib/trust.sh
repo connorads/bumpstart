@@ -7,8 +7,9 @@
 # cloned repo. Browser login is framed, not hidden: it is the one prompt that
 # stays. bash-3.2-clean.
 
-# The dedicated starter dir. Never blanket-trust $HOME.
-STARTER_DIR="$HOME/code/first-project"
+# The dedicated starter dir, under the user's ~/git repo convention. Never
+# blanket-trust $HOME.
+STARTER_DIR="$HOME/git/first-project"
 
 # Set true once the starter prompt reaches the clipboard, so the finish message
 # only claims "on your clipboard" when it actually is.
@@ -19,6 +20,22 @@ STARTER_PROMPT_COPIED=false
 ensure_starter_dir() {
   mkdir -p "$STARTER_DIR"
   ( cd "$STARTER_DIR" && pwd -P )
+}
+
+# init_starter_repo <dir>: make the starter project a real git repo so the agent
+# has somewhere to commit. No-op if it already is one; needs git on PATH — the
+# caller only invokes this when the `git` block ran, so git is installed and an
+# identity is set. Non-fatal: a failure warns and the setup continues.
+init_starter_repo() {
+  _ir_dir="$1"
+  [ -d "$_ir_dir/.git" ] && return 0
+  command -v git >/dev/null 2>&1 || return 0
+  if git -C "$_ir_dir" init -b main >/dev/null 2>&1 \
+    || git -C "$_ir_dir" init >/dev/null 2>&1; then
+    success "Made your project a git project (so we can save your work)"
+  else
+    warn "couldn't set up git in your project — continuing"
+  fi
 }
 
 # preseed_codex_trust <realpath>: mark the dir trusted in ~/.codex/config.toml.
