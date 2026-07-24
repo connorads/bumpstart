@@ -86,8 +86,7 @@ Presets are just a block whose content is a list of other ids:
    (`~/.config/agents/AGENTS.md`, honouring `$XDG_CONFIG_HOME`), then symlink
    each installed agent's own path to it (`~/.claude/CLAUDE.md` for Claude,
    `~/.codex/AGENTS.md` for Codex) so both agents read the single source.
-6. Create a starter project (`~/code/first-project`), pre-trust it, drop a
-   double-clickable `Open first-project.command` there for next time, copy a
+6. Create a starter project (`~/code/first-project`), pre-trust it, copy a
    friendly first message to the clipboard (survives the sign-in - paste it with
    Cmd+V), then launch the agent. A browser opens for sign-in - that one prompt
    stays.

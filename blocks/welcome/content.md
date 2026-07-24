@@ -10,5 +10,4 @@
   say what you're about to do and check it's OK. Saying yes here is safe - this is
   their own project folder, made for exactly this.
 - When we finish for the day, remind them how to come back: reopen the agent in
-  this same folder (a double-clickable launcher may be waiting for them), and we
-  pick up where we left off.
+  this same folder, and we pick up where we left off.

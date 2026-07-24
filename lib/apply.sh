@@ -93,7 +93,7 @@ fi
 
 # ── Platform guard: fail fast, honestly, before any macOS-specific effect ─────
 #
-# Everything below (Homebrew, the CLI installers, trust preseed, `open -R`) is
+# Everything below (Homebrew, the CLI installers, trust preseed) is
 # macOS-only. An honest redirect beats running partway then dying on a
 # Mac-specific step. Exit 0 (informational, not an error) — a script wrapping
 # this could branch on the message; a non-zero would read as a failure it isn't.
@@ -196,11 +196,6 @@ if [ -n "$LINK_BACKOFFS" ]; then
   warn "Point them at $CANON yourself, or re-run with --force to back them up and link."
 fi
 
-# Reveal the file so a novice can find and edit it (macOS, interactive only).
-if [ "$INSTRUCTIONS_WROTE" = true ] && [ -t 1 ] && command -v open >/dev/null 2>&1; then
-  open -R "$CANON" >/dev/null 2>&1 || :
-fi
-
 if [ "$INSTRUCTIONS_WROTE" = true ] || [ "$INSTRUCTIONS_BACKED_OFF" = true ]; then
   echo ""
   info "💡 Edit that file in plain language to steer every future session."
@@ -212,9 +207,6 @@ fi
 # only prompt left is the browser login.
 STARTER="$(ensure_starter_dir)"
 preseed_trust "$PLAN_DEFAULT_HARNESS" "$STARTER"
-
-# A double-clickable way back for the second sitting (no CLI recall needed).
-write_return_launcher "$PLAN_DEFAULT_HARNESS" "$STARTER"
 
 # ── Launch ────────────────────────────────────────────────────────────────────
 
