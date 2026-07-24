@@ -89,6 +89,17 @@ if [ "$BUILD" = true ]; then
   fi
 fi
 
+# ── Platform guard: fail fast, honestly, before any macOS-specific effect ─────
+#
+# Everything below (Homebrew, the CLI installers, trust preseed, `open -R`) is
+# macOS-only. An honest redirect beats running partway then dying on a
+# Mac-specific step. Exit 0 (informational, not an error) — a script wrapping
+# this could branch on the message; a non-zero would read as a failure it isn't.
+if [ "$(uname -s)" != "Darwin" ]; then
+  info "vibe-setup is macOS-only for now."
+  exit 0
+fi
+
 # ── Resolve (pure core): all domain errors surface here, before any effect ────
 
 if ! resolve "$ROOT" ${IDS[@]+"${IDS[@]}"}; then

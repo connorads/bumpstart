@@ -12,6 +12,13 @@ set -euo pipefail
 VIBE_REF="${VIBE_REF:-main}"
 REPO="connorads/vibe-setup"
 
+# macOS-only for now — say so before fetching anything. Exit 0: an honest
+# redirect, not a failure (the applier repeats this guard after extraction).
+if [ "$(uname -s)" != "Darwin" ]; then
+  printf 'vibe-setup is macOS-only for now.\n'
+  exit 0
+fi
+
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe.XXXXXX")"
 
 if ! curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$VIBE_REF" | tar -xz -C "$tmp"; then

@@ -93,6 +93,16 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Agent to launch: codex"* ]]
 }
 
+@test "non-macOS exits 0 with an honest redirect, before any effect" {
+  make_fake uname 'printf "Linux\n"'
+  apply claude --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"macOS-only for now"* ]]
+  # guard fires before ensure_brew / any block, so nothing ran
+  refute_fake_logged "brew"
+  refute_fake_logged "claude"
+}
+
 @test "unknown id fails at plan time and applies nothing" {
   apply bogus --yes --no-launch --no-desktop
   [ "$status" -ne 0 ]
