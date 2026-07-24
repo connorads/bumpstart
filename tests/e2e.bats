@@ -42,6 +42,13 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [ ! -f "$HOME/.claude/CLAUDE.md" ]
 }
 
+@test "a tool block's guidance lands in ~/.claude/CLAUDE.md" {
+  apply claude node --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  grep -Fq "<!-- vibe:node start -->" "$HOME/.claude/CLAUDE.md"
+  grep -Fq "<!-- vibe:mise start -->" "$HOME/.claude/CLAUDE.md"
+}
+
 @test "second run all-skips and the target file is byte-identical" {
   apply claude concise --yes --no-launch --no-desktop
   once="$(cat "$HOME/.claude/CLAUDE.md")"

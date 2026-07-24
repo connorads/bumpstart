@@ -11,7 +11,8 @@ setup() { setup_isolated_env; }
 run_block() {
   id="$1"; shift
   run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_DESKTOP=false \
+    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_BLOCK_ID="$id" \
+    VIBE_TARGETS="${VIBE_TARGETS:-}" VIBE_DESKTOP=false \
     bash "$REPO_ROOT/blocks/$id/apply.sh" "$@"
 }
 
@@ -38,6 +39,22 @@ run_block() {
   [ "$status" -eq 0 ]
   count="$(grep -c -F 'INSTALL codex' "$VIBE_FAKE_LOG")"
   [ "$count" -eq 1 ]
+}
+
+@test "mise block merges its guidance into the instruction target" {
+  make_fake mise
+  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
+  run_block mise
+  [ "$status" -eq 0 ]
+  grep -Fq "<!-- vibe:mise start -->" "$HOME/.claude/CLAUDE.md"
+}
+
+@test "node block merges its guidance into the instruction target" {
+  make_fake node
+  export VIBE_TARGETS="$HOME/.claude/CLAUDE.md"
+  run_block node
+  [ "$status" -eq 0 ]
+  grep -Fq "<!-- vibe:node start -->" "$HOME/.claude/CLAUDE.md"
 }
 
 @test "gh-auth block installs gh via brew when absent" {

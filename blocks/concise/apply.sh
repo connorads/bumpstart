@@ -12,14 +12,4 @@ set -euo pipefail
 # shellcheck source=lib/merge.sh
 . "$VIBE_LIB/merge.sh"
 
-content="$(cat "$VIBE_BLOCK_DIR/content.md")"
-
-if [ -z "${VIBE_TARGETS:-}" ]; then
-  warn "concise: no instruction targets — skipping."
-  exit 0
-fi
-
-printf '%s\n' "$VIBE_TARGETS" | while IFS= read -r target; do
-  [ -n "$target" ] || continue
-  merge_managed_block concise "$content" "$target" || :
-done
+merge_content_to_targets
