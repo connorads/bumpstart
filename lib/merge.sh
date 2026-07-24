@@ -90,3 +90,19 @@ merge_managed_block() {
   success "Updated $_m_id guidance in $_m_target"
   return 0
 }
+
+# merge_content_to_targets — merge $VIBE_BLOCK_DIR/content.md into each newline-
+# separated $VIBE_TARGETS file under vibe:$VIBE_BLOCK_ID markers. No-op when the
+# block ships no content.md; warns (does not fail) when there are no targets.
+# The one line every content-bearing block calls instead of copying the loop.
+merge_content_to_targets() {
+  [ -f "$VIBE_BLOCK_DIR/content.md" ] || return 0
+  if [ -z "${VIBE_TARGETS:-}" ]; then
+    warn "$VIBE_BLOCK_ID: no instruction targets — skipping."; return 0
+  fi
+  _mc_content="$(cat "$VIBE_BLOCK_DIR/content.md")"
+  printf '%s\n' "$VIBE_TARGETS" | while IFS= read -r _mc_t; do
+    [ -n "$_mc_t" ] || continue
+    merge_managed_block "$VIBE_BLOCK_ID" "$_mc_content" "$_mc_t" || :
+  done
+}

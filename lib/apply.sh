@@ -126,8 +126,8 @@ run_block() {
     warn "block '$1' has no apply.sh — skipping"
     return 0
   fi
-  VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_DESKTOP="$DESKTOP" \
-    VIBE_TARGETS="$VIBE_TARGETS" \
+  VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_BLOCK_ID="$1" \
+    VIBE_DESKTOP="$DESKTOP" VIBE_TARGETS="$VIBE_TARGETS" \
     bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
 }
 

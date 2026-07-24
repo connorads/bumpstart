@@ -102,19 +102,18 @@ resolve() {
   done < <(printf '%s' "$_r_decorated" | sort -k1,1n -k2,2n)
 
   # Instruction targets = the TARGET of each harness present, deduped in order.
-  # Only meaningful when the plan actually contains an instructions block — else
-  # nothing is written, so we leave PLAN_TARGETS empty and the preview stays honest.
+  # Only meaningful when some step ships a content.md — that is what gets merged
+  # into the harness files. No content.md anywhere → nothing is written, so we
+  # leave PLAN_TARGETS empty and the preview stays honest.
   _r_n=${#PLAN_STEP_IDS[@]}
+  _r_writes=false
   _r_i=0
-  _r_has_instructions=false
   while [ "$_r_i" -lt "$_r_n" ]; do
-    if [ "${PLAN_STEP_KINDS[$_r_i]}" = "instructions" ]; then
-      _r_has_instructions=true
-      break
-    fi
+    _r_dir="$(block_dir "$_r_root" "${PLAN_STEP_IDS[$_r_i]}")"
+    if [ -f "$_r_dir/content.md" ]; then _r_writes=true; break; fi
     _r_i=$((_r_i + 1))
   done
-  [ "$_r_has_instructions" != true ] && return 0
+  [ "$_r_writes" != true ] && return 0
 
   _r_seen=""
   _r_i=0

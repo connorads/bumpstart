@@ -28,6 +28,13 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *".claude/CLAUDE.md"* ]]
 }
 
+@test "a tool block that ships content.md targets the harness file (no instructions block needed)" {
+  plan claude mise
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Instructions written to"* ]]
+  [[ "$output" == *".claude/CLAUDE.md"* ]]
+}
+
 @test "preset expands to its included blocks" {
   plan web-starter
   [ "$status" -eq 0 ]
