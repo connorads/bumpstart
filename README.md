@@ -51,6 +51,7 @@ single-choice is which agent launches, and there **last in the list wins**
 | `claude`     | harness      | Install Claude Code (CLI + desktop app); can be the launched agent |
 | `codex`      | harness      | Install Codex (CLI + ChatGPT app); can be the launched agent       |
 | `gh-auth`    | auth         | Install GitHub CLI + offer sign-in                                 |
+| `git`        | tool         | Install git + set your name/email from GitHub (pulls in `gh-auth`) |
 | `mise`       | tool         | Install mise (runtime version manager)                             |
 | `node`       | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
 | `pnpm`       | tool         | Install pnpm via mise (pulls in `mise`)                            |
@@ -71,7 +72,7 @@ Presets are just a block whose content is a list of other ids:
 
 | preset         | expands to                            |
 | -------------- | ------------------------------------- |
-| `web-starter`  | `claude gh-auth node welcome concise` |
+| `web-starter`  | `claude gh-auth git node welcome concise` |
 
 ## What happens when you run it
 

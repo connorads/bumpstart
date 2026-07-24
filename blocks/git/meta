@@ -1,0 +1,3 @@
+KIND=tool
+DESC="Set up git + your name/email (from GitHub)"
+INCLUDE="gh-auth"
