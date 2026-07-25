@@ -130,8 +130,8 @@ fi
 # ── Apply ─────────────────────────────────────────────────────────────────────
 
 # A modest branded header as the real work begins (colour-gated via common.sh).
-printf "\n  %s✦ vibe-setup%s %s— let's get you building%s\n" \
-  "$BOLD$BLUE" "$RESET" "$DIM" "$RESET"
+printf "\n  %s✦ vibe-setup%s\n" "$BOLD$CYAN" "$RESET"
+printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 
 # Homebrew underpins the auth + desktop/cask installs; get it in place first.
 ensure_brew
@@ -150,13 +150,32 @@ run_block() {
 }
 
 _n=${#PLAN_STEP_IDS[@]}
+
+# Count only the blocks that actually do something (have an apply.sh);
+# instruction-only blocks are silent skips, so they neither get a step header
+# nor inflate the total. (The whole loop is skipped under --plan, so the
+# resolve.bats DESC counts are unaffected.)
+_total=0
 _i=0
 while [ "$_i" -lt "$_n" ]; do
-  run_block "${PLAN_STEP_IDS[$_i]}"
+  [ -f "$(block_dir "$ROOT" "${PLAN_STEP_IDS[$_i]}")/apply.sh" ] && _total=$((_total + 1))
+  _i=$((_i + 1))
+done
+
+_cur=0
+_i=0
+while [ "$_i" -lt "$_n" ]; do
+  _bid="${PLAN_STEP_IDS[$_i]}"
+  if [ -f "$(block_dir "$ROOT" "$_bid")/apply.sh" ]; then
+    _cur=$((_cur + 1))
+    step "$_cur" "$_total" "${PLAN_STEP_DESCS[$_i]}"
+  fi
+  run_block "$_bid"
   _i=$((_i + 1))
 done
 
 echo ""
+hrule
 success "Setup complete."
 printf "  %sYou're all set — the hard part is done.%s\n" "$GREEN" "$RESET"
 
@@ -226,6 +245,9 @@ copy_starter_prompt "$ROOT"
 
 if [ "$LAUNCH" = true ] && command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; then
   frame_login "$PLAN_DEFAULT_HARNESS"
+  # Keypress gate so the sign-in instruction stays on screen and they proceed on
+  # their own timing (no-op without a keyboard, so headless launch is unaffected).
+  press_enter "Press Enter to open $PLAN_DEFAULT_HARNESS and sign in"
   cd "$STARTER"
   exec "$PLAN_DEFAULT_HARNESS"
 else
