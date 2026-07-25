@@ -8,6 +8,11 @@ load helpers/common
 setup() {
   setup_isolated_env
   FIX="$REPO_ROOT/tests/fixtures"
+  # Point the *-desktop probes at an empty dir so no step reads as satisfied from
+  # whatever is installed on the host — the hermetic PATH already lacks
+  # claude/codex/gh/mise/node, and git's user.name is unset in the isolated HOME.
+  export VIBE_APPS_DIR="$BATS_TEST_TMPDIR/apps"
+  mkdir -p "$VIBE_APPS_DIR"
 }
 
 plan() { run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --plan "$@"; }
@@ -50,6 +55,12 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"trusted"* ]]
   [[ "$output" == *"Codex account"* ]]
   [[ "$output" != *"Claude account"* ]]
+}
+
+@test "nothing is satisfied on a cold Mac, so no step is tagged already-set-up" {
+  plan claude
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"already set up"* ]]
 }
 
 @test "the mise heads-up shows only when node/pnpm is in the plan" {

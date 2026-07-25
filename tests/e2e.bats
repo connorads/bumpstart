@@ -155,6 +155,31 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"What will happen"* ]]
 }
 
+@test "a satisfied step is dimmed and tagged already-set-up at the gate" {
+  # claude is faked present on PATH, so the [harness] step reads as done
+  apply claude-cli --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"already set up"* ]]
+  # every mapped step of a cli-only plan is satisfied, so the reassurance fires
+  [[ "$output" == *"Everything installable is already in place"* ]]
+}
+
+@test "the instructions back-off is disclosed on a re-run" {
+  apply claude concise --yes --no-launch
+  [ "$status" -eq 0 ]
+  # second run: the canonical file exists, so vibe backs off and says so
+  apply claude concise --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"leaves it as-is"* ]]
+}
+
+@test "the Claude trust back-off is disclosed when a config already exists" {
+  : > "$HOME/.claude.json"
+  apply claude --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"won't change its trust settings"* ]]
+}
+
 @test "the git-config heads-up shows only when the git block is in the plan" {
   # the plain confirm view (shown even with --yes) discloses the git identity write
   apply web-starter --yes --no-launch
