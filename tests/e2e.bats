@@ -171,6 +171,8 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"leaves it as-is"* ]]
+  # the pure [instructions] rows tag the skip too, so the row and the bullet agree
+  [[ "$output" == *"skipped (file exists)"* ]]
 }
 
 @test "the Claude trust back-off is disclosed when a config already exists" {

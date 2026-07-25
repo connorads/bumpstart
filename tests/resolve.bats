@@ -61,6 +61,10 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   plan claude
   [ "$status" -eq 0 ]
   [[ "$output" != *"already set up"* ]]
+  # fresh HOME -> canonical file absent -> instruction rows run, no skip tag
+  plan claude concise
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"skipped (file exists)"* ]]
 }
 
 @test "the mise heads-up shows only when node/pnpm is in the plan" {

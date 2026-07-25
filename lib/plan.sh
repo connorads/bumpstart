@@ -60,6 +60,14 @@ render_plan() {
   # cold-Mac forecast. Capture done/actionable counts for the reassurance line so
   # the probes run once, not twice.
   _p_done=0; _p_actionable=0
+  # Instruction blocks silently back off when the canonical file already exists
+  # (assemble_instructions in lib/instructions.sh). Compute that predicate once —
+  # a single canonical_path call — so the skipped-row tag below and the Tier 1
+  # "leaves it as-is" bullet share one source of truth and can never disagree.
+  PLAN_INSTR_BACKOFF=false
+  if [ ${#PLAN_TARGETS[@]} -gt 0 ] && [ "${FORCE:-false}" != true ] && [ -e "$(canonical_path)" ]; then
+    PLAN_INSTR_BACKOFF=true
+  fi
   while [ "$_p_i" -lt "$_p_n" ]; do
     _p_kind="${PLAN_STEP_KINDS[$_p_i]}"
     # `if` guard, not a bare call — _step_satisfied returns non-zero by design and
@@ -74,6 +82,12 @@ render_plan() {
     if [ "$_p_rc" -eq 0 ]; then
       printf "    %s%-14s %s%s  %s✓ already set up%s\n" \
         "$DIM" "[$_p_kind]" "${PLAN_STEP_DESCS[$_p_i]}" "$RESET" "$GREEN" "$RESET"
+    elif [ "$_p_kind" = instructions ] && [ "$PLAN_INSTR_BACKOFF" = true ]; then
+      # Pure instruction rows on a warm Mac: the guidance won't be merged, so a
+      # neutral row would overclaim. "skipped" is honest whether or not this
+      # guidance is already present; DIM keeps it a calm no-op, distinct from ✓.
+      printf "    %s%-14s %s%s  %s↷ skipped (file exists)%s\n" \
+        "$DIM" "[$_p_kind]" "${PLAN_STEP_DESCS[$_p_i]}" "$RESET" "$DIM" "$RESET"
     else
       printf "    %s%-14s%s %s\n" \
         "$(_kind_colour "$_p_kind")" "[$_p_kind]" "$RESET" "${PLAN_STEP_DESCS[$_p_i]}"
@@ -140,7 +154,7 @@ _render_expectations() {
   if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
     if [ "${FORCE:-false}" = true ]; then
       _exp "Rebuilds your one instructions file, backing up any existing one to .bak."
-    elif [ -e "$(canonical_path)" ]; then
+    elif [ "$PLAN_INSTR_BACKOFF" = true ]; then
       _exp "You already have an instructions file - vibe leaves it as-is and won't merge in new guidance (re-run with --force to rebuild it)."
     else
       _exp "Creates one instructions file that your agent reads every session."
