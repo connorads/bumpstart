@@ -157,6 +157,34 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"Agent to launch: codex"* ]]
 }
 
+@test "a bundle expands to its harness and app; the -cli id is harness-only" {
+  plan claude
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[harness]"* ]]
+  [[ "$output" == *"[app]"* ]]
+  # the CLI-only id installs no desktop app
+  plan claude-cli
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[harness]"* ]]
+  [[ "$output" != *"[app]"* ]]
+}
+
+@test "the app step orders directly after its harness regardless of input order" {
+  plan concise claude-desktop claude-cli
+  [ "$status" -eq 0 ]
+  h="$(line_of '[harness]')"
+  a="$(line_of '[app]')"
+  i="$(line_of '[instructions]')"
+  [ "$h" -lt "$a" ]
+  [ "$a" -lt "$i" ]
+}
+
+@test "an app block without a harness is a domain error" {
+  plan claude-desktop
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"no harness"* ]]
+}
+
 @test "last harness in the list wins, reversed (codex claude -> claude)" {
   plan codex claude
   [ "$status" -eq 0 ]

@@ -46,18 +46,26 @@ list is **unioned**; dependencies are pulled in automatically; the only
 single-choice is which agent launches, and there **last in the list wins**
 (`claude codex` launches Codex, `codex claude` launches Claude).
 
-| id           | kind         | what it does                                                       |
-| ------------ | ------------ | ------------------------------------------------------------------ |
-| `claude`     | harness      | Install Claude Code (CLI + desktop app); can be the launched agent |
-| `codex`      | harness      | Install Codex (CLI + ChatGPT app); can be the launched agent       |
-| `gh-auth`    | auth         | Install GitHub CLI + offer sign-in                                 |
-| `git`        | tool         | Install git + set your name/email from GitHub (pulls in `gh-auth`) |
-| `mise`       | tool         | Install mise (runtime version manager)                             |
-| `node`       | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
-| `pnpm`       | tool         | Install pnpm via mise (pulls in `mise`)                            |
-| `concise`    | instructions | Ask the agent to keep answers concise                              |
-| `ask-first`  | instructions | Ask before installing tools / deleting files                       |
-| `welcome`    | instructions | Greet the beginner + how to work with the agent every session      |
+| id               | kind         | what it does                                                       |
+| ---------------- | ------------ | ------------------------------------------------------------------ |
+| `claude`         | preset       | Bundle: `claude-cli` + `claude-desktop`                            |
+| `claude-cli`     | harness      | Install Claude Code (CLI); can be the launched agent               |
+| `claude-desktop` | app          | Install the Claude desktop app                                     |
+| `codex`          | preset       | Bundle: `codex-cli` + `codex-desktop`                              |
+| `codex-cli`      | harness      | Install Codex (CLI); can be the launched agent                     |
+| `codex-desktop`  | app          | Install the ChatGPT app (Codex's desktop home)                     |
+| `gh-auth`        | auth         | Install GitHub CLI + offer sign-in                                 |
+| `git`            | tool         | Install git + set your name/email from GitHub (pulls in `gh-auth`) |
+| `mise`           | tool         | Install mise (runtime version manager)                             |
+| `node`           | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
+| `pnpm`           | tool         | Install pnpm via mise (pulls in `mise`)                            |
+| `concise`        | instructions | Ask the agent to keep answers concise                              |
+| `ask-first`      | instructions | Ask before installing tools / deleting files                       |
+| `welcome`        | instructions | Greet the beginner + how to work with the agent every session      |
+
+Desktop-ness is a composition choice: install `claude` (a bundle) for the CLI +
+desktop app, or `claude-cli` for CLI-only. Same for `codex`. The launched agent
+is always the CLI - the desktop app is an add-on.
 
 A tool block also teaches the agent how to use what it installs: its short
 guidance is stacked into the canonical instructions file, but only when that
@@ -110,7 +118,6 @@ backs off and points you at it (use `--force` to replace: real files are moved t
 | `--yes` / `-y`   | Skip the confirm (for headless / VM runs)     |
 | `--force`        | Rewrite an existing canonical file; back real agent configs up to `.bak` then link |
 | `--no-launch`    | Don't drop into the agent at the end          |
-| `--no-desktop`   | Install the CLI only, skip the desktop app    |
 
 Preview a setup without touching anything:
 

@@ -7,8 +7,8 @@ set -euo pipefail
 #
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
 #
-# Any other flags (--no-desktop, --no-launch, --yes, --plan, extra ids) pass
-# straight through to the applier.
+# Any other flags (--no-launch, --yes, --plan, extra ids) pass straight through
+# to the applier.
 
 # No --agent → pass no ids, so the applier's bare-paste default (web-starter)
 # gives the full beginner setup rather than a tool-less, sign-in-less bare agent.

@@ -55,11 +55,35 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"pulls in:"*"mise"* ]]
 }
 
-@test "--show claude: reports its instruction TARGET" {
-  vibe --show claude
+@test "--show claude-cli: reports its instruction TARGET" {
+  vibe --show claude-cli
   [ "$status" -eq 0 ]
   [[ "$output" == *"[harness]"* ]]
   [[ "$output" == *".claude/CLAUDE.md"* ]]
+}
+
+@test "--show claude-desktop: is an app block" {
+  vibe --show claude-desktop
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[app]"* ]]
+  [[ "$output" == *"desktop app"* ]]
+}
+
+@test "--show claude: is a bundle expanding to cli + desktop" {
+  vibe --show claude
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[preset]"* ]]
+  [[ "$output" == *"expands to:"*"claude-cli"*"claude-desktop"* ]]
+}
+
+@test "--list groups the app kind between harness and auth" {
+  vibe --list
+  [ "$status" -eq 0 ]
+  h="$(line_of 'harness')"
+  ap="$(line_of 'Install the Claude desktop app')"
+  au="$(line_of 'Set up GitHub')"
+  [ "$h" -lt "$ap" ]
+  [ "$ap" -lt "$au" ]
 }
 
 @test "--show mise: notes it adds agent guidance" {

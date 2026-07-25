@@ -29,8 +29,12 @@ setup() {
 }
 
 @test "--build: happy path emits the one-paste command for the chosen ids" {
+  # optional blocks, in kind-rank order: claude-desktop codex-desktop gh-auth
+  # cyc-a cyc-b mise node context7 react concise. Pick node (#7) + concise (#10).
   run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 1
+n
+n
 n
 n
 n
@@ -42,16 +46,19 @@ y
 n
 ANS
   [ "$status" -eq 0 ]
-  # claude (harness) + node + concise; mise is a dep, not a chosen id.
-  [[ "$output" == *'_ claude node concise'* ]]
+  # claude-cli (harness) + node + concise; mise is a dep, not a chosen id.
+  [[ "$output" == *'_ claude-cli node concise'* ]]
   # Read-only: run-now declined, so nothing installed.
   refute_fake_logged "brew"
   refute_fake_logged "INSTALL claude"
 }
 
 @test "--build: VIBE_REF pins the emitted command with a ref prefix" {
+  # pick only node (#7); decline the rest and run-now.
   run env VIBE_REF=abc123 VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 1
+n
+n
 n
 n
 n
@@ -64,12 +71,15 @@ n
 ANS
   [ "$status" -eq 0 ]
   [[ "$output" == *'VIBE_REF=abc123 /bin/bash -c'* ]]
-  [[ "$output" == *'_ claude node'* ]]
+  [[ "$output" == *'_ claude-cli node'* ]]
 }
 
 @test "--build: run-now=yes falls through to resolve but never installs (non-tty confirm aborts)" {
+  # pick node (#7), then answer run-now with y.
   run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 1
+n
+n
 n
 n
 n

@@ -9,6 +9,7 @@
 _kind_colour() {
   case "$1" in
     harness)      printf '%s' "$MAGENTA" ;;
+    app)          printf '%s' "$MAGENTA" ;;
     auth)         printf '%s' "$YELLOW" ;;
     tool)         printf '%s' "$CYAN" ;;
     mcp)          printf '%s' "$BLUE" ;;

@@ -1,8 +1,10 @@
 #!/usr/bin/env bats
 #
 # Block apply.sh adapters, driven directly with the block contract in the env.
-# Check-then-act: sentinel present -> nothing; absent -> installer once.
-# VIBE_DESKTOP=false keeps these to the CLI path (no cask / /Applications).
+# Check-then-act: sentinel present -> nothing; absent -> installer once. The
+# harness (*-cli) and app (*-desktop) blocks are separate now; VIBE_APPS_DIR
+# points the app blocks' check at an empty dir so the cask install path is
+# reachable without the real app present.
 
 load helpers/common
 
@@ -12,32 +14,59 @@ run_block() {
   id="$1"; shift
   run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
     VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_BLOCK_ID="$id" \
-    VIBE_DESKTOP=false \
+    VIBE_APPS_DIR="$BATS_TEST_TMPDIR/apps" \
     bash "$REPO_ROOT/blocks/$id/apply.sh" "$@"
 }
 
-@test "claude block installs the CLI once when absent" {
+@test "claude-cli block installs the CLI once when absent" {
   make_fake_curl
-  run_block claude
+  run_block claude-cli
   [ "$status" -eq 0 ]
   count="$(grep -c -F 'INSTALL claude' "$VIBE_FAKE_LOG")"
   [ "$count" -eq 1 ]
+  # the CLI harness never touches the cask
+  refute_fake_logged "brew install --cask claude"
 }
 
-@test "claude block installs nothing when the CLI is present" {
+@test "claude-cli block installs nothing when the CLI is present" {
   make_fake_curl
   make_fake claude
-  run_block claude
+  run_block claude-cli
   [ "$status" -eq 0 ]
   refute_fake_logged "INSTALL claude"
   [[ "$output" == *"already installed"* ]]
 }
 
-@test "codex block installs the CLI once when absent" {
+@test "claude-desktop block installs the cask once when the app is absent" {
+  make_fake brew
+  run_block claude-desktop
+  [ "$status" -eq 0 ]
+  count="$(grep -c -F 'brew install --cask claude' "$VIBE_FAKE_LOG")"
+  [ "$count" -eq 1 ]
+}
+
+@test "claude-desktop block installs nothing when the app is present" {
+  make_fake brew
+  mkdir -p "$BATS_TEST_TMPDIR/apps/Claude.app"
+  run_block claude-desktop
+  [ "$status" -eq 0 ]
+  refute_fake_logged "brew install --cask claude"
+  [[ "$output" == *"already installed"* ]]
+}
+
+@test "codex-cli block installs the CLI once when absent" {
   make_fake_curl
-  run_block codex
+  run_block codex-cli
   [ "$status" -eq 0 ]
   count="$(grep -c -F 'INSTALL codex' "$VIBE_FAKE_LOG")"
+  [ "$count" -eq 1 ]
+}
+
+@test "codex-desktop block installs the ChatGPT cask once when the app is absent" {
+  make_fake brew
+  run_block codex-desktop
+  [ "$status" -eq 0 ]
+  count="$(grep -c -F 'brew install --cask chatgpt' "$VIBE_FAKE_LOG")"
   [ "$count" -eq 1 ]
 }
 

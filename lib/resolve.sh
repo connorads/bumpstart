@@ -20,6 +20,7 @@
 _kind_rank() {
   case "$1" in
     harness)      echo 10 ;;
+    app)          echo 15 ;;
     auth)         echo 20 ;;
     tool)         echo 30 ;;
     mcp)          echo 40 ;;
@@ -79,6 +80,13 @@ resolve() {
     PLAN_ERROR="no harness in plan (add e.g. 'claude' or 'codex')"
     return 1
   fi
+  # The launch/trust key is the agent's own name, not the block id. A split
+  # harness block is named <agent>-cli (e.g. claude-cli), but the installed
+  # binary, the trust dispatch (trust.sh), and the "Agent to launch" line all
+  # want <agent>. Strip the -cli suffix so PLAN_DEFAULT_HARNESS is the agent.
+  case "$PLAN_DEFAULT_HARNESS" in
+    *-cli) PLAN_DEFAULT_HARNESS="${PLAN_DEFAULT_HARNESS%-cli}" ;;
+  esac
 
   # Dedupe (first occurrence) and drop presets, decorating each surviving id with
   # "<rank> <index> <id>" so a stable numeric sort orders by kind then input.

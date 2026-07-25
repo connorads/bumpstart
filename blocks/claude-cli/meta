@@ -1,4 +1,4 @@
 KIND=harness
-DESC="Install Claude Code (CLI + desktop app)"
+DESC="Install Claude Code (CLI)"
 SLOT=default-harness
 TARGET="$HOME/.claude/CLAUDE.md"

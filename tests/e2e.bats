@@ -19,19 +19,35 @@ setup() {
   make_fake node
   # Log what gets copied instead of touching the real clipboard.
   make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'
+  # Point the *-desktop app checks at an empty dir so the cask install path is
+  # reachable regardless of what is installed on the machine running the tests.
+  export VIBE_APPS_DIR="$BATS_TEST_TMPDIR/apps"
+  mkdir -p "$VIBE_APPS_DIR"
 }
 
 apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 @test "vibe claude codex: installs both, launches the last (codex)" {
-  apply claude codex --yes --no-launch --no-desktop
+  apply claude codex --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
   [[ "$output" == *"Setup complete"* ]]
 }
 
+@test "the claude bundle installs the desktop cask; claude-cli does not" {
+  # the bundle pulls in claude-desktop, which installs the cask (app dir empty)
+  apply claude --yes --no-launch
+  [ "$status" -eq 0 ]
+  fake_logged "brew install --cask claude"
+  # CLI-only: no app block, so the cask is never touched
+  : > "$VIBE_FAKE_LOG"
+  apply claude-cli --yes --no-launch
+  [ "$status" -eq 0 ]
+  refute_fake_logged "brew install --cask claude"
+}
+
 @test "instructions land in the canonical file; Claude's path links to it" {
-  apply claude concise --yes --no-launch --no-desktop
+  apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
   canon="$HOME/.config/agents/AGENTS.md"
   grep -Fq "## Be concise" "$canon"
@@ -41,7 +57,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "Codex's path links to the same canonical file" {
-  apply codex concise --yes --no-launch --no-desktop
+  apply codex concise --yes --no-launch
   [ "$status" -eq 0 ]
   canon="$HOME/.config/agents/AGENTS.md"
   grep -Fq "## Be concise" "$canon"
@@ -51,7 +67,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "a tool block's guidance lands in the canonical file" {
-  apply claude node --yes --no-launch --no-desktop
+  apply claude node --yes --no-launch
   [ "$status" -eq 0 ]
   canon="$HOME/.config/agents/AGENTS.md"
   grep -Fq "## Node.js" "$canon"
@@ -60,10 +76,10 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "second run leaves the canonical byte-identical and the link intact" {
-  apply claude concise --yes --no-launch --no-desktop
+  apply claude concise --yes --no-launch
   canon="$HOME/.config/agents/AGENTS.md"
   once="$(cat "$canon")"
-  apply claude concise --yes --no-launch --no-desktop
+  apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
   twice="$(cat "$canon")"
   [ "$once" = "$twice" ]
@@ -73,7 +89,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "codex run pre-trusts the starter dir in ~/.codex/config.toml" {
-  apply codex --yes --no-launch --no-desktop
+  apply codex --yes --no-launch
   [ "$status" -eq 0 ]
   starter="$(cd "$HOME/git/first-project" && pwd -P)"
   grep -Fq "[projects.\"$starter\"]" "$HOME/.codex/config.toml"
@@ -81,7 +97,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "web-starter preset applies the whole stack for Claude" {
-  apply web-starter --yes --no-launch --no-desktop
+  apply web-starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
   # node (via mise dep) is in the plan, and instructions land in the canonical file
@@ -92,14 +108,14 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "a claude-only run (no git block) leaves the starter dir un-versioned" {
-  apply claude --yes --no-launch --no-desktop
+  apply claude --yes --no-launch
   [ "$status" -eq 0 ]
   [ -d "$HOME/git/first-project" ]
   [ ! -d "$HOME/git/first-project/.git" ]
 }
 
 @test "bare paste (no ids) defaults to the full web-starter setup" {
-  apply --yes --no-launch --no-desktop
+  apply --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
   [[ "$output" == *"Node.js"* ]]
@@ -110,20 +126,20 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "web-starter includes the welcome block; its text lands in the canonical file" {
-  apply web-starter --yes --no-launch --no-desktop
+  apply web-starter --yes --no-launch
   [ "$status" -eq 0 ]
   grep -Fq "## Welcome" "$HOME/.config/agents/AGENTS.md"
 }
 
 @test "an id after a preset overrides its harness (web-starter codex -> codex)" {
-  apply web-starter codex --yes --no-launch --no-desktop
+  apply web-starter codex --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
 }
 
 @test "non-macOS exits 0 with an honest redirect, before any effect" {
   make_fake uname 'printf "Linux\n"'
-  apply claude --yes --no-launch --no-desktop
+  apply claude --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"macOS-only for now"* ]]
   # guard fires before ensure_brew / any block, so nothing ran
@@ -132,7 +148,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "the plain confirm omits the instruction-file paths but keeps expectations" {
-  apply claude concise --yes --no-launch --no-desktop
+  apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
   # author/debug detail, hidden from the novice confirm (present only in --plan)
   [[ "$output" != *"Instructions file:"* ]]
@@ -141,11 +157,11 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 @test "the git-config heads-up shows only when the git block is in the plan" {
   # the plain confirm view (shown even with --yes) discloses the git identity write
-  apply web-starter --yes --no-launch --no-desktop
+  apply web-starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"default branch for new projects"* ]]
   # a claude-only run has no git block, so no git heads-up
-  apply claude --yes --no-launch --no-desktop
+  apply claude --yes --no-launch
   [[ "$output" != *"default branch for new projects"* ]]
 }
 
@@ -156,7 +172,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "the starter prompt is copied to the clipboard with paste guidance" {
-  apply claude --yes --no-launch --no-desktop
+  apply claude --yes --no-launch
   [ "$status" -eq 0 ]
   # a distinctive phrase from starter-prompt.txt reached pbcopy
   fake_logged "build it together"
@@ -165,7 +181,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "unknown id fails at plan time and applies nothing" {
-  apply bogus --yes --no-launch --no-desktop
+  apply bogus --yes --no-launch
   [ "$status" -ne 0 ]
   [[ "$output" == *"unknown block: bogus"* ]]
   [ ! -f "$HOME/.claude/CLAUDE.md" ]

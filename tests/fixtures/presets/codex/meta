@@ -1,0 +1,3 @@
+KIND=preset
+DESC="Codex (CLI) + ChatGPT app"
+INCLUDE="codex-cli codex-desktop"

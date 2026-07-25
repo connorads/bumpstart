@@ -4,7 +4,7 @@ set -euo pipefail
 # apply.sh: the applier. Resolve an id list to a Plan (pure core), print the
 # plan, gate on a single confirm, then apply each block and launch the agent.
 #
-#   bash lib/apply.sh [--plan] [--yes] [--no-launch] [--no-desktop] <id>...
+#   bash lib/apply.sh [--plan] [--yes] [--no-launch] <id>...
 #
 # VIBE_ROOT overrides the repo root (the dir containing blocks/ and presets/) —
 # the seam the tests use to point at a fixture tree.
@@ -45,9 +45,9 @@ BUILD=false
 FORCE=false
 # Bare paste (no ids) → the full beginner setup, not a bare agent or an error.
 DEFAULT_PRESET=web-starter
-# LAUNCH / DESKTOP are consumed by the apply loop + launch (wired in later steps).
+# Desktop-ness is a composition choice now: the `claude`/`codex` bundles pull in
+# their *-desktop app block; CLI-only = list `claude-cli`/`codex-cli` instead.
 LAUNCH=true
-DESKTOP=true
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -58,7 +58,6 @@ while [ $# -gt 0 ]; do
     --build)      BUILD=true ;;
     --force)      FORCE=true ;;
     --no-launch)  LAUNCH=false ;;
-    --no-desktop) DESKTOP=false ;;
     --) shift; while [ $# -gt 0 ]; do IDS+=("$1"); shift; done; break ;;
     -*) die "Unknown option: $1" ;;
     *)  IDS+=("$1") ;;
@@ -149,7 +148,6 @@ run_block() {
   _b_dir="$(block_dir "$ROOT" "$1")"
   [ -f "$_b_dir/apply.sh" ] || return 0
   VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_BLOCK_ID="$1" \
-    VIBE_DESKTOP="$DESKTOP" \
     bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
 }
 

@@ -13,7 +13,6 @@ run_block() {
   id="$1"; shift
   run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
     VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_BLOCK_ID="$id" \
-    VIBE_DESKTOP=false \
     bash "$REPO_ROOT/blocks/$id/apply.sh" "$@"
 }
 

@@ -15,7 +15,7 @@ setup() {
 }
 
 @test "installs the Claude CLI when absent and reports success" {
-  run bash "$REPO_ROOT/install.sh" --agent claude --yes --no-desktop --no-launch
+  run bash "$REPO_ROOT/install.sh" --agent claude --yes --no-launch
   [ "$status" -eq 0 ]
   fake_logged "INSTALL claude"
   [[ "$output" == *"Setup complete"* ]]
@@ -23,21 +23,21 @@ setup() {
 
 @test "skips the Claude CLI install when already present" {
   make_fake claude
-  run bash "$REPO_ROOT/install.sh" --agent claude --yes --no-desktop --no-launch
+  run bash "$REPO_ROOT/install.sh" --agent claude --yes --no-launch
   [ "$status" -eq 0 ]
   refute_fake_logged "INSTALL claude"
   [[ "$output" == *"already installed"* ]]
 }
 
 @test "installs the Codex CLI when absent" {
-  run bash "$REPO_ROOT/install.sh" --agent codex --yes --no-desktop --no-launch
+  run bash "$REPO_ROOT/install.sh" --agent codex --yes --no-launch
   [ "$status" -eq 0 ]
   fake_logged "INSTALL codex"
   [[ "$output" == *"Setup complete"* ]]
 }
 
 @test "no --agent gives the full web-starter setup (not a bare agent)" {
-  run bash "$REPO_ROOT/install.sh" --yes --no-desktop --no-launch
+  run bash "$REPO_ROOT/install.sh" --yes --no-launch
   [ "$status" -eq 0 ]
   # web-starter installs the Claude CLI and its instructions land
   fake_logged "INSTALL claude"
@@ -46,7 +46,7 @@ setup() {
 }
 
 @test "rejects an unknown agent at plan time, applying nothing" {
-  run bash "$REPO_ROOT/install.sh" --agent bogus --yes --no-desktop --no-launch
+  run bash "$REPO_ROOT/install.sh" --agent bogus --yes --no-launch
   [ "$status" -ne 0 ]
   [[ "$output" == *"unknown block: bogus"* ]]
   refute_fake_logged "INSTALL"

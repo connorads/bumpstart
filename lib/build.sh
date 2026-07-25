@@ -52,7 +52,7 @@ run_wizard() {
   _w_i=0
   while [ "$_w_i" -lt "$_w_n" ]; do
     _w_id="${_w_h_ids[$_w_i]}"
-    [ "$_w_id" = "claude" ] && _w_default_num=$((_w_i + 1))
+    [ "$_w_id" = "claude-cli" ] && _w_default_num=$((_w_i + 1))
     _w_dir="$(block_dir "$_w_root" "$_w_id")"
     printf "    %s%s)%s %s%s%s  %s\n" \
       "$BOLD" "$((_w_i + 1))" "$RESET" "$BOLD" "$_w_id" "$RESET" "$(meta_get "$_w_dir" DESC)"
