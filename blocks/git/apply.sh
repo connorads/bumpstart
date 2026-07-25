@@ -18,7 +18,7 @@ if command -v git >/dev/null 2>&1; then
   success "git already installed"
 else
   info "Installing git..."
-  if brew install git; then
+  if spin "Installing git" brew install git; then
     success "git installed"
   else
     warn "git install failed — continuing"

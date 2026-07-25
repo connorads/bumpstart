@@ -12,7 +12,7 @@ if command -v gh >/dev/null 2>&1; then
   success "gh already installed"
 else
   info "Installing gh..."
-  brew install gh && success "gh installed"
+  spin "Installing gh" brew install gh && success "gh installed"
 fi
 
 if command -v gh >/dev/null 2>&1 && ! gh auth status >/dev/null 2>&1; then

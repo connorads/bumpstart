@@ -12,7 +12,7 @@ if command -v codex >/dev/null 2>&1; then
   success "Codex CLI already installed"
 else
   info "Installing Codex CLI..."
-  if curl -fsSL https://chatgpt.com/codex/install.sh | sh; then
+  if spin "Installing Codex CLI" bash -c 'curl -fsSL https://chatgpt.com/codex/install.sh | sh'; then
     success "Codex CLI installed"
   else
     error "Couldn't install the Codex CLI — try again or install by hand."
@@ -25,7 +25,7 @@ if [ "${VIBE_DESKTOP:-true}" = true ]; then
     success "ChatGPT app already installed"
   else
     info "Installing the ChatGPT app (hosts Codex)..."
-    brew install --cask chatgpt \
+    spin "Installing the ChatGPT app" brew install --cask chatgpt \
       || warn "Couldn't install the ChatGPT app — skipping (later: brew install --cask chatgpt)"
   fi
 fi

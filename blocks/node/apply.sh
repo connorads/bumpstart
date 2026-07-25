@@ -11,5 +11,5 @@ if command -v node >/dev/null 2>&1 || mise which node >/dev/null 2>&1; then
   success "Node.js already installed"
 else
   info "Installing Node.js LTS via mise..."
-  mise use -g node@lts && success "Node.js installed"
+  spin "Installing Node.js LTS" mise use -g node@lts && success "Node.js installed"
 fi

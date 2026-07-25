@@ -11,5 +11,5 @@ if command -v mise >/dev/null 2>&1; then
   success "mise already installed"
 else
   info "Installing mise..."
-  brew install mise && success "mise installed"
+  spin "Installing mise" brew install mise && success "mise installed"
 fi

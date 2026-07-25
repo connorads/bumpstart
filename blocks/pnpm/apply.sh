@@ -11,5 +11,5 @@ if command -v pnpm >/dev/null 2>&1 || mise which pnpm >/dev/null 2>&1; then
   success "pnpm already installed"
 else
   info "Installing pnpm via mise..."
-  mise use -g pnpm@latest && success "pnpm installed"
+  spin "Installing pnpm" mise use -g pnpm@latest && success "pnpm installed"
 fi
