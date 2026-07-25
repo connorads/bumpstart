@@ -1,23 +1,97 @@
 # shellcheck shell=bash
-# common.sh: colour helpers + PATH fixup, shared by the applier and blocks.
+# common.sh: colour/UI helpers + PATH fixup, shared by the applier and blocks.
 #
 # Sourced, not executed. No side effects beyond defining vars/functions.
 # bash-3.2-clean (macOS /bin/bash): no associative arrays, mapfile, or ${v,,}.
 
-# Colours off when NO_COLOR is set or stdout is not a terminal.
-# shellcheck disable=SC2034  # DIM/others are consumed by sourcing scripts
+# Colours off when NO_COLOR is set or stdout is not a terminal. UI_FANCY gates
+# the animated/cursor-dependent bits (spinner, cursor hide/show, decorative
+# rules) on top of colour, so piped/CI/test output stays plain and
+# deterministic. New colour vars are defined empty in the no-colour branch too,
+# for set -u safety in sourcing scripts.
+# shellcheck disable=SC2034  # several vars are consumed only by sourcing scripts
 if [ -n "${NO_COLOR:-}" ] || [ ! -t 1 ]; then
   GREEN="" BLUE="" RED="" YELLOW="" DIM="" BOLD="" RESET=""
+  CYAN="" MAGENTA=""
+  UI_FANCY=""
 else
   GREEN=$'\033[32m' BLUE=$'\033[34m' RED=$'\033[31m'
   YELLOW=$'\033[33m' DIM=$'\033[2m' BOLD=$'\033[1m' RESET=$'\033[0m'
+  CYAN=$'\033[36m' MAGENTA=$'\033[35m'
+  UI_FANCY=1
 fi
 
-info()    { printf "  %s>%s %s\n" "$BLUE" "$RESET" "$1"; }
+# One glyph, a two-space gutter, consistent spacing. warn/error stay on stderr.
+info()    { printf "  %s›%s %s\n" "$BLUE" "$RESET" "$1"; }
 success() { printf "  %s✓%s %s\n" "$GREEN" "$RESET" "$1"; }
 warn()    { printf "  %s!%s %s\n" "$YELLOW" "$RESET" "$1" >&2; }
 error()   { printf "  %s✗%s %s\n" "$RED" "$RESET" "$1" >&2; }
-step()    { printf "\n  %s[%s/%s]%s %s\n" "$BOLD" "$1" "$2" "$RESET" "$3"; }
+
+# step <n> <total> <label>: a numbered progress header before each install
+# block, so there's always a visible "here's where we are" marker. Bracket in
+# bold cyan, e.g. "[2/6] Set up GitHub CLI".
+step() { printf "\n  %s[%s/%s]%s %s\n" "$BOLD$CYAN" "$1" "$2" "$RESET" "$3"; }
+
+# hrule: a dim decorative rule. Fancy-only — a no-op in plain/piped/test output,
+# so nothing prints escape codes or rule glyphs where they'd be noise.
+hrule() {
+  [ -n "$UI_FANCY" ] || return 0
+  printf "  %s────────────────────────────────────────%s\n" "$DIM" "$RESET"
+}
+
+# spin <label> <cmd...>: run a command while showing a calm "it's working"
+# indicator, hiding the command's output unless it fails.
+#
+# Plain mode (no UI_FANCY: pipes, CI, tests) is a transparent passthrough — it
+# runs the command with stdout/stderr intact, so PATH-shadow fakes still fire
+# and output stays deterministic. Fancy mode animates a braille spinner with an
+# elapsed-seconds counter while the command runs in the background with its
+# output captured, then reveals the captured log only on failure. Returns the
+# command's exit status either way. Never wrap an interactive command.
+spin() {
+  _sp_label="$1"; shift
+  if [ -z "$UI_FANCY" ]; then
+    "$@" && return 0 || return $?
+  fi
+
+  # Braille frames in an array — indexed with `% count` to avoid multibyte
+  # ${var:i:1} byte-slicing under a C locale.
+  _sp_frames=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
+  _sp_nframes=${#_sp_frames[@]}
+
+  _sp_log="$(mktemp "${TMPDIR:-/tmp}/vibe-spin.XXXXXX" 2>/dev/null)" \
+    || _sp_log="${TMPDIR:-/tmp}/vibe-spin.$$"
+
+  "$@" >"$_sp_log" 2>&1 &
+  _sp_pid=$!
+
+  _sp_start=$SECONDS
+  _sp_i=0
+  printf '\033[?25l'  # hide cursor
+  while kill -0 "$_sp_pid" 2>/dev/null; do
+    printf '\r  %s%s%s %s %s(%ss)%s' \
+      "$CYAN" "${_sp_frames[$((_sp_i % _sp_nframes))]}" "$RESET" \
+      "$_sp_label" "$DIM" "$((SECONDS - _sp_start))" "$RESET"
+    _sp_i=$((_sp_i + 1))
+    sleep 0.1
+  done
+  wait "$_sp_pid" && _sp_status=0 || _sp_status=$?
+  printf '\r\033[K\033[?25h'  # clear line, show cursor
+
+  # Nothing is lost on failure: surface the captured output on stderr.
+  [ "$_sp_status" -ne 0 ] && cat "$_sp_log" >&2
+  rm -f "$_sp_log"
+  return "$_sp_status"
+}
+
+# press_enter <prompt>: pause until the user presses Enter, so an on-screen
+# message can be read before the next action takes over. A no-op without a
+# keyboard ([ -t 0 ]), so headless/piped runs never block.
+press_enter() {
+  [ -t 0 ] || return 0
+  printf "\n  %s⏎%s %s " "$CYAN" "$RESET" "$1"
+  read -r _pe_reply
+}
 
 # fixup_path: freshly-installed CLIs often land in these dirs — make the current
 # shell see them without a re-login.
