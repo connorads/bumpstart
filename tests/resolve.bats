@@ -36,16 +36,49 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 }
 
 @test "the plan sets honest expectations, harness-accurate (brew absent)" {
-  # the isolated PATH has no brew, so the password heads-up shows
+  # the isolated PATH has no brew, so the password + Homebrew heads-up shows
   plan claude
   [ "$status" -eq 0 ]
   [[ "$output" == *"What will happen"* ]]
+  [[ "$output" == *"Homebrew"* ]]
   [[ "$output" == *"Mac password"* ]]
+  [[ "$output" == *"trusted"* ]]
   [[ "$output" == *"Claude account"* ]]
   [[ "$output" == *"asks before changing files"* ]]
   plan codex
+  [[ "$output" == *"Homebrew"* ]]
+  [[ "$output" == *"trusted"* ]]
   [[ "$output" == *"Codex account"* ]]
   [[ "$output" != *"Claude account"* ]]
+}
+
+@test "the mise heads-up shows only when node/pnpm is in the plan" {
+  plan claude node
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"mise to manage"* ]]
+  # a harness-only plan installs no runtime, so no mise heads-up
+  plan claude
+  [[ "$output" != *"mise to manage"* ]]
+}
+
+@test "the one-instructions-file heads-up shows only when a content block is present" {
+  plan claude concise
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"one instructions file"* ]]
+  # bare harness ships no guidance, so nothing is stacked and nothing is claimed
+  plan claude
+  [[ "$output" != *"one instructions file"* ]]
+}
+
+@test "full mode names the harness config file per harness" {
+  plan claude
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Files this will create or change"* ]]
+  [[ "$output" == *".claude.json"* ]]
+  [[ "$output" != *".codex/config.toml"* ]]
+  plan codex
+  [[ "$output" == *".codex/config.toml"* ]]
+  [[ "$output" != *".claude.json"* ]]
 }
 
 @test "a plan with GitHub warns about needing a GitHub account; one without does not" {

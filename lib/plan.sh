@@ -46,6 +46,22 @@ render_plan() {
       printf "    %s\n" "$_p_t"
     done
   fi
+  # Exact paths of the material persistent files — author/debug detail earned in
+  # full mode (--plan and the wizard), never shown at the novice confirm gate.
+  # Not PLAN_TARGETS-guarded: a codex-alone plan still writes ~/.codex/config.toml.
+  if [ "$_p_mode" = full ]; then
+    printf "\n  %sFiles this will create or change%s\n" "$BOLD" "$RESET"
+    case "$PLAN_DEFAULT_HARNESS" in
+      claude|claude-cli) printf "    %s  (marks first-project trusted, and skips Claude's first-run onboarding screen)\n" "$HOME/.claude.json" ;;
+      codex|codex-cli)   printf "    %s  (marks first-project trusted)\n" "$HOME/.codex/config.toml" ;;
+    esac
+    case " ${PLAN_STEP_IDS[*]} " in
+      *" git "*) printf "    %s  (your name, email, and default branch)\n" "$HOME/.gitconfig" ;;
+    esac
+    case " ${PLAN_STEP_IDS[*]} " in
+      *" node "*|*" pnpm "*) printf "    %s  (mise tool versions)\n" "$HOME/.config/mise/config.toml" ;;
+    esac
+  fi
   _render_expectations
   printf "\n"
 }
@@ -54,27 +70,48 @@ render_plan() {
 # a couple of cheap probes. No pricing claims (tiers change); no duplicate of the
 # just-in-time password narration (that fires at the prompt itself).
 _render_expectations() {
+  # Account label first — harness-accurate wording, no pricing. Assigned before
+  # any use because the trust bullet below reuses it. The -cli ids compose with
+  # the harness split (a bundle resolves its default-harness to <name>-cli).
+  case "$PLAN_DEFAULT_HARNESS" in
+    claude|claude-cli) _p_acct="Claude" ;;
+    codex|codex-cli)   _p_acct="Codex" ;;
+    *)                 _p_acct="$PLAN_DEFAULT_HARNESS" ;;
+  esac
+
   printf "\n  %sWhat will happen%s\n" "$BOLD" "$RESET"
   # Homebrew's install prompts for the Mac password once; a cold Mac without the
   # Command Line Tools also fetches them, which can be slow.
   if ! command -v brew >/dev/null 2>&1; then
-    _exp "macOS will ask for your Mac password once."
+    _exp "Installs Homebrew (a trusted tool installer) so the tools above can be added - macOS asks for your Mac password once."
     if ! xcode-select -p >/dev/null 2>&1; then
       _exp "A one-time download may take ~10-15 min."
     fi
   fi
+  # Central persistent effects the applier performs (not per-block), disclosed in
+  # plain language. Present-intent verbs stay honest on idempotent re-runs where
+  # the effect is skipped.
+  if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
+    _exp "Keeps your agent guidance in one instructions file that your agent reads every session."
+  fi
+  _exp "Marks your first-project folder as trusted, so $_p_acct won't keep asking permission to work there."
+  case " ${PLAN_STEP_IDS[*]} " in
+    *" git "*)
+      _exp "Sets your git name and email (from your GitHub account) and makes 'main' the default branch for new projects." ;;
+  esac
+  case " ${PLAN_STEP_IDS[*]} " in
+    *" node "*|*" pnpm "*)
+      _exp "Sets up mise to manage your tool versions, saving a small config in your home folder." ;;
+  esac
   # GitHub sign-in needs an account a from-zero person may not have yet.
   case " ${PLAN_STEP_IDS[*]} " in
     *" gh-auth "*)
       _exp "You'll also sign into GitHub - create a free account first if you don't have one." ;;
   esac
-  # Account sign-in — harness-accurate wording, no pricing.
-  case "$PLAN_DEFAULT_HARNESS" in
-    claude) _p_acct="Claude" ;;
-    codex)  _p_acct="Codex" ;;
-    *)      _p_acct="$PLAN_DEFAULT_HARNESS" ;;
-  esac
   _exp "At the end you'll sign into your $_p_acct account in the browser - create one first if you don't have it."
+  if [ "${FORCE:-false}" = true ]; then
+    _exp "Because you passed --force, an existing instructions or agent-config file will be backed up (.bak) and replaced."
+  fi
   # Where it works + the safety habit.
   _exp "The agent works in ${STARTER_DIR:-$HOME/git/first-project} and asks before changing files or running commands."
 }

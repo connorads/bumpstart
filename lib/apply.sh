@@ -134,6 +134,10 @@ printf "\n  %s✦ vibe-setup%s\n" "$BOLD$CYAN" "$RESET"
 printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 
 # Homebrew underpins the auth + desktop/cask installs; get it in place first.
+# An un-numbered section marker (non-numeric [·]) so the earliest visible effect
+# — installing Homebrew, which prompts for the Mac password — isn't a silent
+# surprise. ensure_brew narrates the install (or "already installed") itself.
+printf "\n  %s[·]%s %sPreparing your Mac%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$RESET"
 ensure_brew
 
 # run_block <id> — execute a block's apply.sh in a fresh bash with the block

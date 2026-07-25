@@ -139,6 +139,22 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"What will happen"* ]]
 }
 
+@test "the git-config heads-up shows only when the git block is in the plan" {
+  # the plain confirm view (shown even with --yes) discloses the git identity write
+  apply web-starter --yes --no-launch --no-desktop
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"default branch for new projects"* ]]
+  # a claude-only run has no git block, so no git heads-up
+  apply claude --yes --no-launch --no-desktop
+  [[ "$output" != *"default branch for new projects"* ]]
+}
+
+@test "full mode names the .gitconfig path when git is in the plan" {
+  apply web-starter --plan
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".gitconfig"* ]]
+}
+
 @test "the starter prompt is copied to the clipboard with paste guidance" {
   apply claude --yes --no-launch --no-desktop
   [ "$status" -eq 0 ]
