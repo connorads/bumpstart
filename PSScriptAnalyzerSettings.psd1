@@ -25,7 +25,12 @@
   ExcludeRules = @(
     'PSAvoidUsingWriteHost',
     'PSAvoidUsingInvokeExpression',
-    'PSUseSingularNouns'
+    'PSUseSingularNouns',
+    # Domain verbs the plan names (Assemble-Instructions, Link-Harness,
+    # Ensure-Winget) read clearer than an approved-verb rename; and this is a
+    # setup script, not a module, so ShouldProcess/-WhatIf plumbing is noise.
+    'PSUseApprovedVerbs',
+    'PSUseShouldProcessForStateChangingFunctions'
   )
 
   Rules = @{
