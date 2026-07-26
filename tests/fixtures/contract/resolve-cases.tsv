@@ -1,0 +1,13 @@
+input	expect_ids	expect_kinds	expect_harness	expect_error
+claude-cli	claude-cli	harness	claude	
+claude	claude-cli claude-desktop	harness app	claude	
+web-starter	claude-cli claude-desktop gh-auth mise node context7 react concise	harness app auth tool tool mcp skill instructions	claude	
+claude node	claude-cli claude-desktop mise node	harness app tool tool	claude	
+claude node node	claude-cli claude-desktop mise node	harness app tool tool	claude	
+claude codex	claude-cli codex-cli claude-desktop codex-desktop	harness harness app app	codex	
+codex claude	codex-cli claude-cli codex-desktop claude-desktop	harness harness app app	claude	
+concise claude-desktop claude-cli	claude-cli claude-desktop concise	harness app instructions	claude	
+concise gh-auth claude	claude-cli claude-desktop gh-auth concise	harness app auth instructions	claude	
+cyc-a				include cycle: cyc-a cyc-b -> cyc-a
+bogus				unknown block: bogus
+gh-auth				no harness in plan (add e.g. 'claude' or 'codex')
