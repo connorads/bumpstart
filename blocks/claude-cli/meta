@@ -2,3 +2,6 @@ KIND=harness
 DESC="Install Claude Code (CLI)"
 SLOT=default-harness
 TARGET="$HOME/.claude/CLAUDE.md"
+LABEL="Claude Code CLI"
+CHECK_MAC='command -v claude >/dev/null 2>&1'
+INSTALL_MAC='curl -fsSL https://claude.ai/install.sh | bash'

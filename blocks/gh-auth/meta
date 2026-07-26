@@ -1,2 +1,6 @@
 KIND=auth
 DESC="Set up GitHub CLI (gh) + sign in"
+LABEL="gh"
+CHECK_MAC='command -v gh >/dev/null 2>&1'
+INSTALL_MAC='brew install gh'
+SATISFIED_MAC='command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1'

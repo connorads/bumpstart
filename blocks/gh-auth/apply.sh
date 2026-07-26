@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# gh-auth: install the GitHub CLI (via Homebrew) and offer an interactive sign
-# in. Login reads the keyboard, so it only runs with a terminal and when not
-# already authenticated. Check-then-act.
+# gh-auth (interactive tail): offer a GitHub sign-in. Installing gh is
+# declarative now (CHECK_MAC/INSTALL_MAC in meta, run by the generic runner
+# before this tail); what remains here is the part that needs a keyboard, so it
+# only runs with a terminal and when not already authenticated. Check-then-act.
 
 # shellcheck source=lib/common.sh
 . "$VIBE_LIB/common.sh"
-
-if command -v gh >/dev/null 2>&1; then
-  success "gh already installed"
-else
-  info "Installing gh..."
-  spin "Installing gh" brew install gh && success "gh installed"
-fi
 
 if command -v gh >/dev/null 2>&1 && ! gh auth status >/dev/null 2>&1; then
   if [ -t 0 ]; then

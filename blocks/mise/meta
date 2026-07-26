@@ -1,2 +1,5 @@
 KIND=tool
 DESC="Install mise (runtime version manager)"
+LABEL="mise"
+CHECK_MAC='command -v mise >/dev/null 2>&1'
+INSTALL_MAC='brew install mise'

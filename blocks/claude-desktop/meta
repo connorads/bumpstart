@@ -1,2 +1,5 @@
 KIND=app
 DESC="Install the Claude desktop app"
+LABEL="the Claude desktop app"
+CHECK_MAC='[ -d "${VIBE_APPS_DIR:-/Applications}/Claude.app" ]'
+INSTALL_MAC='brew install --cask claude'

@@ -1,30 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# git (tool): make sure git is installed and has an identity, so a beginner's
-# first commit is authored rather than rejected for a missing name/email. The
-# identity comes from their GitHub account (gh is pulled in via INCLUDE, and is
-# an `auth` kind so it signs in before this `tool` step runs); the noreply email
-# keeps their real address private on pushes. We only ever SET config that is
-# unset — never clobber an identity the user already has. Non-fatal throughout:
-# a missing GitHub sign-in prints a hint and skips, never aborting the setup.
+# git (interactive tail): give git an identity, so a beginner's first commit is
+# authored rather than rejected for a missing name/email. Installing git is
+# declarative now (CHECK_MAC/INSTALL_MAC in meta, run by the generic runner
+# before this tail); what remains here is the identity logic. The identity comes
+# from their GitHub account (gh is pulled in via INCLUDE, and is an `auth` kind
+# so it signs in before this `tool` step runs); the noreply email keeps their
+# real address private on pushes. We only ever SET config that is unset — never
+# clobber an identity the user already has. Non-fatal throughout: a missing
+# GitHub sign-in prints a hint and skips, never aborting the setup.
 
 # shellcheck source=lib/common.sh
 . "$VIBE_LIB/common.sh"
 
-# 1. Ensure git. Present on macOS once the Command Line Tools landed; install
-#    via Homebrew only if it is genuinely absent.
-if command -v git >/dev/null 2>&1; then
-  success "git already installed"
-else
-  info "Installing git..."
-  if spin "Installing git" brew install git; then
-    success "git installed"
-  else
-    warn "git install failed — continuing"
-  fi
-fi
-
+# If the runner's install cell couldn't provide git (genuinely absent, e.g. a
+# failed Homebrew install), there is no identity to set — skip, non-fatal.
 if ! command -v git >/dev/null 2>&1; then
   warn "git is not available — skipping identity setup."
   exit 0

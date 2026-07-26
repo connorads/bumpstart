@@ -1,3 +1,6 @@
 KIND=tool
 DESC="Install Node.js (LTS, via mise)"
 INCLUDE="mise"
+LABEL="Node.js"
+CHECK_MAC='command -v node >/dev/null 2>&1 || mise which node >/dev/null 2>&1'
+INSTALL_MAC='mise use -g node@lts'

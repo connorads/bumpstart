@@ -14,6 +14,10 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/common.sh"
 # shellcheck source=lib/meta.sh
 . "$LIB/meta.sh"
+# shellcheck source=lib/os.sh
+. "$LIB/os.sh"
+# shellcheck source=lib/run.sh
+. "$LIB/run.sh"
 # shellcheck source=lib/resolve.sh
 . "$LIB/resolve.sh"
 # shellcheck source=lib/instructions.sh
@@ -139,11 +143,12 @@ printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 printf "\n  %s[·]%s %sPreparing your Mac%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$RESET"
 ensure_brew
 
-# run_block <id> — execute a block's apply.sh in a fresh bash with the block
-# contract in the environment. A missing apply.sh is a silent skip: instruction
-# blocks (concise, ask-first) legitimately ship only meta + content.md, which the
-# applier assembles centrally. Best-effort otherwise: a failure warns and
-# continues so one fast-moving vendor step can't sink the whole setup.
+# run_block <id> — execute a block's apply.sh (its interactive tail) in a fresh
+# bash with the block contract in the environment. A missing apply.sh is a silent
+# skip: pure-data blocks install declaratively (via run_cell) and instruction
+# blocks (concise, ask-first) ship only meta + content.md, which the applier
+# assembles centrally. Best-effort otherwise: a failure warns and continues so
+# one fast-moving vendor step can't sink the whole setup.
 run_block() {
   _b_dir="$(block_dir "$ROOT" "$1")"
   [ -f "$_b_dir/apply.sh" ] || return 0
@@ -153,25 +158,30 @@ run_block() {
 
 _n=${#PLAN_STEP_IDS[@]}
 
-# Count only the blocks that actually do something (have an apply.sh);
-# instruction-only blocks are silent skips, so they neither get a step header
-# nor inflate the total. (The whole loop is skipped under --plan, so the
-# resolve.bats DESC counts are unaffected.)
+# Count only the blocks that actually do something (a declarative INSTALL cell
+# or an apply.sh tail); instruction-only blocks are silent skips, so they neither
+# get a step header nor inflate the total. (The whole loop is skipped under
+# --plan, so the resolve.bats DESC counts are unaffected.)
 _total=0
 _i=0
 while [ "$_i" -lt "$_n" ]; do
-  [ -f "$(block_dir "$ROOT" "${PLAN_STEP_IDS[$_i]}")/apply.sh" ] && _total=$((_total + 1))
+  if _block_runs "$ROOT" "${PLAN_STEP_IDS[$_i]}"; then _total=$((_total + 1)); fi
   _i=$((_i + 1))
 done
 
+# Per step: run the declarative install cell (run_cell), then the interactive
+# tail (run_block). This reproduces today's order — gh installed then login;
+# git ensured then identity — because an escape-hatch block's cell runs before
+# its apply.sh.
 _cur=0
 _i=0
 while [ "$_i" -lt "$_n" ]; do
   _bid="${PLAN_STEP_IDS[$_i]}"
-  if [ -f "$(block_dir "$ROOT" "$_bid")/apply.sh" ]; then
+  if _block_runs "$ROOT" "$_bid"; then
     _cur=$((_cur + 1))
     step "$_cur" "$_total" "${PLAN_STEP_DESCS[$_i]}"
   fi
+  run_cell "$ROOT" "$_bid"
   run_block "$_bid"
   _i=$((_i + 1))
 done

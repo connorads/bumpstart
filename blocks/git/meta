@@ -1,3 +1,7 @@
 KIND=tool
 DESC="Set up git + your name/email (from GitHub)"
 INCLUDE="gh-auth"
+LABEL="git"
+CHECK_MAC='command -v git >/dev/null 2>&1'
+INSTALL_MAC='brew install git'
+SATISFIED_MAC='command -v git >/dev/null 2>&1 && git config --global --get user.name >/dev/null 2>&1'
