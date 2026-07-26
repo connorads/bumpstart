@@ -11,7 +11,9 @@
 # function + a run-only-when-executed guard so the tests can dot-source it and
 # drive Invoke-VibeSetup in-process with shadowed installers. 5.1-safe.
 
-[CmdletBinding()]
+# PositionalBinding off so the mode flags (-Show <id>, etc.) never swallow a bare
+# id: only -Ids is positional, and it collects every remaining bare arg.
+[CmdletBinding(PositionalBinding = $false)]
 param(
   [switch]$Plan,
   [switch]$Yes,
@@ -20,7 +22,7 @@ param(
   [string]$Show,
   [switch]$Build,
   [switch]$Force,
-  [Parameter(ValueFromRemainingArguments = $true)] [string[]]$Ids
+  [Parameter(Position = 0, ValueFromRemainingArguments = $true)] [string[]]$Ids
 )
 
 . "$PSScriptRoot/common.ps1"

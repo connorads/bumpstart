@@ -28,7 +28,13 @@ function Test-BlockCheck {
   if (-not $dir) { return $null }
   $cell = Get-Meta $dir ("CHECK_" + (Get-VibeOsKey))
   if (-not $cell) { return $null }
-  if (Invoke-Expression $cell) { return $true } else { return $false }
+  # A predicate that errors (e.g. winget absent on Windows 10 pre-1809) reads as
+  # "not satisfied" - the bash analogue of a non-zero eval - never a crash.
+  try {
+    if (Invoke-Expression $cell) { return $true } else { return $false }
+  } catch {
+    return $false
+  }
 }
 
 # Invoke-Cell <root> <id> - the declarative install for the current OS. Read

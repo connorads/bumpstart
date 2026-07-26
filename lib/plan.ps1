@@ -35,7 +35,12 @@ function Test-StepSatisfied {
   $cell = Get-Meta $dir ("SATISFIED_" + (Get-VibeOsKey))
   if (-not $cell) { $cell = Get-Meta $dir ("CHECK_" + (Get-VibeOsKey)) }
   if (-not $cell) { return 2 }
-  if (Invoke-Expression $cell) { return 0 } else { return 1 }
+  # A probe that errors (e.g. winget absent) reads as actionable, never a crash.
+  try {
+    if (Invoke-Expression $cell) { return 0 } else { return 1 }
+  } catch {
+    return 1
+  }
 }
 
 # Show-Plan <plan> <root> [-Full] [-Force] - print the ordered steps, the agent
