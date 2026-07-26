@@ -41,6 +41,8 @@ run = "pwsh -Command \"Invoke-Pester tests -CI\""
 description = "PSScriptAnalyzer (5.1-floor compat gate) + the OS-automatic-var grep"
 run = [
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path lib -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path vibe.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path install.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   "pwsh -File scripts/lint-automatic-os-vars.ps1",
 ]
 
