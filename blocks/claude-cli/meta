@@ -5,3 +5,7 @@ TARGET="$HOME/.claude/CLAUDE.md"
 LABEL="Claude Code CLI"
 CHECK_MAC='command -v claude >/dev/null 2>&1'
 INSTALL_MAC='curl -fsSL https://claude.ai/install.sh | bash'
+TARGET_WIN='$HOME/.claude/CLAUDE.md'
+LINK_WIN=import
+CHECK_WIN='Get-Command claude -ErrorAction SilentlyContinue'
+INSTALL_WIN='irm https://claude.ai/install.ps1 | iex'

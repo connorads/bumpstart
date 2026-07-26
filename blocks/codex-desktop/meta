@@ -3,3 +3,5 @@ DESC="Install the ChatGPT app (Codex's desktop home)"
 LABEL="the ChatGPT app"
 CHECK_MAC='[ -d "${VIBE_APPS_DIR:-/Applications}/ChatGPT.app" ]'
 INSTALL_MAC='brew install --cask chatgpt'
+CHECK_WIN='winget list --id "9PLM9XGG6VKS" 2>$null | Select-String -SimpleMatch "ChatGPT"'
+INSTALL_WIN='winget install --id "9PLM9XGG6VKS" -s msstore --accept-package-agreements --accept-source-agreements'

@@ -67,3 +67,21 @@ mg() { run bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "$1" "$2"' _ "$@"; 
     done < "$f"
   done
 }
+
+@test "WIN/LINUX command cells use inner double-quotes only (no inner single quote)" {
+  # A bash single-quoted string can't contain a single quote, so a WIN/LINUX cell
+  # that needs quotes must use double quotes inside. Strip the outer single quotes
+  # and fail if any single quote remains.
+  for f in "$REPO_ROOT"/blocks/*/meta; do
+    while IFS= read -r line; do
+      case "$line" in
+        CHECK_WIN=*|INSTALL_WIN=*|SATISFIED_WIN=*|CHECK_LINUX=*|INSTALL_LINUX=*|SATISFIED_LINUX=*)
+          val="${line#*=}"
+          inner="${val#\'}"; inner="${inner%\'}"
+          case "$inner" in
+            *"'"*) printf 'inner single-quote in: %s (%s)\n' "$line" "$f" >&2; return 1 ;;
+          esac ;;
+      esac
+    done < "$f"
+  done
+}
