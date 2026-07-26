@@ -19,27 +19,23 @@ _kind_colour() {
 }
 
 # _step_satisfied <id>: mirror each block's own cheap check-then-act probe so the
-# gate can dim steps already in place on a warm Mac. Read-only; honours
-# VIBE_APPS_DIR (the *-desktop test seam). Returns 0 = satisfied (done), 1 =
-# actionable but not done, 2 = unmapped (rendered neutral). Instruction blocks
-# are deliberately unmapped — "is this guidance already present" is the
-# canonical-file question _render_expectations answers holistically, not per step.
-# A wrong ✓ is worse than a neutral row, so only cheap, block-identical checks
-# are probed; fragile predictions (e.g. which git name is chosen) are not.
+# gate can dim steps already in place on a warm Mac. Reads the block's gate
+# predicate from meta — SATISFIED_<os> (the richer gate-only escape hatch, e.g.
+# gh signed-in or git identity set) else CHECK_<os> (the install skip predicate,
+# also the default gate). The VIBE_APPS_DIR *-desktop test seam now lives inside
+# those cells. Read-only; eval'd via if/else (never bare) under the applier's
+# set -e. Returns 0 = satisfied (done), 1 = actionable but not done, 2 = unmapped
+# (no cell -> rendered neutral). Instruction blocks are deliberately unmapped —
+# "is this guidance already present" is the canonical-file question
+# _render_expectations answers holistically, not per step. A wrong ✓ is worse
+# than a neutral row, which is why the gate-only SATISFIED cell exists: a block
+# whose "done" differs from "binary present" spells it out rather than overclaim.
 _step_satisfied() {
-  _ss_apps="${VIBE_APPS_DIR:-/Applications}"
-  case "$1" in
-    claude-cli)     command -v claude >/dev/null 2>&1 ;;
-    codex-cli)      command -v codex  >/dev/null 2>&1 ;;
-    claude-desktop) [ -d "$_ss_apps/Claude.app" ] ;;
-    codex-desktop)  [ -d "$_ss_apps/ChatGPT.app" ] ;;
-    gh-auth)        command -v gh   >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 ;;
-    git)            command -v git  >/dev/null 2>&1 && git config --global --get user.name >/dev/null 2>&1 ;;
-    mise)           command -v mise >/dev/null 2>&1 ;;
-    node)           command -v node >/dev/null 2>&1 || mise which node >/dev/null 2>&1 ;;
-    pnpm)           command -v pnpm >/dev/null 2>&1 || mise which pnpm >/dev/null 2>&1 ;;
-    *)              return 2 ;;
-  esac
+  _ss_dir="$(block_dir "$ROOT" "$1")" || return 2
+  _ss_cell="$(meta_get "$_ss_dir" "SATISFIED_$(vibe_os_key)")"
+  [ -n "$_ss_cell" ] || _ss_cell="$(meta_get "$_ss_dir" "CHECK_$(vibe_os_key)")"
+  [ -n "$_ss_cell" ] || return 2
+  if eval "$_ss_cell"; then return 0; else return 1; fi
 }
 
 # render_plan [full]: print the ordered steps, the agent that will launch, and a
