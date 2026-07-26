@@ -42,3 +42,12 @@ os() { run bash -c '. "'"$REPO_ROOT"'/lib/os.sh"; '"$1"; }
   os vibe_os_key
   [ "$output" = MAC ]
 }
+
+@test "an explicit VIBE_OS override wins over uname (the cross-spine test seam)" {
+  make_fake uname 'printf "Darwin\n"'
+  export VIBE_OS=win   # exported so the helper's `bash -c` subshell inherits it
+  os vibe_os
+  [ "$output" = win ]
+  os vibe_os_key
+  [ "$output" = WIN ]
+}

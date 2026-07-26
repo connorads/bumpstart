@@ -1,6 +1,11 @@
 [tools]
 bats = "1"
 shellcheck = "0.11"
+# PowerShell 7 (registry name `powershell` → aqua:PowerShell/PowerShell) puts
+# pwsh on PATH under the repo's supply-chain posture. The pwsh tests + lint run
+# under pwsh 7 + Pester 5; the Windows 5.1 floor is enforced by the compat rules
+# in lint-ps, not the test runtime (Pester 5 on 5.1 is painful).
+"aqua:PowerShell/PowerShell" = "7"
 
 [tasks.lint]
 description = "Shellcheck all scripts"
@@ -19,5 +24,26 @@ description = "Run the whole suite under macOS /bin/bash (3.2) — the support c
 run = "/bin/bash \"$(command -v bats)\" tests/"
 
 [tasks.check]
-description = "Lint + full suite"
+description = "Lint + full suite (bash spine)"
 depends = ["lint", "test"]
+
+# ── PowerShell spine (twin-authored core, Windows support) ────────────────────
+# Tests run under mise's pwsh 7 + Pester 5; the Windows PowerShell 5.1 floor is
+# enforced by the compat rules in lint-ps, not the test runtime. Run
+# `pwsh -File bootstrap.ps1` once first to install the pinned Pester +
+# PSScriptAnalyzer. `check` stays bash-only so a Mac without pwsh keeps working.
+
+[tasks.test-ps]
+description = "Run the Pester suite (pure core + shared contract)"
+run = "pwsh -Command \"Invoke-Pester tests -CI\""
+
+[tasks.lint-ps]
+description = "PSScriptAnalyzer (5.1-floor compat gate) + the OS-automatic-var grep"
+run = [
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path lib -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  "pwsh -File scripts/lint-automatic-os-vars.ps1",
+]
+
+[tasks.check-ps]
+description = "PowerShell lint + Pester suite"
+depends = ["lint-ps", "test-ps"]
