@@ -71,3 +71,52 @@ function Wait-Enter {
   Write-Host "  $($script:Cyan)$([char]0x23CE)$($script:Reset) $Prompt " -NoNewline
   [void][Console]::ReadLine()
 }
+
+# Set-VibePath: freshly-installed CLIs land in per-user dirs the current shell may
+# not have on PATH yet - prepend the Windows ones so the launch step and any
+# later cell sees them without a re-login. The mirror of common.sh's fixup_path.
+# Only dirs that exist are prepended, so a mac-hosted test run is a near no-op.
+#   Claude Code + Codex per-user installers -> %USERPROFILE%\.local\bin
+#   npm-global (pnpm + npm-installed Codex)  -> %AppData%\npm
+#   Node.js (winget machine MSI)             -> %ProgramFiles%\nodejs
+function Set-VibePath {
+  $candidates = @(
+    (Join-Path $HOME '.local\bin')
+    (Join-Path $HOME '.codex\bin')
+  )
+  if ($env:APPDATA)      { $candidates += (Join-Path $env:APPDATA 'npm') }
+  if ($env:ProgramFiles) { $candidates += (Join-Path $env:ProgramFiles 'nodejs') }
+
+  $sep = [System.IO.Path]::PathSeparator
+  foreach ($dir in $candidates) {
+    if ((Test-Path -LiteralPath $dir) -and (($env:PATH -split [regex]::Escape($sep)) -notcontains $dir)) {
+      $env:PATH = "$dir$sep$($env:PATH)"
+    }
+  }
+}
+
+# Expand-VibeHome <path>: expand a leading $HOME or ~ in a meta path literal (e.g.
+# TARGET_WIN='$HOME/.claude/CLAUDE.md') to the automatic $HOME (= %USERPROFILE% on
+# Windows, defined in both 5.1 and pwsh 7). Bash source-expands its own paths; the
+# pwsh line-reader returns them literal, so this is where they resolve.
+function Expand-VibeHome {
+  param([string]$Path)
+  if ($Path -like '$HOME*') { return (Join-Path $HOME ($Path.Substring(5).TrimStart('/', '\'))) }
+  if ($Path -like '~*')     { return (Join-Path $HOME ($Path.Substring(1).TrimStart('/', '\'))) }
+  return $Path
+}
+
+# Copy-ToClipboard <text>: put text on the clipboard, returning $true on success.
+# Uses Set-Clipboard (present in Windows PowerShell 5.1 and pwsh 7). Returns
+# $false when the cmdlet is unavailable or fails, so callers can fall back to
+# printing the text for a manual copy. Never throws.
+function Copy-ToClipboard {
+  param([string]$Text)
+  if (-not (Get-Command Set-Clipboard -ErrorAction SilentlyContinue)) { return $false }
+  try {
+    Set-Clipboard -Value $Text
+    return $true
+  } catch {
+    return $false
+  }
+}
