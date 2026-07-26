@@ -7,11 +7,38 @@ on:
 
 jobs:
   check:
-    # macOS runner so the suite runs against the real /bin/bash 3.2 — the
-    # support contract this project targets.
+    # macOS runner so the bash suite runs against the real /bin/bash 3.2 - the
+    # support contract this project targets. Also runs the pwsh pure core (it is
+    # cross-platform), so it is validated on both OSes.
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v4
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # releases API rate limit for aqua pwsh
       - run: mise run lint
       - run: mise run test-bash32
+      - run: pwsh -File bootstrap.ps1
+      - run: mise run test-ps
+
+  check-windows:
+    # windows-latest so the PowerShell spine is validated on real Windows: the
+    # PSScriptAnalyzer 5.1-floor gate (lint-ps), the Pester suite with faked
+    # install dispatch (test-ps), and a dynamic 5.1 smoke under powershell.exe.
+    # aqua pwsh under mise-action on windows is plausible but unverified end to
+    # end; if it can't resolve, swap test-ps to the runner's built-in pwsh 7.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - run: pwsh -File bootstrap.ps1
+      - run: mise run lint-ps
+      - run: mise run test-ps
+      # Layer-4 backstop: the beginner paste runs in Windows PowerShell 5.1, not
+      # pwsh 7. Render the plan under real 5.1 to catch runtime breakage the static
+      # compat rules can't see. --plan stops before any effect.
+      - name: 5.1 floor smoke (powershell.exe)
+        shell: powershell
+        run: powershell.exe -File lib/apply.ps1 -Plan -Yes web-starter
