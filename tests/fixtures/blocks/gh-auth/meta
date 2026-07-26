@@ -1,2 +1,3 @@
 KIND=auth
 DESC="Set up GitHub CLI + sign in"
+INSTALL_MAC='true'

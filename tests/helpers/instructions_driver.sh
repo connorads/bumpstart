@@ -13,6 +13,10 @@ LIB="$1"; shift
 . "$LIB/common.sh"
 # shellcheck source=lib/meta.sh
 . "$LIB/meta.sh"
+# shellcheck source=lib/os.sh
+. "$LIB/os.sh"
+# shellcheck source=lib/run.sh
+. "$LIB/run.sh"
 # shellcheck source=lib/instructions.sh
 . "$LIB/instructions.sh"
 

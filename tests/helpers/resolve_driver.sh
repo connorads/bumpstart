@@ -10,6 +10,8 @@ set -uo pipefail
 LIB="$1"; ROOT="$2"; shift 2
 # shellcheck source=lib/meta.sh
 . "$LIB/meta.sh"
+# shellcheck source=lib/os.sh
+. "$LIB/os.sh"
 # shellcheck source=lib/resolve.sh
 . "$LIB/resolve.sh"
 

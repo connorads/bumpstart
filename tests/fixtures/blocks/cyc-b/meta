@@ -1,3 +1,4 @@
 KIND=tool
 DESC="cycle fixture B"
 INCLUDE="cyc-a"
+INSTALL_MAC='true'

@@ -1,3 +1,4 @@
 KIND=tool
 DESC="Install Node.js (via mise)"
 INCLUDE="mise"
+INSTALL_MAC='true'

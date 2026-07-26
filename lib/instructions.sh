@@ -40,9 +40,20 @@ assemble_instructions() {
   _ai_n=${#PLAN_STEP_IDS[@]}
   _ai_i=0
   while [ "$_ai_i" -lt "$_ai_n" ]; do
-    _ai_dir="$(block_dir "$_ai_root" "${PLAN_STEP_IDS[$_ai_i]}")"
-    if [ -f "$_ai_dir/content.md" ]; then
-      _ai_c="$(cat "$_ai_dir/content.md")"
+    _ai_id="${PLAN_STEP_IDS[$_ai_i]}"
+    _ai_dir="$(block_dir "$_ai_root" "$_ai_id")"
+    # Skip a non-instruction block that does no work on this OS (e.g. mise on
+    # Windows): its guidance would describe a tool we didn't install. Mac-invariant
+    # — every mac tool block has an INSTALL_MAC, so _block_runs is always true.
+    _ai_kind="$(meta_get "$_ai_dir" KIND)"
+    if [ "$_ai_kind" != instructions ] && ! _block_runs "$_ai_root" "$_ai_id"; then
+      _ai_i=$((_ai_i + 1)); continue
+    fi
+    # Prefer a per-OS content override (content.<os>.md) over the neutral content.md.
+    _ai_content="$_ai_dir/content.$(vibe_os).md"
+    [ -f "$_ai_content" ] || _ai_content="$_ai_dir/content.md"
+    if [ -f "$_ai_content" ]; then
+      _ai_c="$(cat "$_ai_content")"
       if [ -n "$_ai_buf" ]; then
         _ai_buf="$_ai_buf"$'\n'$'\n'"$_ai_c"
       else

@@ -66,6 +66,13 @@ render_plan() {
   fi
   while [ "$_p_i" -lt "$_p_n" ]; do
     _p_kind="${PLAN_STEP_KINDS[$_p_i]}"
+    # Render-rule: a block with no cell for this OS and no script tail (e.g. mise
+    # on Windows, pulled in but node-installs-via-winget there) is a dead row —
+    # skip it unless it is an instructions block. Mac-invariant: every mac
+    # non-instruction block has an INSTALL_MAC, so nothing is skipped here.
+    if [ "$_p_kind" != instructions ] && ! _block_runs "$ROOT" "${PLAN_STEP_IDS[$_p_i]}"; then
+      _p_i=$((_p_i + 1)); continue
+    fi
     # `if` guard, not a bare call — _step_satisfied returns non-zero by design and
     # the applier runs under `set -e`, which would otherwise abort the render.
     if _step_satisfied "${PLAN_STEP_IDS[$_p_i]}"; then _p_rc=0; else _p_rc=$?; fi

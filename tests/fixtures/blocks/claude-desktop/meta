@@ -1,2 +1,3 @@
 KIND=app
 DESC="Install the Claude desktop app"
+INSTALL_MAC='true'

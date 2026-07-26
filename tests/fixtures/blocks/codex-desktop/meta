@@ -1,2 +1,3 @@
 KIND=app
 DESC="Install the ChatGPT app (Codex's desktop home)"
+INSTALL_MAC='true'

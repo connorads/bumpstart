@@ -1,2 +1,3 @@
 KIND=skill
 DESC="Add the React skill"
+INSTALL_MAC='true'
