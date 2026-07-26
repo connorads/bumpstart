@@ -16,10 +16,18 @@ block_dir() {
 
 # meta_get <block_dir> <FIELD> — echo a single field. Fields are pre-declared
 # empty so an unset field yields "" (never a set -u failure) and stray shell in
-# the meta file cannot reference our internals.
+# the meta file cannot reference our internals. This pre-declaration is the set -u
+# linchpin: every field the resolver, runner, or plan may read — including the
+# per-OS command cells (CHECK/INSTALL/SATISFIED × MAC/WIN/LINUX) and the reserved
+# Windows/Linux targets — must be listed here or a block that omits it would fail.
+# LINUX/WIN cells are reserved now, authored in slice 3+; MAC is live.
 meta_get() {
   (
-    KIND=""; DESC=""; SLOT=""; TARGET=""; INCLUDE=""
+    KIND=""; DESC=""; SLOT=""; TARGET=""; INCLUDE=""; LABEL=""
+    TARGET_WIN=""; TARGET_LINUX=""
+    CHECK_MAC=""; INSTALL_MAC=""; SATISFIED_MAC=""
+    CHECK_WIN=""; INSTALL_WIN=""; SATISFIED_WIN=""
+    CHECK_LINUX=""; INSTALL_LINUX=""; SATISFIED_LINUX=""
     # shellcheck source=/dev/null
     . "$1/meta" || exit 1
     printf '%s' "${!2}"
