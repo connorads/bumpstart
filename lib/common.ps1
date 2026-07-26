@@ -1,0 +1,73 @@
+# common.ps1: colour/UI helpers, the pwsh mirror of common.sh. Dot-sourced, no
+# side effects beyond defining vars/functions. 5.1-safe: ANSI via [char]0x1b (the
+# `e escape is pwsh-7-only), no OS automatics, 5.1-safe cmdlets only.
+#
+# Colours off when $env:NO_COLOR is set or stdout is redirected (pipes/CI/tests).
+# $script:UiFancy gates the animated/cursor bits on top of colour so redirected
+# output stays plain and deterministic.
+
+$script:UiFancy = $false
+if ($env:NO_COLOR -or [Console]::IsOutputRedirected) {
+  $script:Green = ''; $script:Blue = ''; $script:Red = ''; $script:Yellow = ''
+  $script:Dim = ''; $script:Bold = ''; $script:Reset = ''
+  $script:Cyan = ''; $script:Magenta = ''
+} else {
+  $e = [char]0x1b
+  $script:Green = "$e[32m"; $script:Blue = "$e[34m"; $script:Red = "$e[31m"
+  $script:Yellow = "$e[33m"; $script:Dim = "$e[2m"; $script:Bold = "$e[1m"
+  $script:Reset = "$e[0m"; $script:Cyan = "$e[36m"; $script:Magenta = "$e[35m"
+  $script:UiFancy = $true
+}
+
+# One glyph, a two-space gutter, consistent spacing. All UI goes to Write-Host
+# (the Information stream) so tests can capture it with 6>&1 and a redirected
+# console still shows it.
+function Info    { param([string]$Msg) Write-Host "  $($script:Blue)$([char]0x203A)$($script:Reset) $Msg" }
+function Success { param([string]$Msg) Write-Host "  $($script:Green)$([char]0x2713)$($script:Reset) $Msg" }
+function Warn    { param([string]$Msg) Write-Host "  $($script:Yellow)!$($script:Reset) $Msg" }
+function Err     { param([string]$Msg) Write-Host "  $($script:Red)$([char]0x2717)$($script:Reset) $Msg" }
+
+# Step <n> <total> <label>: a numbered progress header before each install block.
+function Step {
+  param([int]$Num, [int]$Total, [string]$Label)
+  Write-Host ""
+  Write-Host "  $($script:Bold)$($script:Cyan)[$Num/$Total]$($script:Reset) $Label"
+}
+
+# Hrule: a dim decorative rule. Fancy-only - a no-op in plain/piped/test output.
+function Hrule {
+  if (-not $script:UiFancy) { return }
+  Write-Host "  $($script:Dim)$([char]0x2500 * 40)$($script:Reset)"
+}
+
+# Invoke-Spin <label> <scriptblock>: run a block while showing (in fancy mode) a
+# calm working indicator. Plain mode (redirected/CI/tests) is a transparent
+# passthrough - the block runs with its output intact. Returns $true on success,
+# $false when the block throws or leaves a non-zero native exit code. Non-fatal by
+# contract: callers warn-and-continue on $false.
+function Invoke-Spin {
+  param([string]$Label, [scriptblock]$Script)
+  if ($script:UiFancy) {
+    Write-Host "  $($script:Cyan)*$($script:Reset) $Label" -NoNewline
+  }
+  $global:LASTEXITCODE = 0
+  $ok = $true
+  try {
+    & $Script
+    if ($LASTEXITCODE -ne 0) { $ok = $false }
+  } catch {
+    $ok = $false
+  }
+  if ($script:UiFancy) { Write-Host "`r" -NoNewline }
+  return $ok
+}
+
+# Wait-Enter <prompt>: pause until Enter, so an on-screen message can be read. A
+# no-op when input is redirected (headless/piped runs never block).
+function Wait-Enter {
+  param([string]$Prompt)
+  if ([Console]::IsInputRedirected) { return }
+  Write-Host ""
+  Write-Host "  $($script:Cyan)$([char]0x23CE)$($script:Reset) $Prompt " -NoNewline
+  [void][Console]::ReadLine()
+}
