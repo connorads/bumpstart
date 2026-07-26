@@ -1,8 +1,7 @@
 # lib/run.ps1: the generic declarative runner, the pwsh mirror of tests/run.bats.
-# Synthetic blocks carry MAC-keyed cells whose VALUES are PowerShell (the pwsh
-# runner Invoke-Expressions them, so the cell body must be pwsh) — runner
-# mechanics are OS-token-agnostic; real WIN dispatch is covered in slice 4. A
-# fake-log file stands in for the PATH-shadow fakes: install cells append to it.
+# Synthetic blocks carry host-keyed cells whose VALUES are PowerShell (the pwsh
+# runner Invoke-Expressions them, so the cell body must be pwsh). A fake-log file
+# stands in for the PATH-shadow fakes: install cells append to it.
 
 BeforeAll {
   $env:NO_COLOR = '1'   # set before common.ps1 loads so UI stays plain + capturable
@@ -10,6 +9,7 @@ BeforeAll {
   . "$PSScriptRoot/../lib/meta.ps1"
   . "$PSScriptRoot/../lib/os.ps1"
   . "$PSScriptRoot/../lib/run.ps1"
+  $script:osKey = Get-VibeOsKey
 
   function New-Block {
     param([string]$Id, [string[]]$Lines)
@@ -21,7 +21,7 @@ BeforeAll {
   # Meta lines are pwsh single-quoted literals so $ stays literal (expanded only
   # by the runner's Invoke-Expression at run time) and the cell's own single
   # quotes are the doubled ''. An INSTALL cell that records itself to the log:
-  $script:logInstall = 'INSTALL_MAC=''Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "brew install thing"'''
+  $script:logInstall = "INSTALL_$script:osKey='Add-Content -LiteralPath `$env:VIBE_FAKE_LOG -Value `"brew install thing`"'"
 }
 
 Describe 'run.ps1' {
@@ -34,12 +34,12 @@ Describe 'run.ps1' {
   AfterEach { Remove-Item Env:VIBE_FAKE_LOG -ErrorAction SilentlyContinue }
 
   It 'Test-BlockCheck is $true when the CHECK cell passes' {
-    New-Block present @('KIND=tool', 'CHECK_MAC=''$true''')
+    New-Block present @('KIND=tool', "CHECK_$script:osKey='`$true'")
     Test-BlockCheck $script:root 'present' | Should -BeTrue
   }
 
   It 'Test-BlockCheck is $false when the CHECK cell fails' {
-    New-Block absent @('KIND=tool', 'CHECK_MAC=''$false''')
+    New-Block absent @('KIND=tool', "CHECK_$script:osKey='`$false'")
     Test-BlockCheck $script:root 'absent' | Should -BeFalse
   }
 
@@ -49,14 +49,14 @@ Describe 'run.ps1' {
   }
 
   It 'Invoke-Cell skips the install when already satisfied' {
-    New-Block sat @('KIND=tool', 'LABEL=thing', 'CHECK_MAC=''$true''', $logInstall)
+    New-Block sat @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$true'", $logInstall)
     $out = Invoke-Cell $script:root 'sat' 6>&1 | Out-String
     $out | Should -Match 'already installed'
     (Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG) | Should -Not -Match 'brew install thing'
   }
 
   It 'Invoke-Cell runs the install when not satisfied' {
-    New-Block act @('KIND=tool', 'LABEL=thing', 'CHECK_MAC=''$false''', $logInstall)
+    New-Block act @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $logInstall)
     Invoke-Cell $script:root 'act' 6>&1 | Out-Null
     (Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG) | Should -Match 'brew install thing'
   }
@@ -68,13 +68,13 @@ Describe 'run.ps1' {
   }
 
   It 'Invoke-Cell warns but does not throw when the install fails (non-fatal)' {
-    New-Block boom @('KIND=tool', 'LABEL=thing', 'CHECK_MAC=''$false''', 'INSTALL_MAC=''throw "fail"''')
+    New-Block boom @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", "INSTALL_$script:osKey='throw `"fail`"'")
     $out = Invoke-Cell $script:root 'boom' 6>&1 | Out-String
     $out | Should -Match "Couldn't install"
   }
 
   It 'Invoke-Cell falls back to DESC for the label when LABEL is unset' {
-    New-Block desc @('KIND=tool', 'DESC="the widget"', 'CHECK_MAC=''$true''', $logInstall)
+    New-Block desc @('KIND=tool', 'DESC="the widget"', "CHECK_$script:osKey='`$true'", $logInstall)
     $out = Invoke-Cell $script:root 'desc' 6>&1 | Out-String
     $out | Should -Match 'the widget already installed'
   }
@@ -95,4 +95,3 @@ Describe 'run.ps1' {
     Test-BlockRuns $script:root 'only' | Should -BeFalse
   }
 }
-

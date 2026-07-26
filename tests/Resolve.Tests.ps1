@@ -1,8 +1,7 @@
-# lib/resolve.ps1: the pwsh-only slice of the pure core — instruction Targets,
+# lib/resolve.ps1: the pwsh-only slice of the pure core - instruction Targets,
 # which are OS-specific (MAC reads TARGET, WIN reads TARGET_WIN) and so live
-# outside the shared cross-OS contract. Runs on the mac host with no override, so
-# Get-VibeOsKey is MAC and the target field read is TARGET (the slice-1 asymmetry:
-# mac's target is the bare TARGET).
+# outside the shared cross-OS contract. Fixture harnesses carry the host-native
+# target fields needed by the PowerShell lane on macOS and Windows.
 
 BeforeAll {
   . "$PSScriptRoot/../lib/os.ps1"
