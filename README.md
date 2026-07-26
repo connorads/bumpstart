@@ -9,16 +9,36 @@ It composes vetted **blocks**. You (or a workshop leader) hand out one paste
 listing the blocks you want; the applier resolves them, shows a plain-language
 plan, asks **once**, then sets everything up and drops you into the agent.
 
-macOS only (for now).
+macOS and native Windows (no WSL needed).
 
 ## Quick start
 
-Paste this and go — no ids, no choices. You get the full beginner setup
-(`web-starter`: Claude Code + GitHub + Node + concise instructions):
+Paste one line and go — no ids, no choices. You get the full beginner setup
+(`web-starter`: Claude Code + GitHub + Node + concise instructions).
+
+### macOS (Terminal)
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
 ```
+
+### Windows (PowerShell)
+
+Open **PowerShell** (the one already on your PC) and paste:
+
+```powershell
+irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1 | iex
+```
+
+To choose blocks, pass them through a script block:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1))) claude gh-auth node concise
+```
+
+The Windows install needs no admin for the coding agents themselves (Claude Code
+and Codex install just for you); Node.js and Git install for all users via
+winget and each ask permission once.
 
 `vibe _` (bare, no ids) does the same. Both default to `web-starter`.
 
@@ -107,6 +127,12 @@ in files you own - if the canonical file or a real agent config already exists, 
 backs off and points you at it (use `--force` to replace: real files are moved to
 `.bak` first).
 
+On **Windows** the shape is identical; the OS-specific bits differ: installs go
+through winget + the CLIs' own PowerShell installers (no Homebrew), and instead
+of a symlink each agent is linked to the canonical file its own way - Claude via
+an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
+`~/.codex/AGENTS.md` (Codex has no import). The clipboard paste is Ctrl+V.
+
 ## Flags
 
 | flag             | effect                                        |
@@ -167,17 +193,35 @@ install the latest.
 
 ## Development
 
-Pure bash, targeting macOS `/bin/bash` (3.2). Tooling via `mise`:
+Two spines, twin-authored against one shared fixture contract so they can't
+drift: **bash** (macOS, targeting `/bin/bash` 3.2) and **PowerShell** (Windows,
+targeting **Windows PowerShell 5.1** — the default shell on a fresh Windows, not
+pwsh 7). Blocks are single-sourced: per-OS install/check live in block metadata
+as data (`CHECK_MAC`/`INSTALL_WIN`/…); only the thin runner + the pure resolver
+are authored twice. Tooling via `mise`:
 
 ```bash
+# bash spine (macOS)
 mise run lint          # shellcheck
-mise run test          # bats suite
-mise run test-fast     # skip integration-tagged tests
-mise run test-bash32   # run the whole suite under /bin/bash (3.2)
+mise run test-bash32   # the whole bats suite under /bin/bash (3.2)
 mise run check         # lint + test
+
+# PowerShell spine (Pester + PSScriptAnalyzer; run bootstrap once first)
+pwsh -File bootstrap.ps1   # install pinned Pester + PSScriptAnalyzer
+mise run test-ps           # Pester suite (pure core, shared contract, Windows e2e)
+mise run lint-ps           # PSScriptAnalyzer 5.1-floor gate + the $IsWindows grep
+mise run check-ps          # lint-ps + test-ps
 ```
 
-Tests are black-box with PATH-shadow fakes (no network, no real installs). The
-pure resolver is exercised via `--plan` against a fixture block tree;
-`instructions.sh` and `trust.sh` are driven under `/bin/bash` against an isolated
-`HOME`.
+Tests are black-box with fakes (no network, no real installs): PATH-shadow fakes
+on bash, shadow functions on PowerShell. The two resolvers are locked to one
+`tests/fixtures/contract/resolve-cases.tsv` (driven by `contract.bats` and
+`Contract.Tests.ps1`). The Windows e2e (`Apply.Tests.ps1`) drives the applier
+in-process with `VIBE_OS=win`.
+
+**Support contracts (mechanically enforced):** bash stays 3.2-clean (no
+associative arrays / `mapfile` / `${v,,}`); PowerShell stays 5.1-clean — no
+`$IsWindows` outside `lib/os.ps1`, no 7-only syntax (ternary, `??`, `&&`/`||`) —
+gated by `PSUseCompatibleSyntax`/`PSUseCompatibleCommands`/`PSUseCompatibleTypes`
+against the bundled 5.1 profile in `lint-ps`, plus a windows-latest 5.1 smoke.
+CI runs both lanes (`macos-latest` + `windows-latest`).
