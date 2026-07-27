@@ -16,9 +16,11 @@ setup() {
   mkdir -p "$VIBE_APPS_DIR"
 }
 
-# run_cell <id> — drive the generic runner's declarative install for a block.
+# run_cell <id> — drive the generic runner's declarative install for a block's MAC
+# cells. VIBE_OS is pinned rather than inherited: run on Linux, these cases would
+# read the LINUX cells and quietly assert nothing about the mac lane.
 run_cell() {
-  run env VIBE_APPS_DIR="$VIBE_APPS_DIR" \
+  run env VIBE_OS=mac VIBE_APPS_DIR="$VIBE_APPS_DIR" \
     bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
     "$REPO_ROOT/lib" run_cell "$REPO_ROOT" "$1"
 }
@@ -191,9 +193,17 @@ run_block() {
   # The Ubuntu Desktop case: wget present, curl not. A curl-only cell would be a
   # silent no-op on the machine this lane most needs to work.
   make_fake wget 'printf "%s\n" "printf \"INSTALL claude\\n\" >> \"$VIBE_FAKE_LOG\""'
-  run env VIBE_OS=linux PATH="$FAKES:/bin" \
+  # PATH is narrowed to the fakes dir ALONE, with only what the cell needs symlinked
+  # in. Leaving a system bin dir on PATH would let a real curl answer — and on Fedora
+  # and Arch /bin IS /usr/bin, so "curl absent" would be false and the cell would
+  # make a real network call.
+  ln -sf /bin/bash "$FAKES/bash"
+  ln -sf "$(command -v env)" "$FAKES/env"
+  _wide_path="$PATH"
+  PATH="$FAKES" run env VIBE_OS=linux \
     bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
     "$REPO_ROOT/lib" run_cell "$REPO_ROOT" claude-cli
+  export PATH="$_wide_path"
   [ "$status" -eq 0 ]
   fake_logged "INSTALL claude"
 }

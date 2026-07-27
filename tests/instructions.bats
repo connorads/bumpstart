@@ -8,6 +8,11 @@ load helpers/common
 
 setup() {
   setup_isolated_env
+  # assemble_instructions drops a non-instruction block that does no work on the
+  # current OS, and the fixtures' cells are INSTALL_MAC — so the suite means the mac
+  # lane. Pinned, not inherited from the host: on Linux the tool sections would
+  # silently vanish from the canonical file instead of the test failing.
+  export VIBE_OS=mac
   FIX="$REPO_ROOT/tests/fixtures"
   DRIVER="$REPO_ROOT/tests/helpers/instructions_driver.sh"
   CANON="$HOME/.agents/AGENTS.md"

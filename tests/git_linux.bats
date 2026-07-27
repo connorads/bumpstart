@@ -12,7 +12,12 @@
 
 load helpers/common
 
-setup() { setup_isolated_env; }
+setup() {
+  setup_isolated_env
+  # Non-root, explicitly: the sudo branch only exists for a non-root user, and CI
+  # runs this suite inside a container as root. The root case overrides this.
+  make_fake id 'printf "1000\n"'
+}
 
 # A sudo fake that logs and then really runs what it was asked to (so the faked
 # package manager is what actually records the install), and answers the tty-gated

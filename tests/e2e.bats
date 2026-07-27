@@ -25,7 +25,11 @@ setup() {
   mkdir -p "$VIBE_APPS_DIR"
 }
 
-apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
+# The mac lane by default, pinned rather than inherited from the host — otherwise
+# every cask assertion below reads the LINUX cells when the suite runs on Linux and
+# quietly asserts nothing. A test that exports VIBE_OS itself wins, which is how the
+# Linux cases below select their own lane.
+apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 @test "vibe claude codex: installs both, launches the last (codex)" {
   apply claude codex --yes --no-launch
@@ -107,6 +111,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "claude starter applies the whole stack for Claude" {
+  require_git   # the .git assertion below is real git, not a fake
   apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
@@ -118,6 +123,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "codex starter is the same handout on the other agent, with no claude block" {
+  require_git
   apply codex starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
@@ -209,7 +215,9 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "native Windows exits 0 with an honest redirect, before any effect" {
-  make_fake uname 'printf "MINGW64_NT-10.0\n"'
+  # Through the seam, not a faked uname: os.bats owns the uname mapping, and this
+  # case is about what the guard DOES with the answer.
+  export VIBE_OS=win
   apply claude --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"On Windows, open PowerShell"* ]]
@@ -222,6 +230,9 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   # The Linux happy path with every vendor faked: mise supplies gh/node, the agent
   # comes from its own one-liner, and no Homebrew is involved anywhere.
   export VIBE_OS=linux
+  # persist_path keys on the LOGIN shell, so name it rather than inherit whatever
+  # shell the test host happens to use — the rc file asserted below depends on it.
+  export SHELL=/bin/bash
   # Absent, so each install dispatch is observable rather than skipped as satisfied.
   rm -f "$FAKES/claude" "$FAKES/gh" "$FAKES/node"
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
@@ -243,7 +254,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq "## Be concise" "$canon"
   [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
   # and the PATH line, so a new terminal finds all of it
-  grep -Fq '# >>> vibe-setup >>>' "$HOME/.zshrc"
+  grep -Fq '# >>> vibe-setup >>>' "$HOME/.bashrc"
 }
 
 @test "a Linux run tells you the Linux things and none of the Mac ones" {
@@ -252,11 +263,14 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [ "$status" -eq 0 ]
   # no Homebrew anywhere in the copy: it is never installed on this lane
   [[ "$output" != *"Homebrew"* ]]
-  [[ "$output" == *"Preparing"* ]]
   # the sign-in fallback that a server, a container and a WSL shell all need
   [[ "$output" == *"copy the web address"* ]]
-  # and the paste keystroke that actually pastes in a Linux terminal
+  # An apply run (not --plan) is where the substrate header prints, and it names the
+  # machine rather than the Mac.
   apply claude --yes --no-launch
+  [[ "$output" == *"Preparing your machine"* ]]
+  [[ "$output" != *"Preparing your Mac"* ]]
+  # and the paste keystroke that actually pastes in a Linux terminal
   [[ "$output" != *"Cmd+V"* ]]
 }
 

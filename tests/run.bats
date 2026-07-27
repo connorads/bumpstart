@@ -10,6 +10,9 @@ load helpers/common
 
 setup() {
   setup_isolated_env
+  # The synthetic blocks below use CHECK_MAC/INSTALL_MAC, so the runner is exercised
+  # through the mac lane. Pinned, not inherited from the host.
+  export VIBE_OS=mac
   ROOT="$BATS_TEST_TMPDIR/root"
   mkdir -p "$ROOT/blocks"
 }

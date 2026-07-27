@@ -17,6 +17,10 @@ setup() {
   setup_isolated_env
   PROC="$BATS_TEST_TMPDIR/proc"
   mkdir -p "$PROC"
+  # Non-root, explicitly: root needs no namespace grant, so the probe exits early —
+  # and a container (which CI runs the suite in) is root. Inherited, that would make
+  # every case below silently vacuous. The root case overrides this.
+  make_fake id 'printf "1000\n"'
 }
 
 probe() {
@@ -83,7 +87,7 @@ probe() {
 @test "as root there is nothing to warn about" {
   # Containers and Codespaces run as root, which needs no namespace grant.
   printf '1\n' > "$PROC/apparmor_restrict_unprivileged_userns"
-  make_fake id 'printf "0\n"'
+  make_fake id 'printf "0\n"'   # overrides setup's non-root fake
   probe
   [ "$status" -eq 0 ]
   [ -z "$output" ]

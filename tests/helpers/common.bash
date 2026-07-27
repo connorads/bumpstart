@@ -61,6 +61,14 @@ make_fake_gh_unauth() {
   make_fake gh 'if [ "$1 ${2:-}" = "auth status" ]; then exit 1; fi'
 }
 
+# require_git — skip a test that asserts REAL git behaviour when git is absent.
+# A few cases check that the starter dir became a genuine repo, which cannot be
+# faked without asserting the fake instead. macOS always has git and the CI Linux
+# images install it; a bare image without it should say so rather than fail.
+require_git() {
+  command -v git >/dev/null 2>&1 || skip "git not available"
+}
+
 # --- tiny assertions (avoid a bats-assert dependency) ---------------------------
 
 # fake_logged <pattern> — grep -F the invocation log.

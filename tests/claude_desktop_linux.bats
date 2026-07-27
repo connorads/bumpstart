@@ -101,7 +101,18 @@ fake_system() {
 @test "no apt-get: says the app is Debian-only and points at the CLI" {
   make_fake sudo 'exec "$@"'
   make_fake curl
-  apply_desktop "file://$KEYDIR/none.asc"
+  # PATH narrowed to the fakes dir alone, so "no apt-get" is real: on a Debian-family
+  # host (or CI container) /usr/bin/apt-get would otherwise answer, and this case
+  # would silently exercise the install path instead.
+  for _b in env bash id cat tr basename dirname mkdir mktemp rm; do
+    [ -e "$FAKES/$_b" ] || ln -sf "$(command -v "$_b")" "$FAKES/$_b"
+  done
+  _wide_path="$PATH"
+  PATH="$FAKES" run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS=linux \
+    VIBE_CLAUDE_KEY_URL="file://$KEYDIR/none.asc" \
+    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" VIBE_BLOCK_ID=claude-desktop \
+    bash "$REPO_ROOT/blocks/claude-desktop/apply.sh"
+  export PATH="$_wide_path"
   [ "$status" -eq 0 ]
   [[ "$output" == *"only ships for Debian/Ubuntu"* ]]
   [[ "$output" == *"terminal one"* ]]

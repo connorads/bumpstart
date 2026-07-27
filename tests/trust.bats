@@ -25,6 +25,7 @@ trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
 }
 
 @test "init_starter_repo makes the dir a git repo, and is a no-op the second time" {
+  require_git   # this asserts real git behaviour; a fake would assert the fake
   [ -d "$DIR/.git" ] && rm -rf "$DIR/.git"
   trust init_starter_repo "$DIR"
   [ "$status" -eq 0 ]

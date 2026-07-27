@@ -7,6 +7,11 @@ load helpers/common
 
 setup() {
   setup_isolated_env
+  # The fixture blocks carry INSTALL_MAC cells, so this suite means the mac lane.
+  # Pinned rather than inherited from the host: without it, every _block_runs-gated
+  # row disappears when the suite runs on Linux, and the assertions below go quiet
+  # rather than failing loudly.
+  export VIBE_OS=mac
   FIX="$REPO_ROOT/tests/fixtures"
   # Point the *-desktop probes at an empty dir so no step reads as satisfied from
   # whatever is installed on the host — the hermetic PATH already lacks
