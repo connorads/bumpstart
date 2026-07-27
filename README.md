@@ -9,7 +9,7 @@ It composes vetted **blocks**. You (or a workshop leader) hand out one paste
 listing the blocks you want; the applier resolves them, shows a plain-language
 plan, asks **once**, then sets everything up and drops you into the agent.
 
-macOS and native Windows (no WSL needed). Linux is not supported yet.
+macOS, Linux (including WSL 2) and native Windows (no WSL needed).
 
 ## Quick start
 

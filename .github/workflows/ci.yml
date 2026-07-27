@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    # Weekly, for the real-install job only: it depends on third-party vendor URLs,
+    # so it is the leg that catches an upstream installer changing under us.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -42,3 +50,79 @@ jobs:
       - name: 5.1 floor smoke (powershell.exe)
         shell: powershell
         run: powershell.exe -File lib/apply.ps1 -Plan -Yes claude starter
+
+  check-linux:
+    # The Linux lane, across the distro families the support claim covers. `docker
+    # run` inside a step, deliberately NOT a container job: a container job mounts
+    # the runner's externals over the image, and its musl detection is hardcoded to
+    # Alpine (actions/runner#3852) - which is not a target here.
+    #
+    # bats is fetched once on the host and mounted in, so no leg depends on its
+    # image packaging bats: only Ubuntu and Alpine were verified to, and Alpine is
+    # out of scope. The macos-latest lane still asserts the real bash 3.2 floor, so
+    # these legs running bash 5 are a genuinely different run, not a duplicate.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ubuntu:24.04
+            deps: apt-get update -qq && apt-get install -y -qq gnupg
+          - image: debian:12
+            deps: apt-get update -qq && apt-get install -y -qq gnupg
+          - image: fedora:42
+            deps: dnf install -y -q gnupg2
+          - image: archlinux:base
+            deps: pacman -Sy --noconfirm --needed gnupg
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch bats
+        run: |
+          mkdir -p "$RUNNER_TEMP/bats"
+          curl -fsSL https://github.com/bats-core/bats-core/archive/refs/tags/v1.14.0.tar.gz \
+            | tar -xz -C "$RUNNER_TEMP/bats" --strip-components=1
+      # The repo is mounted read-only: the suite writes only to an isolated HOME and
+      # to TMPDIR, and this proves it.
+      - name: bats suite on ${{ matrix.image }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/src:ro" \
+            -v "$RUNNER_TEMP/bats:/bats:ro" \
+            -w /src \
+            "${{ matrix.image }}" \
+            /bin/bash -c '
+              ${{ matrix.deps }} >/dev/null 2>&1 \
+                || echo "note: could not install gnupg; the signing-key cases will skip"
+              exec /bats/bin/bats tests/
+            '
+
+  linux-real-install:
+    # Not on pull_request: this really installs from vendor URLs, so it is slow and
+    # depends on third parties being up. Weekly + on demand instead.
+    #
+    # The assertion that matters is a FRESH LOGIN SHELL. Success in the installing
+    # shell proves nothing: fixup_path puts the install dirs on PATH for the run, so
+    # the run is green whether or not anything was persisted. This is the only check
+    # that fails when the rc line is wrong.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: real install in ubuntu:24.04
+        run: |
+          docker run --rm -v "$PWD:/src:ro" -w /src ubuntu:24.04 /bin/bash -c '
+            set -eux
+            # Deliberately bare: Ubuntu Desktop ships wget but NOT curl and NOT git,
+            # so only wget + CA certs are added. If the run needs curl, that is a bug.
+            apt-get update -qq
+            apt-get install -y -qq wget ca-certificates sudo >/dev/null
+            # -s /bin/bash: useradd defaults to /bin/sh, and persist_path keys on the
+            # login shell. A sh user gets told the PATH line instead of having it
+            # written, which is correct behaviour and would make this check vacuous.
+            useradd -m -s /bin/bash tester
+            su tester -c "cd /src && bash lib/apply.sh claude-cli node --yes --no-launch"
+            # An INTERACTIVE login shell, because Ubuntu ~/.bashrc returns early for
+            # non-interactive shells - and an interactive terminal is the case the
+            # user actually meets.
+            su - tester -c "bash -lic \"command -v claude && command -v node\""
+          '

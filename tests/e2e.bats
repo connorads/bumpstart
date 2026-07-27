@@ -208,16 +208,56 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   fake_logged "brew install --cask claude"
 }
 
-@test "non-macOS exits 0 with an honest redirect, before any effect" {
-  make_fake uname 'printf "Linux\n"'
+@test "native Windows exits 0 with an honest redirect, before any effect" {
+  make_fake uname 'printf "MINGW64_NT-10.0\n"'
   apply claude --yes --no-launch
   [ "$status" -eq 0 ]
-  [[ "$output" == *"This is the macOS setup"* ]]
-  # a Linux reader is told where they stand, not left guessing
-  [[ "$output" == *"Linux is not supported yet"* ]]
+  [[ "$output" == *"On Windows, open PowerShell"* ]]
   # guard fires before ensure_brew / any block, so nothing ran
   refute_fake_logged "brew"
-  refute_fake_logged "claude"
+  refute_fake_logged "INSTALL claude"
+}
+
+@test "a Linux run installs the agent, the tools and the instructions file" {
+  # The Linux happy path with every vendor faked: mise supplies gh/node, the agent
+  # comes from its own one-liner, and no Homebrew is involved anywhere.
+  export VIBE_OS=linux
+  # Absent, so each install dispatch is observable rather than skipped as satisfied.
+  rm -f "$FAKES/claude" "$FAKES/gh" "$FAKES/node"
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
+  make_fake git 'if [ "$1" = "config" ] && [ "$2" = "--global" ] && [ "$3" = "--get" ]; then exit 1; fi' \
+    'if [ "$1" = "init" ] || [ "$2" = "init" ]; then mkdir -p "$HOME/git/first-project/.git"; fi'
+  make_fake wl-copy 'cat >> "$VIBE_FAKE_LOG"'
+  apply claude starter --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Setup complete"* ]]
+  [[ "$output" == *"Agent to launch: claude"* ]]
+  # the agent's own Linux one-liner, not a package manager
+  fake_logged "INSTALL claude"
+  refute_fake_logged "brew"
+  # gh and node both come from mise
+  fake_logged "mise use -g gh"
+  fake_logged "mise use -g node@lts"
+  # one instructions file, linked from Claude's own path
+  canon="$HOME/.agents/AGENTS.md"
+  grep -Fq "## Be concise" "$canon"
+  [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
+  # and the PATH line, so a new terminal finds all of it
+  grep -Fq '# >>> vibe-setup >>>' "$HOME/.zshrc"
+}
+
+@test "a Linux run tells you the Linux things and none of the Mac ones" {
+  export VIBE_OS=linux
+  apply claude starter --plan
+  [ "$status" -eq 0 ]
+  # no Homebrew anywhere in the copy: it is never installed on this lane
+  [[ "$output" != *"Homebrew"* ]]
+  [[ "$output" == *"Preparing"* ]]
+  # the sign-in fallback that a server, a container and a WSL shell all need
+  [[ "$output" == *"copy the web address"* ]]
+  # and the paste keystroke that actually pastes in a Linux terminal
+  apply claude --yes --no-launch
+  [[ "$output" != *"Cmd+V"* ]]
 }
 
 @test "WSL 1 is refused with the one command that fixes it, before any effect" {

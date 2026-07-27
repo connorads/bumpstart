@@ -100,12 +100,12 @@ if [ "$BUILD" = true ]; then
   fi
 fi
 
-# ── Platform guard: fail fast, honestly, before any macOS-specific effect ─────
+# ── Platform guard: fail fast, honestly, before any OS-specific effect ────────
 #
-# Everything below (Homebrew, the CLI installers, trust preseed) is
-# macOS-only. An honest redirect beats running partway then dying on a
-# Mac-specific step. Exit 0 (informational, not an error) — a script wrapping
-# this could branch on the message; a non-zero would read as a failure it isn't.
+# This spine serves macOS and Linux. Native Windows has its own (apply.ps1), so a
+# Windows reader is redirected rather than left to fail on a Mac-specific step.
+# Exit 0 (informational, not an error) — a script wrapping this could branch on the
+# message; a non-zero would read as a failure it isn't.
 #
 # Through vibe_os(), not uname -s directly: that is the seam every other OS
 # decision in both spines reads (and apply.ps1's mirror guard already does), so
@@ -122,12 +122,13 @@ if [ "$(vibe_wsl)" = 1 ]; then
   exit 0
 fi
 
-if [ "$(vibe_os)" != mac ]; then
-  info "This is the macOS setup."
-  info "On Windows, open PowerShell and use the Windows paste from the README."
-  info "Linux is not supported yet."
-  exit 0
-fi
+case "$(vibe_os)" in
+  mac|linux) : ;;
+  *)
+    info "This setup runs on macOS and Linux."
+    info "On Windows, open PowerShell and use the Windows paste from the README."
+    exit 0 ;;
+esac
 
 # No ids → the beginner default (claude starter). Kept out of resolve.sh so the
 # pure core stays free of a hardcoded preset; resolve's own empty-list error

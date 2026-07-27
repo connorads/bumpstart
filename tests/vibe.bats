@@ -94,15 +94,13 @@ boot_curlless() {
   refute_fake_logged "APPLY"
 }
 
-@test "Linux is told where it stands, before any fetch" {
+@test "on Linux it fetches and hands the ids to the applier, same as a Mac" {
   make_fake uname 'printf "Linux\n"'
   make_fake curl
   make_fake_tar
-  boot claude
+  boot claude starter
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Linux is not supported yet"* ]]
-  refute_fake_logged "curl"
-  refute_fake_logged "APPLY"
+  fake_logged "APPLY claude starter"
 }
 
 @test "WSL 1 is refused with the one command that fixes it, before any fetch" {
@@ -186,11 +184,12 @@ boot_curlless() {
     if fake_logged "APPLY"; then _boot=proceed; else _boot=refuse; fi
 
     # --plan is after the guard and has no effects, so this asks the applier the
-    # same question without applying anything.
+    # same question without applying anything. Keyed on the plan actually being
+    # rendered, not on the refusal's wording, so a copy edit can't fake agreement.
     run bash "$REPO_ROOT/lib/apply.sh" claude --plan
     case "$output" in
-      *"This is the macOS setup"*) _appl=refuse ;;
-      *)                           _appl=proceed ;;
+      *"This will set up"*) _appl=proceed ;;
+      *)                    _appl=refuse ;;
     esac
 
     if [ "$_boot" != "$_appl" ]; then

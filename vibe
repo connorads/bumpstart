@@ -12,9 +12,9 @@ set -euo pipefail
 VIBE_REF="${VIBE_REF:-main}"
 REPO="connorads/vibe-setup"
 
-# This paste is the macOS one — say so before fetching anything, and send a
-# Windows reader to the PowerShell paste that does work. Exit 0: an honest
-# redirect, not a failure (the applier repeats this guard after extraction).
+# This paste serves macOS and Linux — send a native-Windows reader to the PowerShell
+# paste that does work, before fetching anything. Exit 0: an honest redirect, not a
+# failure (the applier repeats this guard after extraction).
 #
 # Deliberately duplicated, NOT routed through vibe_os(): this guard runs before
 # the tarball fetch below, so lib/os.sh does not exist yet — the whole point is to
@@ -38,13 +38,14 @@ case "$osrel" in
     exit 0 ;;
 esac
 
-if [ "$(uname -s)" != "Darwin" ]; then
-  printf 'This paste is the macOS one.\n'
-  printf 'On Windows, open PowerShell and paste this instead:\n'
-  printf '  irm https://raw.githubusercontent.com/%s/main/vibe.ps1 | iex\n' "$REPO"
-  printf 'Linux is not supported yet.\n'
-  exit 0
-fi
+case "$(uname -s)" in
+  Darwin|Linux) : ;;
+  *)
+    printf 'This paste runs on macOS and Linux.\n'
+    printf 'On Windows, open PowerShell and paste this instead:\n'
+    printf '  irm https://raw.githubusercontent.com/%s/main/vibe.ps1 | iex\n' "$REPO"
+    exit 0 ;;
+esac
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe.XXXXXX")"
 
