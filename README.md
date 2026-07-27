@@ -1,6 +1,6 @@
 # vibe-setup
 
-One-paste macOS setup for agentic / "vibe" coding. Gets someone who may never
+One-paste setup for agentic / "vibe" coding. Gets someone who may never
 have used a terminal from nothing to happily talking to a coding agent - with
 the tools, skills and instructions already in place, and **one thing to choose**:
 which agent, because that follows the AI subscription you already have.
@@ -31,6 +31,30 @@ If you use **ChatGPT**:
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ codex starter
 ```
+
+### Linux (Terminal)
+
+Same ids, and the line carries a `wget` fallback because Ubuntu Desktop ships no
+`curl`. If you use **Claude**:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
+```
+
+If you use **ChatGPT**:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ codex starter
+```
+
+Tested on Ubuntu, Debian, Fedora and Arch, on x86-64 and arm64, and inside **WSL 2**
+and containers. Derivatives (Mint, Pop!_OS, openSUSE, …) are found by capability, not
+by name, so they generally work too. Your login password is asked for once, and only
+if `git` needs installing.
+
+**Not supported:** Alpine and other musl systems (the tools we install publish no
+musl builds), NixOS (the vendor binaries need `/lib64`), and **WSL 1** — vibe refuses
+that one and prints the single command that upgrades it to WSL 2.
 
 ### Windows (PowerShell)
 
@@ -117,7 +141,7 @@ question is adding a directory.
 | `github-desktop` | tools    | app          | Install GitHub Desktop, so you can see and undo what the agent did (pulls in `git`) |
 | `node`           | tools    | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
 | `pnpm`           | tools    | tool         | Install pnpm via mise (pulls in `mise`)                            |
-| `safer-installs` | tools    | tool         | Make npm/pnpm/mise wait 4 days on brand-new releases (macOS only)  |
+| `safer-installs` | tools    | tool         | Make npm/pnpm/mise wait 4 days on brand-new releases (macOS + Linux) |
 | `welcome`        | steering | instructions | Greet the beginner + how to work with the agent every session      |
 | `concise`        | steering | instructions | Ask the agent to keep answers concise                              |
 | `ask-first`      | steering | instructions | Ask before installing tools / deleting files                       |
@@ -127,8 +151,8 @@ question is adding a directory.
 | `commit-often`   | steering | instructions | Commit at every working checkpoint; never force-push               |
 | `follow-conventions` | steering | instructions | Match the codebase's conventions, not the agent's defaults     |
 | `remember`       | steering | instructions | Write down decisions and surprises for the next reader             |
-| `claude-desktop` | -        | app          | Install the Claude desktop app (arrives with `claude`)             |
-| `codex-desktop`  | -        | app          | Install the ChatGPT app, Codex's desktop home (arrives with `codex`) |
+| `claude-desktop` | -        | app          | Install the Claude desktop app (arrives with `claude`; Linux: Debian/Ubuntu only) |
+| `codex-desktop`  | -        | app          | Install the ChatGPT app, Codex's desktop home (arrives with `codex`; not on Linux) |
 | `mise`           | -        | tool         | Install mise (runtime version manager; arrives with `node`/`pnpm`) |
 
 `github-desktop` is opt-in, not part of `web` or `starter`. Note it means a
@@ -205,25 +229,59 @@ skill or MCP block ships yet - better none than a redundant one.
    kind, pick the launch agent). Any bad id / cycle / missing-agent fails **here**,
    before anything is installed.
 3. Print the plan and ask **once** to proceed.
-4. Install Homebrew if needed, then apply each block (check-then-act, so re-runs
-   skip what is already there).
+4. Put the install substrate in place - **Homebrew** on macOS, **mise** on Linux -
+   then apply each block (check-then-act, so re-runs skip what is already there).
 5. Assemble the block instructions into **one canonical file**
    (`~/.agents/AGENTS.md`), then symlink each installed agent's own path to it
    (`~/.claude/CLAUDE.md` for Claude, `~/.codex/AGENTS.md` for Codex) so both
    agents read the single source.
-6. Create a starter project (`~/git/first-project`, a git repo when the `git`
+6. Add **one marked line** to your shell's startup file, so a new terminal window
+   still finds what was installed (see [Removing it](#removing-it)).
+7. Create a starter project (`~/git/first-project`, a git repo when the `git`
    block is in the plan), pre-trust it, copy a
    friendly first message to the clipboard (survives the sign-in - paste it with
-   Cmd+V), then launch the agent. A browser opens for sign-in - that one prompt
+   Cmd+V on macOS, Ctrl+Shift+V on Linux) and save it as `first-message.txt` in that
+   folder, then launch the agent. A browser opens for sign-in - that one prompt
    stays.
 
 Everything is idempotent: run it again and already-done steps are skipped; a
 symlink already pointing at the canonical file is left alone. vibe never scribbles
 in files you own - if the canonical file or a real agent config already exists, it
 backs off and points you at it (use `--force` to replace: real files are moved to
-`.bak` first).
+`.bak` first). The one exception is the PATH line in step 6, which is appended and
+marked rather than merged into anything.
 
-On **Windows** the shape is identical; the OS-specific bits differ: installs go
+If any step fails, the ending says so and names what failed. "Setup complete." is
+only ever printed when nothing warned.
+
+### Removing it
+
+The PATH line is the only edit vibe makes to a file outside its own config paths.
+It is wrapped in markers, so removing it is mechanical - delete these three lines
+from `~/.bashrc`, `~/.zshrc` or `~/.config/fish/config.fish`:
+
+```text
+# >>> vibe-setup >>>
+export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+# <<< vibe-setup <<<
+```
+
+Everything else lives under `~/.agents/`, `~/.claude*`, `~/.codex/`, `~/.local/`
+and `~/git/first-project`.
+
+On **Linux** the shape is identical; only how things are acquired differs. There is
+no Homebrew: the agents install with their vendors' own Linux one-liners (which work
+out your CPU and libc themselves), and `gh`, Node and pnpm come from **mise**, into
+your home folder, with no admin password. `git` is the one exception - there is no
+portable way to install it in user space, so it comes from whichever system package
+manager the machine has (`apt-get`, `dnf`, `pacman`, `zypper`, found by asking, not
+by reading a distro name), and that is the one step that needs your password. The
+Claude desktop app installs from Anthropic's apt repository on Debian/Ubuntu, with
+its signing key's fingerprint checked before the repository is trusted; the ChatGPT
+app and GitHub Desktop have no official Linux build, so those blocks simply do not
+appear in the plan.
+
+On **Windows** the shape is identical too; the OS-specific bits differ: installs go
 through winget + the CLIs' own PowerShell installers (no Homebrew), and instead
 of a symlink each agent is linked to the canonical file its own way - Claude via
 an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
@@ -301,18 +359,28 @@ install the latest.
   re-run with `--force`, which backs the old links up to `.bak` and relinks.
 - Why `kind` and `axis` are separate labels, and what was rejected on the way:
   [docs/adr/0001](docs/adr/0001-axis-as-the-human-taxonomy.md).
+- How Linux is supported without a distro table anywhere, and what was rejected -
+  distro-family cells, Homebrew on Linux, Nix, machine profiles:
+  [docs/adr/0002](docs/adr/0002-linux-support.md).
 
 ## Development
 
 Two spines, twin-authored against one shared fixture contract so they can't
-drift: **bash** (macOS, targeting `/bin/bash` 3.2) and **PowerShell** (Windows,
-targeting **Windows PowerShell 5.1** — the default shell on a fresh Windows, not
-pwsh 7). Blocks are single-sourced: per-OS install/check live in block metadata
-as data (`CHECK_MAC`/`INSTALL_WIN`/…); only the thin runner + the pure resolver
-are authored twice. Tooling via `mise`:
+drift: **bash** (macOS + Linux, targeting `/bin/bash` 3.2 — the oldest bash in the
+support set) and **PowerShell** (Windows, targeting **Windows PowerShell 5.1** — the
+default shell on a fresh Windows, not pwsh 7). Blocks are single-sourced: per-OS
+install/check live in block metadata as data
+(`CHECK_MAC`/`INSTALL_LINUX`/`INSTALL_WIN`/…); only the thin runner + the pure
+resolver are authored twice.
+
+One rule keeps the OS spread from leaking into code: **a portable command is a cell;
+anything that differs by machine is a `blocks/*/apply.sh`; anything that cannot be
+done honestly is absent.** A deny-grep in `tests/meta_schema.bats` enforces it — no
+distro token (`ubuntu`, `apt-get`, `/etc/os-release`, …) may appear in a meta cell or
+anywhere under `lib/`. Tooling via `mise`:
 
 ```bash
-# bash spine (macOS)
+# bash spine (macOS + Linux)
 mise run lint          # shellcheck
 mise run test-bash32   # the whole bats suite under /bin/bash (3.2)
 mise run check         # lint + test
@@ -327,12 +395,21 @@ mise run check-ps          # lint-ps + test-ps
 Tests are black-box with fakes (no network, no real installs): PATH-shadow fakes
 on bash, shadow functions on PowerShell. The two resolvers are locked to one
 `tests/fixtures/contract/resolve-cases.tsv` (driven by `contract.bats` and
-`Contract.Tests.ps1`). The Windows e2e (`Apply.Tests.ps1`) drives the applier
-in-process with `VIBE_OS=win`.
+`Contract.Tests.ps1`). `VIBE_OS` is the seam that lets one host exercise every
+lane: the Windows e2e (`Apply.Tests.ps1`) drives the applier in-process with
+`VIBE_OS=win`, and the Linux cells and script tails are asserted the same way from
+a Mac.
 
 **Support contracts (mechanically enforced):** bash stays 3.2-clean (no
 associative arrays / `mapfile` / `${v,,}`); PowerShell stays 5.1-clean — no
 `$IsWindows` outside `lib/os.ps1`, no 7-only syntax (ternary, `??`, `&&`/`||`) —
 gated by `PSUseCompatibleSyntax`/`PSUseCompatibleCommands`/`PSUseCompatibleTypes`
 against the bundled 5.1 profile in `lint-ps`, plus a windows-latest 5.1 smoke.
-CI runs both lanes (`macos-latest` + `windows-latest`).
+
+CI runs three lanes: `macos-latest` (the real bash 3.2 floor + the pwsh pure core),
+`windows-latest` (the PowerShell spine on real Windows), and `ubuntu-latest`, which
+runs the bats suite inside `ubuntu:24.04`, `debian:12`, `fedora:42` and
+`archlinux:base` under bash 5. A separate weekly job does a *real* install in a bare
+`ubuntu:24.04` (wget, no curl, no git) and checks that `claude` and `node` resolve in
+a **fresh login shell** - the only assertion that catches a broken PATH line, since
+the installing shell is green either way.

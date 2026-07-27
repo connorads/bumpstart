@@ -110,6 +110,9 @@ pressing Enter.
 
 ### Parked
 
+The Linux item below is superseded by
+[0002](0002-linux-support.md), which decides it.
+
 - Linux. `vibe_os` returns `linux` and `vibe_os_key` returns `LINUX`, but no
   block has `*_LINUX` cells and `ensure_brew` is the whole install substrate.
   Beyond that, no official Linux desktop app exists for Claude, ChatGPT *or*
