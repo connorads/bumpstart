@@ -1,6 +1,6 @@
 KIND=harness
 DESC="Install Codex (CLI)"
-SLOT=default-harness
+AGENT=codex
 TARGET="$HOME/.codex/AGENTS.md"
 TARGET_WIN='$HOME/.codex/AGENTS.md'
 INSTALL_MAC='true'

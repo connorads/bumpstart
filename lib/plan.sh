@@ -113,8 +113,8 @@ render_plan() {
   if [ "$_p_mode" = full ]; then
     printf "\n  %sFiles this will create or change%s\n" "$BOLD" "$RESET"
     case "$PLAN_DEFAULT_HARNESS" in
-      claude|claude-cli) printf "    %s  (marks first-project trusted, and skips Claude's first-run onboarding screen)\n" "$HOME/.claude.json" ;;
-      codex|codex-cli)   printf "    %s  (marks first-project trusted)\n" "$HOME/.codex/config.toml" ;;
+      claude) printf "    %s  (marks first-project trusted, and skips Claude's first-run onboarding screen)\n" "$HOME/.claude.json" ;;
+      codex)  printf "    %s  (marks first-project trusted)\n" "$HOME/.codex/config.toml" ;;
     esac
     case " ${PLAN_STEP_IDS[*]} " in
       *" git "*) printf "    %s  (your name, email, and default branch)\n" "$HOME/.gitconfig" ;;
@@ -132,12 +132,12 @@ render_plan() {
 # just-in-time password narration (that fires at the prompt itself).
 _render_expectations() {
   # Account label first — harness-accurate wording, no pricing. Assigned before
-  # any use because the trust bullet below reuses it. The -cli ids compose with
-  # the harness split (a bundle resolves its default-harness to <name>-cli).
+  # any use because the trust bullet below reuses it. PLAN_DEFAULT_HARNESS is the
+  # harness block's declared AGENT, so these match the agent name, not a block id.
   case "$PLAN_DEFAULT_HARNESS" in
-    claude|claude-cli) _p_acct="Claude" ;;
-    codex|codex-cli)   _p_acct="Codex" ;;
-    *)                 _p_acct="$PLAN_DEFAULT_HARNESS" ;;
+    claude) _p_acct="Claude" ;;
+    codex)  _p_acct="Codex" ;;
+    *)      _p_acct="$PLAN_DEFAULT_HARNESS" ;;
   esac
 
   printf "\n  %sWhat will happen%s\n" "$BOLD" "$RESET"

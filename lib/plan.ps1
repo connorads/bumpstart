@@ -104,9 +104,9 @@ function Show-Plan {
   if ($Full) {
     Write-Host ''
     Write-Host ("  {0}Files this will create or change{1}" -f $script:Bold, $script:Reset)
-    switch -Regex ($Plan.DefaultHarness) {
-      '^claude' { Write-Host ("    {0}  (marks first-project trusted, and skips Claude's first-run onboarding screen)" -f (Join-Path $HOME '.claude.json')) }
-      '^codex'  { Write-Host ("    {0}  (marks first-project trusted)" -f (Join-Path $HOME '.codex\config.toml')) }
+    switch ($Plan.DefaultHarness) {
+      'claude' { Write-Host ("    {0}  (marks first-project trusted, and skips Claude's first-run onboarding screen)" -f (Join-Path $HOME '.claude.json')) }
+      'codex'  { Write-Host ("    {0}  (marks first-project trusted)" -f (Join-Path $HOME '.codex\config.toml')) }
     }
     if ($Plan.StepIds -contains 'git') {
       Write-Host ("    {0}  (your name, email, and default branch)" -f (Join-Path $HOME '.gitconfig'))
@@ -122,10 +122,12 @@ function Show-Plan {
 function Show-Expectations {
   param($Plan, [bool]$Force, [bool]$InstrBackoff, [int]$Done, [int]$Actionable)
 
-  switch -Regex ($Plan.DefaultHarness) {
-    '^claude' { $acct = 'Claude' }
-    '^codex'  { $acct = 'Codex' }
-    default   { $acct = $Plan.DefaultHarness }
+  # DefaultHarness is the harness block's declared AGENT, so these match the agent
+  # name, not a block id.
+  switch ($Plan.DefaultHarness) {
+    'claude' { $acct = 'Claude' }
+    'codex'  { $acct = 'Codex' }
+    default  { $acct = $Plan.DefaultHarness }
   }
 
   Write-Host ''

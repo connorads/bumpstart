@@ -11,7 +11,7 @@
 #   PLAN_STEP_IDS[]    ordered block ids to apply (presets dropped)
 #   PLAN_STEP_KINDS[]  parallel: each step's KIND
 #   PLAN_STEP_DESCS[]  parallel: each step's DESC
-#   PLAN_DEFAULT_HARNESS   id of the harness to launch (last-in-list-wins)
+#   PLAN_DEFAULT_HARNESS   AGENT of the harness to launch (last-in-list-wins)
 #   PLAN_TARGETS[]     harness-native instruction paths to symlink at the
 #                      canonical file (one per harness present, deduped)
 #   PLAN_ERROR         set on failure
@@ -68,25 +68,22 @@ resolve() {
     _expand "$_r_root" "$_r_id" "" || return 1
   done
 
-  # default-harness = last id in the expanded (input-order) list whose SLOT says
-  # so. Computed before kind-reordering, so it is genuinely last-in-list-wins.
+  # default-harness = the AGENT declared by the last id in the expanded
+  # (input-order) list that declares one. Computed before kind-reordering, so it
+  # is genuinely last-in-list-wins. The value is the agent's own name — the
+  # binary to launch, the trust dispatch key (trust.sh), and the "Agent to
+  # launch" line all want <agent>, never the block id.
   for _r_id in $_EXPANDED; do
     _r_dir="$(block_dir "$_r_root" "$_r_id")"
-    if [ "$(meta_get "$_r_dir" SLOT)" = "default-harness" ]; then
-      PLAN_DEFAULT_HARNESS="$_r_id"
+    _r_agent="$(meta_get "$_r_dir" AGENT)"
+    if [ -n "$_r_agent" ]; then
+      PLAN_DEFAULT_HARNESS="$_r_agent"
     fi
   done
   if [ -z "$PLAN_DEFAULT_HARNESS" ]; then
     PLAN_ERROR="no harness in plan (add e.g. 'claude' or 'codex')"
     return 1
   fi
-  # The launch/trust key is the agent's own name, not the block id. A split
-  # harness block is named <agent>-cli (e.g. claude-cli), but the installed
-  # binary, the trust dispatch (trust.sh), and the "Agent to launch" line all
-  # want <agent>. Strip the -cli suffix so PLAN_DEFAULT_HARNESS is the agent.
-  case "$PLAN_DEFAULT_HARNESS" in
-    *-cli) PLAN_DEFAULT_HARNESS="${PLAN_DEFAULT_HARNESS%-cli}" ;;
-  esac
 
   # Dedupe (first occurrence) and drop presets, decorating each surviving id with
   # "<rank> <index> <id>" so a stable numeric sort orders by kind then input.

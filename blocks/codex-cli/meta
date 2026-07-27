@@ -1,6 +1,6 @@
 KIND=harness
 DESC="Install Codex (CLI)"
-SLOT=default-harness
+AGENT=codex
 TARGET="$HOME/.codex/AGENTS.md"
 LABEL="Codex CLI"
 CHECK_MAC='command -v codex >/dev/null 2>&1'

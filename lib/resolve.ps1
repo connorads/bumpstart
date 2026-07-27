@@ -72,19 +72,19 @@ function Resolve-Plan {
     if (-not (_Expand $Root $id '' ([ref]$expanded) $err)) { return (& $fail $err.Value) }
   }
 
-  # default-harness = last id in the expanded (input-order) list whose SLOT says
-  # so - computed before kind-reordering, so it is genuinely last-in-list-wins.
+  # default-harness = the AGENT declared by the last id in the expanded
+  # (input-order) list that declares one - computed before kind-reordering, so it
+  # is genuinely last-in-list-wins. The value is the agent's own name, never the
+  # block id: the binary/trust/launch all want <agent>.
   $harness = ''
   foreach ($id in $expanded) {
     $dir = Get-BlockDir $Root $id
-    if ((Get-Meta $dir 'SLOT') -eq 'default-harness') { $harness = $id }
+    $agent = Get-Meta $dir 'AGENT'
+    if ($agent) { $harness = $agent }
   }
   if (-not $harness) {
     return (& $fail "no harness in plan (add e.g. 'claude' or 'codex')")
   }
-  # The launch/trust key is the agent's own name: a split harness block is named
-  # <agent>-cli, but the binary/trust/launch all want <agent>. Strip the -cli.
-  if ($harness.EndsWith('-cli')) { $harness = $harness.Substring(0, $harness.Length - 4) }
 
   # Dedupe (first occurrence), drop presets, decorate with (rank, index) so a
   # sort by rank then index orders by kind then input.
