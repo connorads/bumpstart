@@ -1,3 +1,4 @@
 KIND=skill
+AXIS=tools
 DESC="Add the React skill"
 INSTALL_MAC='true'

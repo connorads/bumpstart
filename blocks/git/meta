@@ -1,4 +1,5 @@
 KIND=tool
+AXIS=tools
 DESC="Set up git + your name/email (from GitHub)"
 INCLUDE="gh-auth"
 LABEL="git"

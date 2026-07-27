@@ -1,3 +1,4 @@
 KIND=auth
+AXIS=tools
 DESC="Set up GitHub CLI + sign in"
 INSTALL_MAC='true'

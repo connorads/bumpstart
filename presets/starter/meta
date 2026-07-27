@@ -1,3 +1,4 @@
 KIND=preset
+AXIS=recipe
 DESC="The workshop handout: web stack + beginner habits (add an agent id)"
 INCLUDE="web beginner"

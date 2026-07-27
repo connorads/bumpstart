@@ -1,4 +1,5 @@
 KIND=tool
+AXIS=tools
 DESC="Install Node.js (LTS, via mise)"
 INCLUDE="mise"
 LABEL="Node.js"

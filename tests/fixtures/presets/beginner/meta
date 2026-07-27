@@ -1,3 +1,4 @@
 KIND=preset
+AXIS=steering
 DESC="Beginner habits (concise)"
 INCLUDE="concise"

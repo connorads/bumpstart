@@ -1,3 +1,4 @@
 KIND=preset
+AXIS=agent
 DESC="Codex (CLI) + ChatGPT app"
 INCLUDE="codex-cli codex-desktop"

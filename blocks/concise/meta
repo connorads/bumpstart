@@ -1,2 +1,3 @@
 KIND=instructions
+AXIS=steering
 DESC="Tell the agent to keep answers concise"

@@ -1,4 +1,5 @@
 KIND=tool
+AXIS=tools
 DESC="Install pnpm (via mise)"
 INCLUDE="mise"
 LABEL="pnpm"

@@ -1,4 +1,5 @@
 KIND=harness
+AXIS=agent
 DESC="Install Claude Code (CLI)"
 AGENT=claude
 ACCOUNT="Claude"

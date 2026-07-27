@@ -1,3 +1,4 @@
 KIND=preset
+AXIS=steering
 DESC="Beginner habits: a warm welcome, concise answers, ask first"
 INCLUDE="welcome concise ask-first"

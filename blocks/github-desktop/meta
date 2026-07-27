@@ -1,4 +1,5 @@
 KIND=app
+AXIS=tools
 DESC="Install GitHub Desktop (see and undo the agent's changes)"
 INCLUDE="git"
 LABEL="GitHub Desktop"

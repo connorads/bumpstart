@@ -1,2 +1,3 @@
 KIND=instructions
+AXIS=steering
 DESC="Welcome + how to work with your agent"

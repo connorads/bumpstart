@@ -1,2 +1,3 @@
 KIND=instructions
+AXIS=steering
 DESC="Ask before installing tools or deleting files"

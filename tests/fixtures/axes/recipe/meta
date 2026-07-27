@@ -1,0 +1,3 @@
+LABEL="Start from a ready-made setup?"
+ORDER=5
+SELECT=multi

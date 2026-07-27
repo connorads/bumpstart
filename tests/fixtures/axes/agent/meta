@@ -1,0 +1,4 @@
+LABEL="Which agent should launch?"
+ORDER=10
+SELECT=one
+DEFAULT=claude

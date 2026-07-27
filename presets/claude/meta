@@ -1,3 +1,4 @@
 KIND=preset
+AXIS=agent
 DESC="Claude Code (CLI) + desktop app"
 INCLUDE="claude-cli claude-desktop"
