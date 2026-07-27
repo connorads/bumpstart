@@ -73,6 +73,10 @@ needed because `gh auth login` and the agent CLIs are interactive. `curl | bash`
 would break those prompts. (Homebrew uses the same trick.) The `_ a b` after the
 paste sets the block list; `_` is a throwaway `$0`.
 
+Downloading needs **either `curl` or `wget`** - vibe uses whichever is there. macOS
+always has curl. If a paste prints nothing at all, you have neither: install one
+(`sudo apt install curl`) and paste again.
+
 ## Blocks
 
 A block is a small, vetted unit of setup. You compose them by listing ids. The

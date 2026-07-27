@@ -27,8 +27,22 @@ if [ -n "${BASH_SOURCE[0]:-}" ]; then
   dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd -P || true)"
 fi
 
+# curl-else-wget, spelled inline: this delegate runs before any lib is available
+# (the local-clone branch above is the only one that has them). Ubuntu Desktop
+# ships wget but not curl.
+fetch() {
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$1"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$1"
+  else
+    printf 'vibe: need curl or wget to download anything — install one and re-run.\n' >&2
+    return 1
+  fi
+}
+
 if [ -n "$dir" ] && [ -f "$dir/lib/apply.sh" ]; then
   exec bash "$dir/lib/apply.sh" ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
 else
-  exec /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
+  exec /bin/bash -c "$(fetch https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
 fi

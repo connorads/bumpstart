@@ -31,7 +31,22 @@ fi
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe.XXXXXX")"
 
-if ! curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$VIBE_REF" | tar -xz -C "$tmp"; then
+# The same curl-else-wget fallback as lib/common.sh's vibe_fetch, spelled inline:
+# this runs BEFORE the tarball that contains lib/common.sh exists. Ubuntu Desktop
+# ships wget but not curl, so a curl-only bootstrap dies on the machine the Linux
+# lane most needs to work.
+fetch() {
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$1"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$1"
+  else
+    printf 'vibe: need curl or wget to download anything — install one and re-run.\n' >&2
+    return 1
+  fi
+}
+
+if ! fetch "https://codeload.github.com/$REPO/tar.gz/$VIBE_REF" | tar -xz -C "$tmp"; then
   printf 'vibe: could not fetch %s@%s — check the ref and your connection.\n' "$REPO" "$VIBE_REF" >&2
   rm -rf "$tmp"
   exit 1

@@ -93,6 +93,27 @@ press_enter() {
   read -r _pe_reply
 }
 
+# vibe_fetch <url>: print a URL's body on stdout using whatever fetcher the
+# machine has. curl first (macOS always has it, and it is what every vendor
+# one-liner documents), else wget — Ubuntu Desktop 24.04 and 26.04 ship wget but
+# NOT curl, so a curl-only install cell is a silent no-op there. Neither present
+# is a real failure: return non-zero and say what is missing, so a cell warns
+# rather than piping nothing into a shell.
+#
+# Exported with `export -f` by apply.sh before the block loop, so an INSTALL cell
+# (run via `bash -c`) can call it — verified through a `bash -c` child on real
+# /bin/bash 3.2.57.
+vibe_fetch() {
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$1"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$1"
+  else
+    printf 'vibe: need curl or wget to fetch %s\n' "$1" >&2
+    return 1
+  fi
+}
+
 # fixup_path: freshly-installed CLIs often land in these dirs — make the current
 # shell see them without a re-login.
 fixup_path() {

@@ -151,6 +151,12 @@ printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 printf "\n  %s[·]%s %sPreparing your Mac%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$RESET"
 ensure_brew
 
+# An INSTALL cell runs in a `bash -c` child (run_cell), which inherits functions
+# only when they are exported. vibe_fetch is the one helper a cell needs — a cell
+# cannot source a lib, and hardcoding curl would make every install cell a silent
+# no-op on a machine that ships only wget.
+export -f vibe_fetch
+
 # run_block <id> — execute a block's apply.sh (its interactive tail) in a fresh
 # bash with the block contract in the environment. A missing apply.sh is a silent
 # skip: pure-data blocks install declaratively (via run_cell) and instruction
