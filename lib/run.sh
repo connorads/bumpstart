@@ -41,7 +41,12 @@ run_cell() {
     success "$_rc_label already installed"
     return 0
   fi
-  if spin "Installing $_rc_label" bash -c "$_rc_install"; then
+  # pipefail, because most install cells are `fetch <url> | sh`: without it the
+  # pipeline's status is the SHELL's, and a shell handed an empty stdin (a failed
+  # download, an offline machine, a 404) exits 0 — so the cell would report success
+  # having installed nothing. Verified offline in a container. No pwsh mirror is
+  # needed: a failing Invoke-RestMethod throws, which Invoke-Spin already catches.
+  if spin "Installing $_rc_label" bash -c "set -o pipefail; $_rc_install"; then
     success "$_rc_label installed"
   else
     warn "Couldn't install $_rc_label — continuing"

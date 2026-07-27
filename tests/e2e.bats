@@ -304,6 +304,22 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   [[ "$output" == *"retries only what's missing"* ]]
 }
 
+@test "one thing that failed is listed once, however many times it was attempted" {
+  # mise is attempted twice by design on Linux — the pre-loop substrate and the block
+  # cell, mirroring Homebrew on macOS. Listed twice, the ending reads as a bug in
+  # vibe rather than as one thing that didn't work. (Seen for real in an offline
+  # container before the ledger deduped.)
+  export VIBE_OS=linux
+  export SHELL=/bin/bash
+  rm -f "$FAKES/mise" "$FAKES/node"
+  make_fake curl 'exit 1'           # every vendor fetch fails
+  make_fake wget 'exit 1'
+  apply claude-cli node --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"didn't work"* ]]
+  [ "$(printf '%s\n' "$output" | grep -c '^    mise$')" -eq 1 ]
+}
+
 @test "a missing agent binary is admitted, not papered over with a run-it hint" {
   # The install cell "succeeds" (the faked curl logs and exits 0) but leaves no
   # binary — the shape of a real vendor installer that landed off PATH.

@@ -27,6 +27,18 @@ mk_block() {
 # drive <fn> <root> <id> — run a run.sh function via the driver; $status is fn's.
 drive() { run bash "$REPO_ROOT/tests/helpers/run_driver.sh" "$REPO_ROOT/lib" "$@"; }
 
+@test "a cell whose download fails is a failure, not a silent success" {
+  # Nearly every install cell is `fetch <url> | sh`. Without pipefail the pipeline's
+  # status is the shell's, and a shell handed empty stdin exits 0 — so an offline
+  # machine or a 404 would report the tool installed. Verified live: an offline
+  # container reported the agent installed and then could not launch it.
+  mk_block dl 'KIND=tool' 'LABEL=thing' "CHECK_MAC='false'" "INSTALL_MAC='false | bash'"
+  drive run_cell "$ROOT" dl
+  [ "$status" -eq 0 ]                      # non-fatal by contract
+  [[ "$output" == *"Couldn't install thing"* ]]
+  [[ "$output" != *"thing installed"* ]]
+}
+
 @test "block_check returns 0 when the CHECK cell passes" {
   mk_block present 'KIND=tool' "CHECK_MAC='true'"
   drive block_check "$ROOT" present

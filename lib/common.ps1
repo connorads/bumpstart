@@ -35,9 +35,13 @@ function Err     { param([string]$Msg) Write-Host "  $($script:Red)$([char]0x271
 $script:VibeWarnCount = 0
 $script:VibeWarnItems = @()
 
-# Add-VibeWarning <label>: count one failed step and remember its human label.
+# Add-VibeWarning <label>: count one failed step and remember its human label, once.
+# Deduped by label, mirroring record_warning: a tool can be attempted twice in one
+# run by design, and the same name listed twice reads as a bug in vibe rather than as
+# one thing that didn't work.
 function Add-VibeWarning {
   param([string]$Label)
+  if ($script:VibeWarnItems -contains $Label) { return }
   $script:VibeWarnCount++
   $script:VibeWarnItems += $Label
 }

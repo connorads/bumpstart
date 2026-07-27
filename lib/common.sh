@@ -35,8 +35,18 @@ error()   { printf "  %s✗%s %s\n" "$RED" "$RESET" "$1" >&2; }
 VIBE_WARN_COUNT=0
 VIBE_WARN_ITEMS=""
 
-# record_warning <label>: count one failed step and remember its human label.
+# record_warning <label>: count one failed step and remember its human label, once.
+# Deduped by label because a tool can be attempted twice in one run by design —
+# mise is installed pre-loop AND as a block cell, mirroring Homebrew on macOS — and
+# the same name listed twice in the ending reads as a bug in vibe rather than as one
+# thing that didn't work. Verified offline in a container, where it listed mise twice.
 record_warning() {
+  case "
+$VIBE_WARN_ITEMS" in
+    *"
+$1
+"*) return 0 ;;
+  esac
   VIBE_WARN_COUNT=$((VIBE_WARN_COUNT + 1))
   VIBE_WARN_ITEMS="${VIBE_WARN_ITEMS}$1
 "
