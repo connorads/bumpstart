@@ -113,22 +113,32 @@ function Show-Plan {
     }
   }
 
-  Show-Expectations -Plan $Plan -Force $Force -InstrBackoff $instrBackoff -Done $done -Actionable $actionable
+  Show-Expectations -Plan $Plan -Root $Root -Force $Force -InstrBackoff $instrBackoff -Done $done -Actionable $actionable
   Write-Host ''
+}
+
+# Get-AgentAccount <root> <agent> - the brand a person signs into for an agent,
+# read from the harness block that declares that AGENT (its ACCOUNT cell). Data,
+# not a lookup table, so a new harness block names itself with no code change.
+function Get-AgentAccount {
+  param([string]$Root, [string]$Agent)
+  foreach ($d in (Get-ChildItem -LiteralPath (Join-Path $Root 'blocks') -Directory)) {
+    if ((Get-Meta $d.FullName 'AGENT') -ne $Agent) { continue }
+    $cell = Get-Meta $d.FullName 'ACCOUNT'
+    if ($cell) { return $cell }
+    break
+  }
+  return $Agent
 }
 
 # Show-Expectations - set honest expectations from the resolved plan + a couple of
 # cheap probes. Windows wording: the UAC narration replaces mac's Homebrew line.
 function Show-Expectations {
-  param($Plan, [bool]$Force, [bool]$InstrBackoff, [int]$Done, [int]$Actionable)
+  param($Plan, [string]$Root, [bool]$Force, [bool]$InstrBackoff, [int]$Done, [int]$Actionable)
 
-  # DefaultHarness is the harness block's declared AGENT, so these match the agent
-  # name, not a block id.
-  switch ($Plan.DefaultHarness) {
-    'claude' { $acct = 'Claude' }
-    'codex'  { $acct = 'Codex' }
-    default  { $acct = $Plan.DefaultHarness }
-  }
+  # The brand actually signed into, not the CLI's name (a Codex sign-in is a
+  # ChatGPT account).
+  $acct = Get-AgentAccount $Root $Plan.DefaultHarness
 
   Write-Host ''
   Write-Host ("  {0}What will happen{1}" -f $script:Bold, $script:Reset)
@@ -166,6 +176,20 @@ function Show-Expectations {
     Add-Expectation "You'll also sign into GitHub - create a free account first if you don't have one."
   }
   Add-Expectation "At the end you'll sign into your $acct account in the browser - create one first if you don't have it."
+
+  # Which agent to install is not a tooling choice - it follows the subscription
+  # the person already pays for, and a mismatch otherwise only surfaces at that
+  # browser sign-in, after the install. So name the alternative here, while
+  # Ctrl-C is still cheap. Only when the plan installs exactly one agent: someone
+  # who asked for both has already answered the question.
+  $harnessCount = @($Plan.StepKinds | Where-Object { $_ -eq 'harness' }).Count
+  if ($harnessCount -eq 1) {
+    foreach ($d in (Get-ChildItem -LiteralPath (Join-Path $Root 'blocks') -Directory)) {
+      $alt = Get-Meta $d.FullName 'AGENT'
+      if (-not $alt -or $alt -eq $Plan.DefaultHarness) { continue }
+      Add-Expectation ("Use {0} instead? Press Ctrl-C and re-run with '{1}' in place of '{2}'." -f (Get-AgentAccount $Root $alt), $alt, $Plan.DefaultHarness)
+    }
+  }
 
   if ($Actionable -gt 0 -and $Done -eq $Actionable) {
     Add-Expectation "Everything installable is already in place - vibe will just link things up and drop you into $acct."

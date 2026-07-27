@@ -53,8 +53,26 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   plan codex
   [[ "$output" == *"Homebrew"* ]]
   [[ "$output" == *"trusted"* ]]
-  [[ "$output" == *"Codex account"* ]]
+  # the brand actually signed into, not the CLI's name
+  [[ "$output" == *"ChatGPT account"* ]]
   [[ "$output" != *"Claude account"* ]]
+}
+
+@test "a one-agent plan names the other agent, with the exact id to swap" {
+  plan claude starter
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Use ChatGPT instead?"* ]]
+  [[ "$output" == *"re-run with 'codex' in place of 'claude'"* ]]
+  # symmetric: the hint is generated from the catalogue, not hardcoded
+  plan codex starter
+  [[ "$output" == *"Use Claude instead?"* ]]
+  [[ "$output" == *"re-run with 'claude' in place of 'codex'"* ]]
+}
+
+@test "a plan with both agents has already answered the question, so no hint" {
+  plan claude codex starter
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"instead?"* ]]
 }
 
 @test "nothing is satisfied on a cold Mac, so no step is tagged already-set-up" {

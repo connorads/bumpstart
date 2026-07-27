@@ -98,6 +98,22 @@ Describe 'apply.ps1 (Windows spine)' {
     Test-Path -LiteralPath (Join-Path $script:testHome 'git/first-project/.git') | Should -BeTrue
   }
 
+  It 'a one-agent plan names the other agent at the gate; a two-agent plan does not' {
+    $out = Invoke-VibeSetup -Plan -Ids @('claude', 'starter') 6>&1 | Out-String
+    $out | Should -Match 'sign into your Claude account'
+    $out | Should -Match 'Use ChatGPT instead\?'
+    $out | Should -Match "re-run with 'codex' in place of 'claude'"
+
+    # generated from the catalogue, not hardcoded - so it is symmetric...
+    $out = Invoke-VibeSetup -Plan -Ids @('codex', 'starter') 6>&1 | Out-String
+    $out | Should -Match 'sign into your ChatGPT account'
+    $out | Should -Match 'Use Claude instead\?'
+
+    # ...and silent once the plan already installs both
+    $out = Invoke-VibeSetup -Plan -Ids @('claude', 'codex', 'starter') 6>&1 | Out-String
+    $out | Should -Not -Match 'instead\?'
+  }
+
   It 'codex copies instructions (no import) and writes the trust TOML' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>&1 | Out-Null
 

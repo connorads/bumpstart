@@ -1,6 +1,7 @@
 KIND=harness
 DESC="Install Codex (CLI)"
 AGENT=codex
+ACCOUNT="ChatGPT"
 TARGET="$HOME/.codex/AGENTS.md"
 LABEL="Codex CLI"
 CHECK_MAC='command -v codex >/dev/null 2>&1'

@@ -1,6 +1,7 @@
 KIND=harness
 DESC="Install Claude Code (CLI)"
 AGENT=claude
+ACCOUNT="Claude"
 TARGET="$HOME/.claude/CLAUDE.md"
 LABEL="Claude Code CLI"
 CHECK_MAC='command -v claude >/dev/null 2>&1'

@@ -23,7 +23,7 @@ block_dir() {
 # LINUX/WIN cells are reserved now, authored in slice 3+; MAC is live.
 meta_get() {
   (
-    KIND=""; DESC=""; AGENT=""; TARGET=""; INCLUDE=""; LABEL=""
+    KIND=""; DESC=""; AGENT=""; ACCOUNT=""; TARGET=""; INCLUDE=""; LABEL=""
     TARGET_WIN=""; TARGET_LINUX=""
     LINK_MAC=""; LINK_WIN=""; LINK_LINUX=""
     CHECK_MAC=""; INSTALL_MAC=""; SATISFIED_MAC=""

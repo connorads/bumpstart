@@ -127,18 +127,30 @@ render_plan() {
   printf "\n"
 }
 
+# _agent_account <agent> — the brand a person signs into for an agent, read from
+# the harness block that declares that AGENT (its ACCOUNT cell). Data, not a
+# lookup table, so a new harness block names itself with no code change. Falls
+# back to the agent name for a block that declares no ACCOUNT.
+_agent_account() {
+  _aa_out="$1"
+  for _aa_dir in "$ROOT"/blocks/*/; do
+    [ -f "$_aa_dir/meta" ] || continue
+    [ "$(meta_get "$_aa_dir" AGENT)" = "$1" ] || continue
+    _aa_cell="$(meta_get "$_aa_dir" ACCOUNT)"
+    [ -n "$_aa_cell" ] && _aa_out="$_aa_cell"
+    break
+  done
+  printf '%s' "$_aa_out"
+}
+
 # _render_expectations: set honest expectations once, from the resolved plan plus
 # a couple of cheap probes. No pricing claims (tiers change); no duplicate of the
 # just-in-time password narration (that fires at the prompt itself).
 _render_expectations() {
-  # Account label first — harness-accurate wording, no pricing. Assigned before
-  # any use because the trust bullet below reuses it. PLAN_DEFAULT_HARNESS is the
-  # harness block's declared AGENT, so these match the agent name, not a block id.
-  case "$PLAN_DEFAULT_HARNESS" in
-    claude) _p_acct="Claude" ;;
-    codex)  _p_acct="Codex" ;;
-    *)      _p_acct="$PLAN_DEFAULT_HARNESS" ;;
-  esac
+  # Account label first — the brand actually signed into, not the CLI's name (a
+  # Codex sign-in is a ChatGPT account). Assigned before any use because the
+  # trust bullet below reuses it.
+  _p_acct="$(_agent_account "$PLAN_DEFAULT_HARNESS")"
 
   printf "\n  %sWhat will happen%s\n" "$BOLD" "$RESET"
   # Homebrew's install prompts for the Mac password once; a cold Mac without the
@@ -182,6 +194,27 @@ _render_expectations() {
       _exp "You'll also sign into GitHub - create a free account first if you don't have one." ;;
   esac
   _exp "At the end you'll sign into your $_p_acct account in the browser - create one first if you don't have it."
+  # Which agent to install is not a tooling choice — it follows the subscription
+  # the person already pays for, and a mismatch otherwise only surfaces at that
+  # browser sign-in, after a cold-Mac install. So name the alternative here,
+  # while Ctrl-C is still cheap. Only when the plan installs exactly one agent:
+  # someone who asked for both has already answered the question. Generic — a new
+  # harness block appears in this line with no code change.
+  _p_harnesses=0
+  _p_i=0
+  while [ "$_p_i" -lt ${#PLAN_STEP_KINDS[@]} ]; do
+    [ "${PLAN_STEP_KINDS[$_p_i]}" = harness ] && _p_harnesses=$((_p_harnesses + 1))
+    _p_i=$((_p_i + 1))
+  done
+  if [ "$_p_harnesses" -eq 1 ]; then
+    for _p_dir in "$ROOT"/blocks/*/; do
+      [ -f "$_p_dir/meta" ] || continue
+      _p_alt="$(meta_get "$_p_dir" AGENT)"
+      [ -n "$_p_alt" ] || continue
+      [ "$_p_alt" = "$PLAN_DEFAULT_HARNESS" ] && continue
+      _exp "Use $(_agent_account "$_p_alt") instead? Press Ctrl-C and re-run with '$_p_alt' in place of '$PLAN_DEFAULT_HARNESS'."
+    done
+  fi
   # Warm-Mac reassurance: when every installable step is already in place, say so
   # plainly. Reads the counts captured by the render_plan step loop above.
   if [ "${PLAN_STEPS_ACTIONABLE:-0}" -gt 0 ] && [ "${PLAN_STEPS_DONE:-0}" -eq "${PLAN_STEPS_ACTIONABLE:-0}" ]; then
