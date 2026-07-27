@@ -5,5 +5,9 @@ INCLUDE="mise"
 LABEL="pnpm"
 CHECK_MAC='command -v pnpm >/dev/null 2>&1 || mise which pnpm >/dev/null 2>&1'
 INSTALL_MAC='cd "$HOME" && mise use -g pnpm@latest'
+# Same WSL trap as node: a /mnt/<drive>/ pnpm is the Windows one on the appended
+# Windows PATH, and it would report this step satisfied while the agent can't use it.
+CHECK_LINUX='case "$(command -v pnpm)" in /mnt/[a-z]/*) false ;; "") mise which pnpm >/dev/null 2>&1 ;; *) true ;; esac'
+INSTALL_LINUX='cd "$HOME" && mise use -g pnpm@latest'
 CHECK_WIN='Get-Command pnpm -ErrorAction SilentlyContinue'
 INSTALL_WIN='npm install -g pnpm'

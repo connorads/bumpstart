@@ -17,5 +17,9 @@ LIB="$1"; shift
 # shellcheck source=lib/run.sh
 . "$LIB/run.sh"
 
+# Mirrors apply.sh, which exports vibe_fetch before the block loop: an INSTALL cell
+# runs in a `bash -c` child, so a cell that fetches needs the function exported.
+export -f vibe_fetch
+
 fn="$1"; shift
 if "$fn" "$@"; then exit 0; else exit $?; fi

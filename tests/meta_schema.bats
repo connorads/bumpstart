@@ -84,6 +84,37 @@ mg() { run bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "$1" "$2"' _ "$@"; 
   done
 }
 
+@test "no distro knowledge in a meta cell or anywhere under lib/" {
+  # The rule the Linux support encodes: a PORTABLE command is a cell; anything that
+  # differs by machine is an apply.sh; anything that cannot be done honestly is
+  # absent. blocks/*/apply.sh is the one legal home for a package-manager probe, so
+  # it is exempt — everywhere else, a distro token means the abstraction leaked and
+  # the next distro is a code change instead of data.
+  tokens='ubuntu|debian|fedora|rhel|arch|suse|apt-get|dnf|pacman|apk|zypper|/etc/os-release'
+  for f in "$REPO_ROOT"/blocks/*/meta; do
+    while IFS= read -r line; do
+      case "$line" in
+        CHECK_*=*|INSTALL_*=*|SATISFIED_*=*)
+          if printf '%s' "$line" | grep -qiE -- "$tokens"; then
+            printf 'distro knowledge in a cell: %s (%s)\n' "$line" "$f" >&2
+            printf 'put it in %s/apply.sh instead\n' "$(dirname "$f")" >&2
+            return 1
+          fi ;;
+      esac
+    done < "$f"
+  done
+  # Comments are stripped first: prose explaining WHY a command is portable ("Ubuntu
+  # Desktop ships only wget") is the reasoning this rule exists to preserve, not a
+  # violation of it. Both spines' comment character is #.
+  for f in "$REPO_ROOT"/lib/*.sh "$REPO_ROOT"/lib/*.ps1; do
+    if sed 's/#.*//' "$f" | grep -qiE -- "$tokens"; then
+      printf 'distro knowledge in the spine: %s\n' "$f" >&2
+      sed 's/#.*//' "$f" | grep -inE -- "$tokens" >&2
+      return 1
+    fi
+  done
+}
+
 @test "WIN/LINUX command cells use inner double-quotes only (no inner single quote)" {
   # A bash single-quoted string can't contain a single quote, so a WIN/LINUX cell
   # that needs quotes must use double quotes inside. Strip the outer single quotes

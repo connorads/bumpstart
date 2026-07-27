@@ -130,7 +130,12 @@ resolve() {
   while [ "$_r_i" -lt "$_r_n" ]; do
     if [ "${PLAN_STEP_KINDS[$_r_i]}" = "harness" ]; then
       _r_dir="$(block_dir "$_r_root" "${PLAN_STEP_IDS[$_r_i]}")"
-      _r_target="$(meta_get "$_r_dir" TARGET)"
+      # TARGET_<OS> then plain TARGET — the read meta.sh documents, and the one
+      # catalogue.sh already implements. Reading only TARGET was benign while no
+      # block set a per-OS target, but the day one does it becomes a silent
+      # --show-versus-run disagreement.
+      _r_target="$(meta_get "$_r_dir" "TARGET_$(vibe_os_key)")"
+      [ -n "$_r_target" ] || _r_target="$(meta_get "$_r_dir" TARGET)"
       if [ -n "$_r_target" ]; then
         case " $_r_seen " in
           *" $_r_target "*) : ;;

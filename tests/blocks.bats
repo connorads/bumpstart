@@ -23,6 +23,16 @@ run_cell() {
     "$REPO_ROOT/lib" run_cell "$REPO_ROOT" "$1"
 }
 
+# run_cell_linux <id> — the same, with the LINUX cells selected. VIBE_OS is the
+# cross-spine seam, so this asserts the real Linux data on any host. vibe_fetch is
+# exported because the applier exports it before the block loop and the Linux
+# install cells call it.
+run_cell_linux() {
+  run env VIBE_OS=linux VIBE_APPS_DIR="$VIBE_APPS_DIR" \
+    bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
+    "$REPO_ROOT/lib" run_cell "$REPO_ROOT" "$1"
+}
+
 # run_block <id> — drive a block's interactive apply.sh tail directly.
 run_block() {
   id="$1"; shift
@@ -161,6 +171,108 @@ run_block() {
   [ "$status" -eq 0 ]
   refute_fake_logged "brew install gh"
   [[ "$output" == *"already installed"* ]]
+}
+
+# ── The Linux cells ───────────────────────────────────────────────────────────
+#
+# Same blocks, same runner, VIBE_OS=linux. Vendor one-liners rather than a package
+# manager, so no leg of this depends on which distro the test host is: both agent
+# vendors resolve arch and libc themselves, and mise supplies gh/node/pnpm.
+
+@test "claude-cli installs via the vendor's Linux one-liner" {
+  make_fake_curl
+  run_cell_linux claude-cli
+  [ "$status" -eq 0 ]
+  count="$(grep -c -F 'INSTALL claude' "$VIBE_FAKE_LOG")"
+  [ "$count" -eq 1 ]
+}
+
+@test "claude-cli on Linux fetches with wget when curl is absent" {
+  # The Ubuntu Desktop case: wget present, curl not. A curl-only cell would be a
+  # silent no-op on the machine this lane most needs to work.
+  make_fake wget 'printf "%s\n" "printf \"INSTALL claude\\n\" >> \"$VIBE_FAKE_LOG\""'
+  run env VIBE_OS=linux PATH="$FAKES:/bin" \
+    bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
+    "$REPO_ROOT/lib" run_cell "$REPO_ROOT" claude-cli
+  [ "$status" -eq 0 ]
+  fake_logged "INSTALL claude"
+}
+
+@test "codex-cli installs via the vendor's Linux one-liner, non-interactively" {
+  make_fake_curl
+  run_cell_linux codex-cli
+  [ "$status" -eq 0 ]
+  fake_logged "INSTALL codex 1"
+}
+
+@test "mise installs itself on Linux (no Homebrew involved)" {
+  make_fake_curl
+  make_fake brew
+  run_cell_linux mise
+  [ "$status" -eq 0 ]
+  fake_logged "INSTALL mise"
+  refute_fake_logged "brew install mise"
+}
+
+@test "gh-auth installs gh via mise on Linux, from the home dir" {
+  # A statically linked Go binary on every target, which deletes the signed-repo
+  # keyring dance rather than expressing it per distro.
+  make_fake brew
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
+    'printf "CWD %s\n" "$PWD" >> "$VIBE_FAKE_LOG"'
+  run_cell_linux gh-auth
+  [ "$status" -eq 0 ]
+  fake_logged "mise use -g gh"
+  fake_logged "CWD $HOME"
+  refute_fake_logged "brew install gh"
+}
+
+@test "node installs via mise on Linux" {
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
+  run_cell_linux node
+  [ "$status" -eq 0 ]
+  fake_logged "mise use -g node@lts"
+}
+
+@test "node on Linux rejects a Windows node leaking in through WSL's PATH" {
+  # WSL appends the Windows PATH, so a Windows node is findable AND runnable — a
+  # plain `command -v` would report this step satisfied and the agent then fails on
+  # it. A real /mnt/c cannot be created on the test host, so the cell is asked
+  # directly: a function named `command` beats the builtin in bash's lookup order,
+  # which lets the predicate be told what it found.
+  cell="$(bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "'"$REPO_ROOT"'/blocks/node" CHECK_LINUX')"
+  ask() {
+    run bash -c 'p="$2"; command() { printf "%s\n" "$p"; }
+      if eval "$1"; then echo SATISFIED; else echo NOT; fi' _ "$cell" "$1"
+  }
+  ask "/mnt/c/Program Files/nodejs/node"
+  [ "$output" = NOT ]
+  ask "/mnt/d/nodejs/node"          # not only the C: drive
+  [ "$output" = NOT ]
+  ask "/usr/bin/node"               # a real Linux node still satisfies it
+  [ "$output" = SATISFIED ]
+}
+
+@test "pnpm installs via mise on Linux" {
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
+  run_cell_linux pnpm
+  [ "$status" -eq 0 ]
+  fake_logged "mise use -g pnpm"
+}
+
+@test "the desktop app blocks are silent on Linux, not broken" {
+  # No official Linux build exists for the ChatGPT app or GitHub Desktop, so they
+  # carry no Linux cell: _block_runs drops the row and its guidance rather than
+  # pointing a beginner at an unvetted community rebuild.
+  make_fake brew
+  run_cell_linux codex-desktop
+  [ "$status" -eq 0 ]
+  refute_fake_logged "brew"
+  [ -z "$output" ]
+  run_cell_linux github-desktop
+  [ "$status" -eq 0 ]
+  refute_fake_logged "brew"
+  [ -z "$output" ]
 }
 
 @test "gh-auth apply.sh does not attempt login when already authenticated" {

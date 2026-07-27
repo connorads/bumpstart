@@ -5,5 +5,10 @@ INCLUDE="mise"
 LABEL="Node.js"
 CHECK_MAC='command -v node >/dev/null 2>&1 || mise which node >/dev/null 2>&1'
 INSTALL_MAC='cd "$HOME" && mise use -g node@lts'
+# A node found under /mnt/<drive>/ is the Windows install leaking in through WSL's
+# appended Windows PATH: it runs, so a plain `command -v` reports satisfied, and the
+# agent then fails on it. Reject it so mise installs a real Linux node.
+CHECK_LINUX='case "$(command -v node)" in /mnt/[a-z]/*) false ;; "") mise which node >/dev/null 2>&1 ;; *) true ;; esac'
+INSTALL_LINUX='cd "$HOME" && mise use -g node@lts'
 CHECK_WIN='Get-Command node -ErrorAction SilentlyContinue'
 INSTALL_WIN='winget install --id "OpenJS.NodeJS.LTS" -e --accept-package-agreements --accept-source-agreements'

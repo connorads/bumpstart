@@ -128,7 +128,11 @@ function Resolve-Plan {
     for ($j = 0; $j -lt $stepIds.Count; $j++) {
       if ($stepKinds[$j] -eq 'harness') {
         $dir = Get-BlockDir $Root $stepIds[$j]
+        # TARGET_<OS> then plain TARGET - the read meta.sh documents, which this
+        # mapping (MAC -> 'TARGET') half-implemented: WIN and LINUX had no fallback
+        # at all, so a harness with only a plain TARGET would silently link nothing.
         $t = Get-Meta $dir $targetField
+        if (-not $t) { $t = Get-Meta $dir 'TARGET' }
         if ($t -and $seenT.Add($t)) { $targets += $t }
       }
     }
