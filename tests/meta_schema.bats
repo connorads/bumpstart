@@ -68,6 +68,22 @@ mg() { run bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "$1" "$2"' _ "$@"; 
   done
 }
 
+@test "every declared AXIS names a real axis directory" {
+  # AXIS is otherwise unvalidated: both spines read a missing axis dir as "no
+  # axis", so a typo yields a block that silently never appears in --build and
+  # lands in --list's dependencies group instead. ADR 0001 nominates this file
+  # for the guard once the catalogue grows. Declaring NO axis stays legal — mise
+  # is deliberately dependency-only.
+  for f in "$REPO_ROOT"/blocks/*/meta "$REPO_ROOT"/presets/*/meta; do
+    axis="$(bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "$1" AXIS' _ "$(dirname "$f")")"
+    [ -n "$axis" ] || continue
+    if [ ! -d "$REPO_ROOT/axes/$axis" ]; then
+      printf 'AXIS=%s has no axes/%s directory (%s)\n' "$axis" "$axis" "$f" >&2
+      return 1
+    fi
+  done
+}
+
 @test "WIN/LINUX command cells use inner double-quotes only (no inner single quote)" {
   # A bash single-quoted string can't contain a single quote, so a WIN/LINUX cell
   # that needs quotes must use double quotes inside. Strip the outer single quotes
