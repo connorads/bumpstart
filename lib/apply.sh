@@ -102,7 +102,11 @@ fi
 # macOS-only. An honest redirect beats running partway then dying on a
 # Mac-specific step. Exit 0 (informational, not an error) — a script wrapping
 # this could branch on the message; a non-zero would read as a failure it isn't.
-if [ "$(uname -s)" != "Darwin" ]; then
+#
+# Through vibe_os(), not uname -s directly: that is the seam every other OS
+# decision in both spines reads (and apply.ps1's mirror guard already does), so
+# a $VIBE_OS-driven test can reach the whole applier on any host.
+if [ "$(vibe_os)" != mac ]; then
   info "This is the macOS setup."
   info "On Windows, open PowerShell and use the Windows paste from the README."
   info "Linux is not supported yet."

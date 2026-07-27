@@ -15,6 +15,12 @@ REPO="connorads/vibe-setup"
 # This paste is the macOS one — say so before fetching anything, and send a
 # Windows reader to the PowerShell paste that does work. Exit 0: an honest
 # redirect, not a failure (the applier repeats this guard after extraction).
+#
+# Deliberately duplicated, NOT routed through vibe_os(): this guard runs before
+# the tarball fetch below, so lib/os.sh does not exist yet — the whole point is to
+# refuse without downloading anything. The cost is that the two guards must be
+# changed together or a supported OS is still refused at the paste; tests/vibe.bats
+# holds them to the same verdict for the same machine.
 if [ "$(uname -s)" != "Darwin" ]; then
   printf 'This paste is the macOS one.\n'
   printf 'On Windows, open PowerShell and paste this instead:\n'
