@@ -45,6 +45,8 @@ run_cell() {
     success "$_rc_label installed"
   else
     warn "Couldn't install $_rc_label — continuing"
+    # Non-fatal still means "did not happen": recorded so the finish message says so.
+    record_warning "$_rc_label"
   fi
   return 0
 }

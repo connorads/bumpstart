@@ -27,6 +27,21 @@ function Success { param([string]$Msg) Write-Host "  $($script:Green)$([char]0x2
 function Warn    { param([string]$Msg) Write-Host "  $($script:Yellow)!$($script:Reset) $Msg" }
 function Err     { param([string]$Msg) Write-Host "  $($script:Red)$([char]0x2717)$($script:Reset) $Msg" }
 
+# Warning ledger, the mirror of common.sh's. Every non-fatal step failure records
+# the thing that failed, so the finish message can name it instead of printing a
+# green 'Setup complete.' over a machine where an install warned 40 lines ago and
+# scrolled away. Separate from Warn itself: not every warning is a failed step (a
+# deliberate back-off is a warning too), and only failures change the verdict.
+$script:VibeWarnCount = 0
+$script:VibeWarnItems = @()
+
+# Add-VibeWarning <label>: count one failed step and remember its human label.
+function Add-VibeWarning {
+  param([string]$Label)
+  $script:VibeWarnCount++
+  $script:VibeWarnItems += $Label
+}
+
 # Step <n> <total> <label>: a numbered progress header before each install block.
 function Step {
   param([int]$Num, [int]$Total, [string]$Label)

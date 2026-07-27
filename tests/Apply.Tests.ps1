@@ -169,6 +169,30 @@ Describe 'apply.ps1 (Windows spine)' {
     (Get-Content -Raw -LiteralPath "$canon.bak").Trim() | Should -Be 'MY OWN NOTES'
   }
 
+  It 'names a step that failed instead of a green Setup complete' {
+    # winget fails, so every winget-backed cell in the plan warns. The verdict has
+    # to follow: an unqualified success line over a broken machine is the one
+    # message that costs trust. Mirrors the bats case in e2e.bats.
+    function global:winget { $global:LASTEXITCODE = 1 }
+    try {
+      $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
+      $out | Should -Not -Match 'Setup complete'
+      $out | Should -Match "steps didn't work"
+      $out | Should -Match 'Node.js'
+      $out | Should -Match "retries only what's missing"
+    } finally {
+      function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "winget $($args -join ' ')" }
+    }
+  }
+
+  It 'admits a missing agent binary instead of a run-it hint' {
+    # claude is never defined as a shadow function, so the install dispatch runs
+    # but no binary exists — the shape of an installer that landed off PATH.
+    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>&1 | Out-String
+    $out | Should -Match "isn't installed, so there's nothing to open yet"
+    $out | Should -Not -Match "Run 'claude' in"
+  }
+
   It 'a non-Windows OS redirects to the mac paste before any effect' {
     $env:VIBE_OS = 'mac'
     $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude') 6>&1 | Out-String

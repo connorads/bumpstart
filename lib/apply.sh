@@ -167,7 +167,10 @@ run_block() {
   _b_dir="$(block_dir "$ROOT" "$1")"
   [ -f "$_b_dir/apply.sh" ] || return 0
   VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_BLOCK_ID="$1" \
-    bash "$_b_dir/apply.sh" || warn "block '$1' failed — continuing"
+    bash "$_b_dir/apply.sh" || {
+      warn "block '$1' failed — continuing"
+      record_warning "$(_block_label "$ROOT" "$1")"
+    }
 }
 
 _n=${#PLAN_STEP_IDS[@]}
@@ -202,8 +205,25 @@ done
 
 echo ""
 hrule
-success "Setup complete."
-printf "  %sYou're all set — the hard part is done.%s\n" "$GREEN" "$RESET"
+# A green "Setup complete." over a machine where a step failed is the one message
+# that costs trust: the warning scrolled past 40 lines ago and a beginner cannot
+# tell a real failure from noise. So the verdict follows the ledger — unchanged
+# wording when nothing warned, and a named list when something did.
+if [ "$VIBE_WARN_COUNT" -eq 0 ]; then
+  success "Setup complete."
+  printf "  %sYou're all set — the hard part is done.%s\n" "$GREEN" "$RESET"
+else
+  if [ "$VIBE_WARN_COUNT" -eq 1 ]; then
+    warn "Setup finished, but one step didn't work:"
+  else
+    warn "Setup finished, but $VIBE_WARN_COUNT steps didn't work:"
+  fi
+  printf '%s' "$VIBE_WARN_ITEMS" | while IFS= read -r _wi; do
+    [ -n "$_wi" ] || continue
+    printf "    %s\n" "$_wi"
+  done
+  info "Everything else is set up. Re-run the same paste and it retries only what's missing."
+fi
 
 # ── Instructions: assemble the canonical file, symlink each harness to it ─────
 #
@@ -269,7 +289,15 @@ fixup_path
 # and --no-launch paths, and survives the browser sign-in in between.
 copy_starter_prompt "$ROOT"
 
-if [ "$LAUNCH" = true ] && command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; then
+# Three outcomes, not two. "Chose not to launch" and "could not launch" both
+# skipped the exec, but only the first leaves a runnable binary behind — telling
+# someone to run an agent that failed to install sends them to a
+# "command not found" with no idea why.
+if ! command -v "$PLAN_DEFAULT_HARNESS" >/dev/null 2>&1; then
+  echo ""
+  error "$PLAN_DEFAULT_HARNESS isn't installed, so there's nothing to open yet."
+  info "Scroll up for the step that didn't work, then re-run the same paste — it retries only what's missing."
+elif [ "$LAUNCH" = true ]; then
   frame_login "$PLAN_DEFAULT_HARNESS"
   # Keypress gate so the sign-in instruction stays on screen and they proceed on
   # their own timing (no-op without a keyboard, so headless launch is unaffected).

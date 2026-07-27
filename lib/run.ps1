@@ -53,7 +53,13 @@ function Invoke-Cell {
     return
   }
   $ok = Invoke-Spin "Installing $label" { Invoke-Expression $install }
-  if ($ok) { Success "$label installed" } else { Warn "Couldn't install $label - continuing" }
+  if ($ok) {
+    Success "$label installed"
+  } else {
+    Warn "Couldn't install $label - continuing"
+    # Non-fatal still means "did not happen": recorded so the finish message says so.
+    Add-VibeWarning $label
+  }
 }
 
 # Test-BlockRuns <root> <id> - $true when the block does real work in the run

@@ -27,6 +27,21 @@ success() { printf "  %s✓%s %s\n" "$GREEN" "$RESET" "$1"; }
 warn()    { printf "  %s!%s %s\n" "$YELLOW" "$RESET" "$1" >&2; }
 error()   { printf "  %s✗%s %s\n" "$RED" "$RESET" "$1" >&2; }
 
+# Warning ledger. Every non-fatal step failure records the thing that failed, so
+# the finish message can name it instead of printing a green "Setup complete." over
+# a machine where an install warned 40 lines ago and scrolled away. Kept separate
+# from warn() itself: not every warning is a failed step (a deliberate back-off is
+# a warning too), and only failures should change the verdict.
+VIBE_WARN_COUNT=0
+VIBE_WARN_ITEMS=""
+
+# record_warning <label>: count one failed step and remember its human label.
+record_warning() {
+  VIBE_WARN_COUNT=$((VIBE_WARN_COUNT + 1))
+  VIBE_WARN_ITEMS="${VIBE_WARN_ITEMS}$1
+"
+}
+
 # step <n> <total> <label>: a numbered progress header before each install
 # block, so there's always a visible "here's where we are" marker. Bracket in
 # bold cyan, e.g. "[2/6] Set up GitHub CLI".

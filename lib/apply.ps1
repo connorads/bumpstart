@@ -59,7 +59,10 @@ function Invoke-BlockTail {
   $env:VIBE_ROOT = $Root
   $env:VIBE_BLOCK_DIR = $dir
   $env:VIBE_BLOCK_ID = $Id
-  try { & $tail } catch { Warn "block '$Id' failed - continuing" }
+  try { & $tail } catch {
+    Warn "block '$Id' failed - continuing"
+    Add-VibeWarning (Get-BlockLabel $Root $Id)
+  }
 }
 
 function Invoke-VibeSetup {
@@ -114,6 +117,12 @@ function Invoke-VibeSetup {
   Write-Host ("`n  {0}{1}[.]{2} {0}Preparing Windows{2}" -f $script:Bold, $script:Cyan, $script:Reset)
   Ensure-Winget
 
+  # Per-run state, reset here rather than at load: the tests dot-source this file
+  # once and drive Invoke-VibeSetup repeatedly, so a load-time-only ledger would
+  # carry one run's failures into the next.
+  $script:VibeWarnCount = 0
+  $script:VibeWarnItems = @()
+
   # Count blocks that do real work (declarative cell or apply.ps1 tail).
   $total = 0
   foreach ($id in $resolved.StepIds) { if (Test-BlockRuns $root $id) { $total++ } }
@@ -131,8 +140,22 @@ function Invoke-VibeSetup {
 
   Write-Host ''
   Hrule
-  Success 'Setup complete.'
-  Write-Host ("  {0}You're all set - the hard part is done.{1}" -f $script:Green, $script:Reset)
+  # A green 'Setup complete.' over a machine where a step failed is the one message
+  # that costs trust: the warning scrolled past and a beginner cannot tell a real
+  # failure from noise. So the verdict follows the ledger - unchanged wording when
+  # nothing warned, a named list when something did. Mirrors apply.sh.
+  if ($script:VibeWarnCount -eq 0) {
+    Success 'Setup complete.'
+    Write-Host ("  {0}You're all set - the hard part is done.{1}" -f $script:Green, $script:Reset)
+  } else {
+    if ($script:VibeWarnCount -eq 1) {
+      Warn "Setup finished, but one step didn't work:"
+    } else {
+      Warn "Setup finished, but $($script:VibeWarnCount) steps didn't work:"
+    }
+    foreach ($w in $script:VibeWarnItems) { Write-Host "    $w" }
+    Info "Everything else is set up. Re-run the same paste and it retries only what's missing."
+  }
 
   # Instructions: assemble the canonical file, then link each harness to it via
   # its per-OS method (import for Claude, copy for Codex).
@@ -177,7 +200,15 @@ function Invoke-VibeSetup {
   Set-VibePath
   Copy-StarterPrompt $root
 
-  if (-not $NoLaunch -and (Get-Command $resolved.DefaultHarness -ErrorAction SilentlyContinue)) {
+  # Three outcomes, not two. 'Chose not to launch' and 'could not launch' both
+  # skipped the launch, but only the first leaves a runnable binary behind -
+  # telling someone to run an agent that failed to install sends them to a
+  # 'not recognized' error with no idea why. Mirrors apply.sh.
+  if (-not (Get-Command $resolved.DefaultHarness -ErrorAction SilentlyContinue)) {
+    Write-Host ''
+    Err "$($resolved.DefaultHarness) isn't installed, so there's nothing to open yet."
+    Info "Scroll up for the step that didn't work, then re-run the same paste - it retries only what's missing."
+  } elseif (-not $NoLaunch) {
     Show-LoginFrame $resolved.DefaultHarness
     Wait-Enter "Press Enter to open $($resolved.DefaultHarness) and sign in"
     Set-Location -LiteralPath $starter

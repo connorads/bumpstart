@@ -210,6 +210,31 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   refute_fake_logged "claude"
 }
 
+@test "a step that failed is named at the end instead of a green 'Setup complete'" {
+  # mise refuses both the check and the install, so the node step warns. Node is
+  # off PATH too, so nothing else can report it as satisfied.
+  make_fake mise 'if [ "$1" = "which" ] || [ "$1" = "use" ]; then exit 1; fi'
+  rm -f "$FAKES/node"
+  apply claude node --yes --no-launch
+  [ "$status" -eq 0 ]
+  # the whole point: no unqualified success line on a machine where a step failed
+  [[ "$output" != *"Setup complete"* ]]
+  [[ "$output" == *"one step didn't work"* ]]
+  [[ "$output" == *"Node.js"* ]]
+  [[ "$output" == *"retries only what's missing"* ]]
+}
+
+@test "a missing agent binary is admitted, not papered over with a run-it hint" {
+  # The install cell "succeeds" (the faked curl logs and exits 0) but leaves no
+  # binary — the shape of a real vendor installer that landed off PATH.
+  rm -f "$FAKES/claude"
+  apply claude-cli --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"isn't installed, so there's nothing to open yet"* ]]
+  # never point someone at a binary that does not exist
+  [[ "$output" != *"Run 'claude' in"* ]]
+}
+
 @test "the plain confirm omits the instruction-file paths but keeps expectations" {
   apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
