@@ -4,6 +4,17 @@
 # Answers are piped on stdin; PATH-shadow fakes (incl. pbcopy) prove that even
 # the run-now fall-through reaches resolve without performing a real install or
 # touching the real clipboard.
+#
+# The wizard is a fold over the fixture tree's axes, so every answer script below
+# is positional in that order:
+#
+#   recipe   (multi) starter
+#   agent    (one)   1) claude  2) codex  3) claude-cli  4) codex-cli
+#   tools    (multi) web  context7  gh-auth  node  react
+#   steering (multi) beginner  concise
+#   run now  (y/N)
+#
+# Presets lead each group (the coarse choice first), then ids alphabetically.
 
 load helpers/common
 
@@ -28,11 +39,9 @@ setup() {
   [[ "$output" == *"--list"* ]]
 }
 
-@test "--build: happy path emits the one-paste command for the chosen ids" {
-  # optional ids, in kind-rank order: claude-desktop codex-desktop gh-auth cyc-a
-  # cyc-b mise node context7 react concise, then the agent-free presets beginner
-  # starter web. Pick node (#7) + concise (#10); decline the presets.
+@test "--build: one question per axis, asked in the axes' declared ORDER" {
   run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+n
 1
 n
 n
@@ -40,27 +49,45 @@ n
 n
 n
 n
-y
-n
-n
-y
-n
-n
 n
 n
 ANS
   [ "$status" -eq 0 ]
-  # claude-cli (harness) + node + concise; mise is a dep, not a chosen id.
+  r="$(printf '%s\n' "$output" | grep -n -F 'Start from a ready-made setup?' | head -1 | cut -d: -f1)"
+  a="$(printf '%s\n' "$output" | grep -n -F 'Which agent should launch?' | head -1 | cut -d: -f1)"
+  t="$(printf '%s\n' "$output" | grep -n -F 'What should we install?' | head -1 | cut -d: -f1)"
+  s="$(printf '%s\n' "$output" | grep -n -F 'How should the agent be steered?' | head -1 | cut -d: -f1)"
+  [ "$r" -lt "$a" ]
+  [ "$a" -lt "$t" ]
+  [ "$t" -lt "$s" ]
+}
+
+@test "--build: happy path emits the one-paste command for the chosen ids" {
+  # agent = claude-cli (#3), plus node and concise; everything else declined.
+  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+n
+3
+n
+n
+n
+y
+n
+n
+y
+n
+ANS
+  [ "$status" -eq 0 ]
+  # claude-cli (the agent pick) leads; mise is a dep, not a chosen id
   [[ "$output" == *'_ claude-cli node concise'* ]]
   # Read-only: run-now declined, so nothing installed.
   refute_fake_logged "brew"
   refute_fake_logged "INSTALL claude"
 }
 
-@test "--build: an agent-free preset can be picked and lands in the paste" {
-  # the presets sort last (rank 99): beginner (#11), starter (#12), web (#13).
-  # Pick starter — the handout the README documents.
+@test "--build: the recipe + agent answers emit the handout the README documents" {
+  # starter on the recipe axis, the claude bundle (#1, the axis DEFAULT) as agent
   run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+y
 1
 n
 n
@@ -68,25 +95,37 @@ n
 n
 n
 n
-n
-n
-n
-n
-n
-y
 n
 n
 ANS
   [ "$status" -eq 0 ]
-  [[ "$output" == *'_ claude-cli starter'* ]]
-  # the agent-bundle presets are never offered — the agent question above is the
-  # only place that choice is made, so picking one here could contradict it
-  [[ "$output" != *"claude  Claude Code (CLI) + desktop app"* ]]
+  # the wizard now spells the handout exactly as the README hands it out
+  [[ "$output" == *'_ claude starter'* ]]
+  # the agent axis lists bundles and CLI-only atoms in one question
+  [[ "$output" == *"1) claude"* ]]
+  [[ "$output" == *"3) claude-cli"* ]]
 }
 
-@test "--build: VIBE_REF pins the emitted command with a ref prefix" {
-  # pick only node (#7); decline the rest and run-now.
-  run env VIBE_REF=abc123 VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+@test "--build: an empty answer takes the agent axis DEFAULT" {
+  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+y
+
+n
+n
+n
+n
+n
+n
+n
+n
+ANS
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'_ claude starter'* ]]
+}
+
+@test "--build: rows show what they pull in, so wholes and parts read as nested" {
+  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+n
 1
 n
 n
@@ -94,10 +133,23 @@ n
 n
 n
 n
+n
+n
+ANS
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"starter"*"(pulls in: web beginner)"* ]]
+  [[ "$output" == *"node"*"(pulls in: mise)"* ]]
+}
+
+@test "--build: VIBE_REF pins the emitted command with a ref prefix" {
+  # default agent, node only
+  run env VIBE_REF=abc123 VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+n
+1
+n
+n
+n
 y
-n
-n
-n
 n
 n
 n
@@ -105,23 +157,17 @@ n
 ANS
   [ "$status" -eq 0 ]
   [[ "$output" == *'VIBE_REF=abc123 /bin/bash -c'* ]]
-  [[ "$output" == *'_ claude-cli node'* ]]
+  [[ "$output" == *'_ claude node'* ]]
 }
 
 @test "--build: run-now=yes falls through to resolve but never installs (non-tty confirm aborts)" {
-  # pick node (#7), then answer run-now with y.
   run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+n
 1
 n
 n
 n
-n
-n
-n
 y
-n
-n
-n
 n
 n
 n

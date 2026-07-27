@@ -55,25 +55,33 @@ Describe 'Test-VibeCopyOwned' {
   }
 }
 
-Describe 'Test-PullsInHarness' {
+Describe 'The wizard fold over axes' {
   BeforeAll {
     . "$PSScriptRoot/../lib/resolve.ps1"
     . "$PSScriptRoot/../lib/build.ps1"
     $script:fix = "$PSScriptRoot/fixtures"
   }
 
-  It 'is true for an agent bundle and false for the agent-free axis presets' {
-    # the wizard offers only the false ones, so the agent question stays the
-    # single place that choice is made
-    Test-PullsInHarness $script:fix 'claude'  | Should -BeTrue
-    Test-PullsInHarness $script:fix 'codex'   | Should -BeTrue
-    Test-PullsInHarness $script:fix 'web'     | Should -BeFalse
-    Test-PullsInHarness $script:fix 'beginner'| Should -BeFalse
-    Test-PullsInHarness $script:fix 'starter' | Should -BeFalse
+  It 'asks only about axes that have members, in their declared ORDER' {
+    $axes = Get-VibeAxes $script:fix
+    ($axes | ForEach-Object { $_.Id }) -join ' ' | Should -Be 'recipe agent tools steering'
   }
 
-  It 'is false rather than throwing for an unknown id or a cycle' {
-    Test-PullsInHarness $script:fix 'bogus' | Should -BeFalse
-    Test-PullsInHarness $script:fix 'cyc-a' | Should -BeFalse
+  It 'puts presets first in a group, then ids alphabetically' {
+    # the coarse, ready-made choice leads; `starter` is a recipe, not an agent
+    (Get-VibeAxisMembers $script:fix 'agent') -join ' ' | Should -Be 'claude codex claude-cli codex-cli'
+    (Get-VibeAxisMembers $script:fix 'recipe') -join ' ' | Should -Be 'starter'
+  }
+
+  It 'never offers a block that declares no AXIS' {
+    # mise arrives via node; nobody picks a version manager directly
+    foreach ($ax in (Get-VibeAxes $script:fix)) {
+      Get-VibeAxisMembers $script:fix $ax.Id | Should -Not -Contain 'mise'
+    }
+  }
+
+  It 'shows what a row pulls in, so wholes and parts read as nested' {
+    Get-VibeAxisDetail $script:fix 'starter' | Should -Be ' (pulls in: web beginner)'
+    Get-VibeAxisDetail $script:fix 'concise' | Should -Be ''
   }
 }
