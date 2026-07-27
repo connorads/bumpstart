@@ -210,6 +210,22 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   refute_fake_logged "claude"
 }
 
+@test "WSL 1 is refused with the one command that fixes it, before any effect" {
+  # WSL 1 passes every other check as an ordinary Linux, yet cannot exec the agent
+  # binaries at all — so the refusal has to live in the spine, ahead of the OS
+  # guard, and carry the fix.
+  make_fake uname 'printf "Linux\n"'
+  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '4.4.0-19041-Microsoft\n' > "$VIBE_OSRELEASE_FILE"
+  WSL_DISTRO_NAME=Ubuntu apply claude --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"WSL 1"* ]]
+  [[ "$output" == *"wsl --set-version Ubuntu 2"* ]]
+  # nothing ran: the refusal is before every effect
+  refute_fake_logged "brew"
+  refute_fake_logged "INSTALL claude"
+}
+
 @test "a step that failed is named at the end instead of a green 'Setup complete'" {
   # mise refuses both the check and the install, so the node step warns. Node is
   # off PATH too, so nothing else can report it as satisfied.

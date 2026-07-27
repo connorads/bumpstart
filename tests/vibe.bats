@@ -105,6 +105,32 @@ boot_curlless() {
   refute_fake_logged "APPLY"
 }
 
+@test "WSL 1 is refused with the one command that fixes it, before any fetch" {
+  make_fake uname 'printf "Linux\n"'
+  make_fake curl
+  make_fake_tar
+  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '4.4.0-19041-Microsoft\n' > "$VIBE_OSRELEASE_FILE"
+  WSL_DISTRO_NAME=Ubuntu boot claude
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"WSL 1"* ]]
+  # the actionable bit, with their own distro named
+  [[ "$output" == *"wsl --set-version Ubuntu 2"* ]]
+  refute_fake_logged "curl"
+  refute_fake_logged "APPLY"
+}
+
+@test "WSL 2 is not caught by the WSL 1 refusal" {
+  make_fake uname 'printf "Linux\n"'
+  make_fake curl
+  make_fake_tar
+  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '5.15.153.1-microsoft-standard-WSL2\n' > "$VIBE_OSRELEASE_FILE"
+  boot claude
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"WSL 1"* ]]
+}
+
 @test "with no curl it fetches via wget instead" {
   make_fake uname 'printf "Darwin\n"'
   make_fake wget

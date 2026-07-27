@@ -106,6 +106,18 @@ fi
 # Through vibe_os(), not uname -s directly: that is the seam every other OS
 # decision in both spines reads (and apply.ps1's mirror guard already does), so
 # a $VIBE_OS-driven test can reach the whole applier on any host.
+#
+# WSL 1 first, and separately: it looks like a supported Linux to every check we
+# have, but it cannot exec the agent binaries at all (anthropics/claude-code#38788),
+# and the fix is one command the user runs on the Windows side. Refusing with that
+# command beats installing everything and dying at the launch.
+if [ "$(vibe_wsl)" = 1 ]; then
+  error "This is WSL 1, where the coding agents can't run."
+  info "In PowerShell on Windows, run:  wsl --set-version ${WSL_DISTRO_NAME:-<your-distro>} 2"
+  info "Then open this terminal again and paste the same line."
+  exit 0
+fi
+
 if [ "$(vibe_os)" != mac ]; then
   info "This is the macOS setup."
   info "On Windows, open PowerShell and use the Windows paste from the README."

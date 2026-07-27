@@ -21,6 +21,23 @@ REPO="connorads/vibe-setup"
 # refuse without downloading anything. The cost is that the two guards must be
 # changed together or a supported OS is still refused at the paste; tests/vibe.bats
 # holds them to the same verdict for the same machine.
+#
+# WSL 1 first, for the same reason apply.sh checks it first: it passes for a
+# supported Linux everywhere else, yet cannot exec the agent binaries at all
+# (anthropics/claude-code#38788). Same lowercase-then-match logic as vibe_wsl in
+# lib/os.sh, and the same $VIBE_OSRELEASE_FILE test seam.
+osrel_file="${VIBE_OSRELEASE_FILE:-/proc/sys/kernel/osrelease}"
+osrel=""
+[ -r "$osrel_file" ] && osrel="$(tr '[:upper:]' '[:lower:]' < "$osrel_file" 2>/dev/null || true)"
+case "$osrel" in
+  *wsl2*|*microsoft-standard*) : ;;   # WSL 2 is a supported Linux
+  *microsoft*)
+    printf 'This is WSL 1, where the coding agents cannot run.\n'
+    printf 'In PowerShell on Windows, run:  wsl --set-version %s 2\n' "${WSL_DISTRO_NAME:-<your-distro>}"
+    printf 'Then open this terminal again and paste the same line.\n'
+    exit 0 ;;
+esac
+
 if [ "$(uname -s)" != "Darwin" ]; then
   printf 'This paste is the macOS one.\n'
   printf 'On Windows, open PowerShell and paste this instead:\n'

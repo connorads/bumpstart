@@ -18,6 +18,31 @@ vibe_os() {
   esac
 }
 
+# vibe_wsl — echo 2, 1 or nothing: which WSL version this is, if any. Reads the
+# kernel release string ($VIBE_OSRELEASE_FILE is the test seam) rather than
+# $WSL_DISTRO_NAME, because the kernel name is present in every WSL release and
+# survives into a container running inside WSL, where the env var may not.
+#
+# WSL 2 kernels are named "…-microsoft-standard-WSL2" (older builds: just
+# "…-microsoft-standard"); WSL 1 reports the Windows build as "…-Microsoft". So the
+# specific WSL 2 patterns are tested FIRST — the reverse order would call every
+# WSL 2 machine WSL 1. Case-insensitive via tr (not ${v,,}: bash-3.2-clean), so the
+# answer never hinges on a capital M.
+#
+# Two callers only: the WSL 1 refusal in both platform guards (WSL 1 cannot exec
+# the agent binaries at all, anthropics/claude-code#38788, and only the spine can
+# refuse — a CHECK cell runs per-block and far too late), and clipboard selection.
+vibe_wsl() {
+  _vw_file="${VIBE_OSRELEASE_FILE:-/proc/sys/kernel/osrelease}"
+  [ -r "$_vw_file" ] || return 0
+  _vw_rel="$(tr '[:upper:]' '[:lower:]' < "$_vw_file" 2>/dev/null)" || return 0
+  case "$_vw_rel" in
+    *wsl2*|*microsoft-standard*) printf '2' ;;
+    *microsoft*)                 printf '1' ;;
+  esac
+  return 0
+}
+
 # vibe_os_key — echo MAC|WIN|LINUX, the meta cell suffix for the current OS.
 vibe_os_key() {
   case "$(vibe_os)" in
