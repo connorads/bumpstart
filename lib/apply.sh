@@ -103,7 +103,9 @@ fi
 # Mac-specific step. Exit 0 (informational, not an error) — a script wrapping
 # this could branch on the message; a non-zero would read as a failure it isn't.
 if [ "$(uname -s)" != "Darwin" ]; then
-  info "vibe-setup is macOS-only for now."
+  info "This is the macOS setup."
+  info "On Windows, open PowerShell and use the Windows paste from the README."
+  info "Linux is not supported yet."
   exit 0
 fi
 

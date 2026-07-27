@@ -181,7 +181,9 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   make_fake uname 'printf "Linux\n"'
   apply claude --yes --no-launch
   [ "$status" -eq 0 ]
-  [[ "$output" == *"macOS-only for now"* ]]
+  [[ "$output" == *"This is the macOS setup"* ]]
+  # a Linux reader is told where they stand, not left guessing
+  [[ "$output" == *"Linux is not supported yet"* ]]
   # guard fires before ensure_brew / any block, so nothing ran
   refute_fake_logged "brew"
   refute_fake_logged "claude"
