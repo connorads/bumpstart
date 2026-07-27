@@ -144,6 +144,11 @@ render_plan() {
     case " ${PLAN_STEP_IDS[*]} " in
       *" node "*|*" pnpm "*) printf "    %s  (mise tool versions)\n" "$HOME/.config/mise/config.toml" ;;
     esac
+    case " ${PLAN_STEP_IDS[*]} " in
+      *" safer-installs "*)
+        printf "    %s  (npm's release-age gate)\n" "$HOME/.npmrc"
+        printf "    %s  (mise's release-age gate)\n" "$HOME/.config/mise/config.toml" ;;
+    esac
   fi
   _render_expectations
   printf "\n"
@@ -209,6 +214,13 @@ _render_expectations() {
   case " ${PLAN_STEP_IDS[*]} " in
     *" node "*|*" pnpm "*)
       _exp "Uses mise to manage your tool versions, keeping a small config in your home folder." ;;
+  esac
+  # A wait the person will eventually hit and would otherwise read as breakage,
+  # so name the trade at the gate rather than at the refused install. Bash spine
+  # only: the block ships no apply.ps1, so it never runs on Windows.
+  case " ${PLAN_STEP_IDS[*]} " in
+    *" safer-installs "*)
+      _exp "Waits four days before installing brand-new versions of packages, so a hacked release is usually caught before it reaches you." ;;
   esac
   # GitHub sign-in needs an account a from-zero person may not have yet.
   case " ${PLAN_STEP_IDS[*]} " in

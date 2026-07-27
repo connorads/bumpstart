@@ -1,0 +1,6 @@
+KIND=tool
+AXIS=tools
+DESC="Safer package installs: a 4-day wait on brand-new releases"
+INCLUDE="mise"
+LABEL="safer package installs"
+SATISFIED_MAC='grep -qs "^min-release-age=" "$HOME/.npmrc" && grep -qs "^[[:space:]]*minimum_release_age" "${XDG_CONFIG_HOME:-$HOME/.config}/mise/config.toml"'

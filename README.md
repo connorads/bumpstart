@@ -113,6 +113,7 @@ question is adding a directory.
 | `github-desktop` | tools    | app          | Install GitHub Desktop, so you can see and undo what the agent did (pulls in `git`) |
 | `node`           | tools    | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
 | `pnpm`           | tools    | tool         | Install pnpm via mise (pulls in `mise`)                            |
+| `safer-installs` | tools    | tool         | Make npm/pnpm/mise wait 4 days on brand-new releases (macOS only)  |
 | `welcome`        | steering | instructions | Greet the beginner + how to work with the agent every session      |
 | `concise`        | steering | instructions | Ask the agent to keep answers concise                              |
 | `ask-first`      | steering | instructions | Ask before installing tools / deleting files                       |
