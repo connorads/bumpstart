@@ -3,5 +3,9 @@ DESC="Install the Claude desktop app"
 LABEL="the Claude desktop app"
 CHECK_MAC='[ -d "${VIBE_APPS_DIR:-/Applications}/Claude.app" ]'
 INSTALL_MAC='brew install --cask claude'
+# No INSTALL_LINUX: the Linux install needs a sudo password and a signing-key
+# fingerprint check, neither of which fits a cell. apply.sh owns it. This CHECK is
+# still what makes the plan row read "already set up" on a second run.
+CHECK_LINUX='command -v claude-desktop >/dev/null 2>&1'
 CHECK_WIN='winget list --id "Anthropic.Claude" -e 2>$null | Select-String -SimpleMatch "Anthropic.Claude"'
 INSTALL_WIN='winget install --id "Anthropic.Claude" -e --accept-package-agreements --accept-source-agreements'
