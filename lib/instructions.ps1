@@ -51,6 +51,10 @@ function Assemble-Instructions {
   }
 
   New-Item -ItemType Directory -Path (Split-Path -Parent $canon) -Force | Out-Null
+  # Only reachable under -Force (the no-force path backed off above), and the
+  # confirm gate promises "backing up any existing one to .bak" - so make good on
+  # it before the clobber. The canonical is the file the user edits.
+  if (Test-Path -LiteralPath $canon) { Backup-VibeFile $canon }
   Set-Content -LiteralPath $canon -Value $buf -NoNewline
   Add-Content -LiteralPath $canon -Value ''   # trailing newline, matching bash printf '%s\n'
   $script:InstructionsWrote = $true
@@ -113,13 +117,13 @@ function Test-VibeCopyOwned {
 }
 
 # Backup-VibeFile <path>: move a file to <path>.bak (timestamp-suffixed if taken).
-# Timestamp comes from the filesystem, not Date (5.1-safe + deterministic enough).
+# The wall-clock stamp mirrors _backup_file in instructions.sh, so the same
+# scenario names the same .bak on both spines.
 function Backup-VibeFile {
   param([string]$Path)
   $bak = "$Path.bak"
   if (Test-Path -LiteralPath $bak) {
-    $stamp = (Get-Item -LiteralPath $Path).LastWriteTime.ToString('yyyyMMddHHmmss')
-    $bak = "$Path.bak.$stamp"
+    $bak = "$Path.bak." + (Get-Date -Format 'yyyyMMddHHmmss')
   }
   Move-Item -LiteralPath $Path -Destination $bak -Force
   Success "Backed up $Path to $bak"

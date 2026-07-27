@@ -74,9 +74,30 @@ assemble_instructions() {
   fi
 
   mkdir -p "$(dirname "$_ai_canon")"
+  # Only reachable under --force (the no-force path backed off above), and both
+  # spines' confirm gate promises "backing up any existing one to .bak" — so make
+  # good on it before the clobber. The canonical is the file the user edits.
+  if [ -e "$_ai_canon" ]; then
+    _ai_bak="$(_backup_file "$_ai_canon")"
+    success "Backed up your instructions file to $_ai_bak"
+  fi
   printf '%s\n' "$_ai_buf" > "$_ai_canon"
   INSTRUCTIONS_WROTE=true
   return 0
+}
+
+# _backup_file <path> — move a file aside to <path>.bak (timestamp-suffixed when
+# .bak is taken) and echo the path it landed at. The caller words its own message:
+# a canonical rewrite and a native-file relink are different sentences. Mirrored by
+# Backup-VibeFile in instructions.ps1, including the timestamp source (wall clock).
+_backup_file() {
+  _bf_path="$1"
+  _bf_bak="$_bf_path.bak"
+  if [ -e "$_bf_bak" ] || [ -L "$_bf_bak" ]; then
+    _bf_bak="$_bf_path.bak.$(date +%Y%m%d%H%M%S)"
+  fi
+  mv "$_bf_path" "$_bf_bak"
+  printf '%s' "$_bf_bak"
 }
 
 # link_harness <native_path> <force> — point a harness's native instructions
@@ -109,11 +130,7 @@ link_harness() {
     return 0
   fi
 
-  _lh_bak="$_lh_native.bak"
-  if [ -e "$_lh_bak" ] || [ -L "$_lh_bak" ]; then
-    _lh_bak="$_lh_native.bak.$(date +%Y%m%d%H%M%S)"
-  fi
-  mv "$_lh_native" "$_lh_bak"
+  _lh_bak="$(_backup_file "$_lh_native")"
   ln -sfn "$_lh_canon" "$_lh_native"
   success "Backed up $_lh_native to $_lh_bak and linked to your instructions file"
   return 0

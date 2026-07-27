@@ -72,13 +72,27 @@ link()     { run bash "$DRIVER" "$REPO_ROOT/lib" link "$@"; }
   [ "$(cat "$CANON")" = "MY OWN NOTES" ]
 }
 
-@test "assemble --force rewrites an existing canonical" {
+@test "assemble --force rewrites an existing canonical, keeping a .bak of it" {
   mkdir -p "$(dirname "$CANON")"
   printf 'MY OWN NOTES\n' > "$CANON"
   assemble true concise
   [ "$status" -eq 0 ]
   grep -Fq "## Be concise" "$CANON"
   ! grep -Fq "MY OWN NOTES" "$CANON"
+  # the gate promises a .bak, so --force must not be a lossy clobber
+  [ "$(cat "$CANON.bak")" = "MY OWN NOTES" ]
+}
+
+@test "assemble --force twice keeps both backups (timestamp-suffixed)" {
+  mkdir -p "$(dirname "$CANON")"
+  printf 'MY OWN NOTES\n' > "$CANON"
+  assemble true concise
+  assemble true mise
+  [ "$status" -eq 0 ]
+  [ "$(cat "$CANON.bak")" = "MY OWN NOTES" ]
+  # the second run's .bak is suffixed rather than overwriting the first
+  run bash -c 'ls "$1".bak.* | wc -l' _ "$CANON"
+  [ "$output" -ge 1 ]
 }
 
 # --- link ---------------------------------------------------------------------

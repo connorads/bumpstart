@@ -138,6 +138,17 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Match 'skipped \(file exists\)'
   }
 
+  It '-Force rewrites the canonical but keeps a .bak of what was there' {
+    $canon = Join-Path $script:testHome '.config/agents/AGENTS.md'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $canon) -Force | Out-Null
+    Set-Content -LiteralPath $canon -Value 'MY OWN NOTES'
+
+    Invoke-VibeSetup -Yes -NoLaunch -Force -Ids @('claude', 'concise') 6>&1 | Out-Null
+
+    (Get-Content -Raw -LiteralPath $canon) | Should -Match '## Be concise'
+    (Get-Content -Raw -LiteralPath "$canon.bak").Trim() | Should -Be 'MY OWN NOTES'
+  }
+
   It 'a non-Windows OS redirects to the mac paste before any effect' {
     $env:VIBE_OS = 'mac'
     $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude') 6>&1 | Out-String
