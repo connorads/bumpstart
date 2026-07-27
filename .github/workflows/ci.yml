@@ -41,4 +41,4 @@ jobs:
       # compat rules can't see. --plan stops before any effect.
       - name: 5.1 floor smoke (powershell.exe)
         shell: powershell
-        run: powershell.exe -File lib/apply.ps1 -Plan -Yes web-starter
+        run: powershell.exe -File lib/apply.ps1 -Plan -Yes claude starter

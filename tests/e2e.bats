@@ -96,8 +96,8 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq 'trust_level = "trusted"' "$HOME/.codex/config.toml"
 }
 
-@test "web-starter preset applies the whole stack for Claude" {
-  apply web-starter --yes --no-launch
+@test "claude starter applies the whole stack for Claude" {
+  apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
   # node (via mise dep) is in the plan, and instructions land in the canonical file
@@ -107,6 +107,41 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [ -d "$HOME/git/first-project/.git" ]
 }
 
+@test "codex starter is the same handout on the other agent, with no claude block" {
+  apply codex starter --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Agent to launch: codex"* ]]
+  # the same stack + habits land...
+  [[ "$output" == *"Node.js"* ]]
+  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+  [ -d "$HOME/git/first-project/.git" ]
+  # ...and nothing Claude is installed or linked: the agent axis is the only
+  # thing the id swap changed
+  refute_fake_logged "brew install --cask claude"
+  [ ! -e "$HOME/.claude/CLAUDE.md" ]
+}
+
+@test "claude codex starter installs both agents and launches codex" {
+  apply claude codex starter --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Agent to launch: codex"* ]]
+  canon="$HOME/.config/agents/AGENTS.md"
+  # both harnesses are present, so both native paths link at the one canonical file
+  [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
+  [ "$(readlink "$HOME/.codex/AGENTS.md")" = "$canon" ]
+}
+
+@test "codex web is the stack without the beginner habits" {
+  apply codex web --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Agent to launch: codex"* ]]
+  [[ "$output" == *"Node.js"* ]]
+  # the stack ships no instruction blocks, so no welcome text is written
+  canon="$HOME/.config/agents/AGENTS.md"
+  ! grep -Fq "## Welcome" "$canon"
+  ! grep -Fq "## Be concise" "$canon"
+}
+
 @test "a claude-only run (no git block) leaves the starter dir un-versioned" {
   apply claude --yes --no-launch
   [ "$status" -eq 0 ]
@@ -114,7 +149,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [ ! -d "$HOME/git/first-project/.git" ]
 }
 
-@test "bare paste (no ids) defaults to the full web-starter setup" {
+@test "bare paste (no ids) defaults to the full 'claude starter' setup" {
   apply --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: claude"* ]]
@@ -125,16 +160,21 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
 }
 
-@test "web-starter includes the welcome block; its text lands in the canonical file" {
-  apply web-starter --yes --no-launch
+@test "the beginner habits all land in the canonical file" {
+  apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
-  grep -Fq "## Welcome" "$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Welcome" "$canon"
+  grep -Fq "## Be concise" "$canon"
+  grep -Fq "## Ask first" "$canon"
 }
 
-@test "an id after a preset overrides its harness (web-starter codex -> codex)" {
-  apply web-starter codex --yes --no-launch
+@test "an agent id appended to a preset adds a harness and moves the launcher" {
+  apply claude starter codex --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
+  # the appended agent is added, not swapped in — claude is still installed
+  fake_logged "brew install --cask claude"
 }
 
 @test "non-macOS exits 0 with an honest redirect, before any effect" {
@@ -184,7 +224,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 @test "the git-config heads-up shows only when the git block is in the plan" {
   # the plain confirm view (shown even with --yes) discloses the git identity write
-  apply web-starter --yes --no-launch
+  apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"default branch for new projects"* ]]
   # a claude-only run has no git block, so no git heads-up
@@ -193,7 +233,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 }
 
 @test "full mode names the .gitconfig path when git is in the plan" {
-  apply web-starter --plan
+  apply claude starter --plan
   [ "$status" -eq 0 ]
   [[ "$output" == *".gitconfig"* ]]
 }

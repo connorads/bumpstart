@@ -1,7 +1,9 @@
 input	expect_ids	expect_kinds	expect_harness	expect_error
 claude-cli	claude-cli	harness	claude	
 claude	claude-cli claude-desktop	harness app	claude	
-web-starter	claude-cli claude-desktop gh-auth mise node context7 react concise	harness app auth tool tool mcp skill instructions	claude	
+claude starter	claude-cli claude-desktop gh-auth mise node context7 react concise	harness app auth tool tool mcp skill instructions	claude	
+codex starter	codex-cli codex-desktop gh-auth mise node context7 react concise	harness app auth tool tool mcp skill instructions	codex	
+claude codex starter	claude-cli codex-cli claude-desktop codex-desktop gh-auth mise node context7 react concise	harness harness app app auth tool tool mcp skill instructions	codex	
 claude node	claude-cli claude-desktop mise node	harness app tool tool	claude	
 claude node node	claude-cli claude-desktop mise node	harness app tool tool	claude	
 claude codex	claude-cli codex-cli claude-desktop codex-desktop	harness harness app app	codex	

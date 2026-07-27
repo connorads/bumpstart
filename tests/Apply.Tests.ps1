@@ -70,8 +70,8 @@ Describe 'apply.ps1 (Windows spine)' {
     }
   }
 
-  It 'web-starter dispatches installs, lands per-OS content, links Claude via @import, pre-trusts' {
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('web-starter') 6>&1 | Out-String
+  It 'claude starter dispatches installs, lands per-OS content, links Claude via @import, pre-trusts' {
+    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-String
     $out | Should -Match 'Setup complete'
     $out | Should -Match 'Agent to launch: claude'
 

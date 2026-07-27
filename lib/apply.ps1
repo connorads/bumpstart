@@ -94,7 +94,9 @@ function Invoke-VibeSetup {
     return 0
   }
 
-  if ($Ids.Count -eq 0) { $Ids = @('web-starter') }
+  # Bare paste: one id per axis - which agent (an account choice) and which
+  # stack+habits. Swapping agent is one word.
+  if ($Ids.Count -eq 0) { $Ids = @('claude', 'starter') }
 
   $resolved = Resolve-Plan $root $Ids
   if ($resolved.Error) { Err $resolved.Error; return 1 }

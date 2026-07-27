@@ -44,8 +44,8 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 @test "--list: preset shows its expansion" {
   vibe --list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"web-starter"* ]]
-  [[ "$output" == *"expands to:"*"claude"*"concise"* ]]
+  [[ "$output" == *"starter"* ]]
+  [[ "$output" == *"expands to:"*"web beginner"* ]]
 }
 
 @test "--show node: kind tool and dep mise" {

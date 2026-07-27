@@ -2,8 +2,8 @@
 
 One-paste macOS setup for agentic / "vibe" coding. Gets someone who may never
 have used a terminal from nothing to happily talking to a coding agent - with
-the right agent, tools, skills and instructions already in place, and **nothing
-to choose**.
+the tools, skills and instructions already in place, and **one thing to choose**:
+which agent, because that follows the AI subscription you already have.
 
 It composes vetted **blocks**. You (or a workshop leader) hand out one paste
 listing the blocks you want; the applier resolves them, shows a plain-language
@@ -13,45 +13,59 @@ macOS and native Windows (no WSL needed).
 
 ## Quick start
 
-Paste one line and go — no ids, no choices. You get the full beginner setup
-(`web-starter`: Claude Code + GitHub + Node + concise instructions).
+There is one thing only you know: **which AI subscription you already pay for**.
+Pick the line that matches it and paste. Everything else is chosen for you -
+`starter` is the whole beginner setup (GitHub + git + Node + beginner
+instructions).
 
 ### macOS (Terminal)
 
+If you use **Claude**:
+
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
+```
+
+If you use **ChatGPT**:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ codex starter
 ```
 
 ### Windows (PowerShell)
 
-Open **PowerShell** (the one already on your PC) and paste:
+Open **PowerShell** (the one already on your PC). If you use **Claude**:
 
 ```powershell
-irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1 | iex
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1))) claude starter
 ```
 
-To choose blocks, pass them through a script block:
+If you use **ChatGPT**:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1))) claude gh-auth node concise
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1))) codex starter
 ```
 
 The Windows install needs no admin for the coding agents themselves (Claude Code
 and Codex install just for you); Node.js and Git install for all users via
 winget and each ask permission once.
 
-`vibe _` (bare, no ids) does the same. Both default to `web-starter`.
+### The shortest paste
 
-Or compose your own setup with `vibe` and a list of block ids:
+With no ids at all you get `claude starter`, the same beginner setup on Claude:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
+```
+
+```powershell
+irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1 | iex
+```
+
+Or compose your own setup from any list of block ids:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude gh-auth node concise
-```
-
-Or name a preset explicitly:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ web-starter
 ```
 
 The `$(...)` form downloads the script first so your terminal stays the input -
@@ -62,16 +76,20 @@ paste sets the block list; `_` is a throwaway `$0`.
 ## Blocks
 
 A block is a small, vetted unit of setup. You compose them by listing ids. The
-list is **unioned**; dependencies are pulled in automatically; the only
-single-choice is which agent launches, and there **last in the list wins**
-(`claude codex` launches Codex, `codex claude` launches Claude).
+list is **unioned** and dependencies are pulled in automatically, so there is no
+removal operator: **every id only ever adds**. That rule shapes the vocabulary -
+each id names the smallest thing that is true, and a preset contains only what
+every user of it wants.
+
+The one single-choice is which agent launches, and there **last in the list
+wins** (`claude codex` launches Codex, `codex claude` launches Claude).
+
+### Atoms
 
 | id               | kind         | what it does                                                       |
 | ---------------- | ------------ | ------------------------------------------------------------------ |
-| `claude`         | preset       | Bundle: `claude-cli` + `claude-desktop`                            |
 | `claude-cli`     | harness      | Install Claude Code (CLI); can be the launched agent               |
 | `claude-desktop` | app          | Install the Claude desktop app                                     |
-| `codex`          | preset       | Bundle: `codex-cli` + `codex-desktop`                              |
 | `codex-cli`      | harness      | Install Codex (CLI); can be the launched agent                     |
 | `codex-desktop`  | app          | Install the ChatGPT app (Codex's desktop home)                     |
 | `gh-auth`        | auth         | Install GitHub CLI + offer sign-in                                 |
@@ -83,8 +101,37 @@ single-choice is which agent launches, and there **last in the list wins**
 | `ask-first`      | instructions | Ask before installing tools / deleting files                       |
 | `welcome`        | instructions | Greet the beginner + how to work with the agent every session      |
 
-Desktop-ness is a composition choice: install `claude` (a bundle) for the CLI +
-desktop app, or `claude-cli` for CLI-only. Same for `codex`. The launched agent
+### Presets, one per axis
+
+A preset is just a block whose content is a list of other ids. Each covers
+exactly one axis, so you pick one from each and they compose.
+
+| preset     | axis    | expands to                     |
+| ---------- | ------- | ------------------------------ |
+| `claude`   | agent   | `claude-cli claude-desktop`    |
+| `codex`    | agent   | `codex-cli codex-desktop`      |
+| `web`      | stack   | `gh-auth git node`             |
+| `beginner` | habits  | `welcome concise ask-first`    |
+| `starter`  | handout | `web beginner`                 |
+
+`starter` is deliberately **agent-free**: which agent you want is not a tooling
+choice, it is which subscription you already pay for, and a workshop handout
+can't know that for the room. So the agent is always a separate id:
+
+```text
+… _ claude starter        # everything Claude + stack + beginner habits (the default)
+… _ codex starter         # the same on ChatGPT/Codex
+… _ claude-cli starter    # CLI only, no desktop app
+… _ claude codex starter  # both agents, launches codex (last in the list wins)
+… _ codex web             # the stack without the beginner instructions
+```
+
+Appending an agent id to *any* preset sets the launcher: the launch scan runs
+over the expanded list in input order, so `claude starter codex` installs both
+and launches Codex. It adds, never replaces.
+
+Desktop-ness is a composition choice too: `claude` (a bundle) gives CLI +
+desktop app, `claude-cli` gives CLI-only. Same for `codex`. The launched agent
 is always the CLI - the desktop app is an add-on.
 
 A tool block also teaches the agent how to use what it installs: its short
@@ -95,12 +142,6 @@ tool is.
 
 The `skill` and `mcp` kinds are supported by the applier, but no recommended
 skill or MCP block ships yet - better none than a redundant one.
-
-Presets are just a block whose content is a list of other ids:
-
-| preset         | expands to                            |
-| -------------- | ------------------------------------- |
-| `web-starter`  | `claude gh-auth git node welcome concise` |
 
 ## What happens when you run it
 
@@ -148,7 +189,7 @@ an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
 Preview a setup without touching anything:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ web-starter --plan
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter --plan
 ```
 
 ## Composing a bundle (workshop leaders)
@@ -175,7 +216,7 @@ An unpinned run uses `main`. For a reproducible workshop, pin the whole repo to 
 commit SHA with `VIBE_REF` - vetted source is the audit layer:
 
 ```bash
-VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ web-starter
+VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
 ```
 
 Vendor CLI versions (Claude, Codex, mise, ...) sit outside the pin - they always

@@ -4,7 +4,7 @@ set -euo pipefail
 # vibe: fetch the vibe-setup repo at VIBE_REF and hand the id list to the applier.
 #
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude react node
-#   VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/vibe)" _ web-starter   # pinned workshop
+#   VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/vibe)" _ claude starter   # pinned workshop
 #
 # The `bash -c "SCRIPT" _ a b` form sets $@ = a b. exec keeps stdin on the tty
 # for the interactive prompts; the curl|tar pipe below uses its own stdin.

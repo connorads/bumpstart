@@ -10,7 +10,7 @@ set -euo pipefail
 # Any other flags (--no-launch, --yes, --plan, extra ids) pass straight through
 # to the applier.
 
-# No --agent → pass no ids, so the applier's bare-paste default (web-starter)
+# No --agent → pass no ids, so the applier's bare-paste default (claude starter)
 # gives the full beginner setup rather than a tool-less, sign-in-less bare agent.
 AGENT=""
 ARGS=()

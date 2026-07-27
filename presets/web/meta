@@ -1,0 +1,3 @@
+KIND=preset
+DESC="Web stack: GitHub, git, Node.js"
+INCLUDE="gh-auth git node"

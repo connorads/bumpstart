@@ -48,8 +48,10 @@ SHOW_ID=""
 BUILD=false
 FORCE=false
 # Bare paste (no ids) → the full beginner setup, not a bare agent or an error.
-DEFAULT_PRESET=web-starter
-# Desktop-ness is a composition choice now: the `claude`/`codex` bundles pull in
+# One id per axis: which agent (an account choice) and which stack+habits. A
+# reader picking a different agent swaps exactly one word.
+DEFAULT_IDS=(claude starter)
+# Desktop-ness is a composition choice too: the `claude`/`codex` bundles pull in
 # their *-desktop app block; CLI-only = list `claude-cli`/`codex-cli` instead.
 LAUNCH=true
 
@@ -105,10 +107,10 @@ if [ "$(uname -s)" != "Darwin" ]; then
   exit 0
 fi
 
-# No ids → the beginner default (web-starter). Kept out of resolve.sh so the pure
-# core stays free of a hardcoded preset; resolve's own empty-list error remains
-# the last-line guard for any caller that bypasses this.
-[ ${#IDS[@]} -eq 0 ] && IDS=("$DEFAULT_PRESET")
+# No ids → the beginner default (claude starter). Kept out of resolve.sh so the
+# pure core stays free of a hardcoded preset; resolve's own empty-list error
+# remains the last-line guard for any caller that bypasses this.
+[ ${#IDS[@]} -eq 0 ] && IDS=("${DEFAULT_IDS[@]}")
 
 # ── Resolve (pure core): all domain errors surface here, before any effect ────
 

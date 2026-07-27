@@ -105,29 +105,36 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" != *"sign into GitHub"* ]]
 }
 
-@test "no ids default to the web-starter plan" {
+@test "no ids default to the 'claude starter' plan" {
   plan
   [ "$status" -eq 0 ]
-  # identical to naming the preset explicitly — the bare paste is web-starter
+  # identical to naming the two axes explicitly — the bare paste is claude starter
   a="$output"
-  plan web-starter
+  plan claude starter
   [ "$output" = "$a" ]
   [[ "$output" == *"Agent to launch: claude"* ]]
   [[ "$output" == *"[instructions]"* ]]
 }
 
 @test "preset expands to its included blocks" {
-  plan web-starter
+  plan claude starter
   [ "$status" -eq 0 ]
-  # web-starter INCLUDEs claude gh-auth node react concise context7
+  # starter INCLUDEs web (gh-auth node react context7) + beginner (concise);
+  # the harness comes from the separate agent axis
   [[ "$output" == *"[harness]"* ]]
   [[ "$output" == *"[auth]"* ]]
   [[ "$output" == *"[skill]"* ]]
   [[ "$output" == *"[mcp]"* ]]
   [[ "$output" == *"[instructions]"* ]]
   [[ "$output" == *"Agent to launch: claude"* ]]
-  # the preset id itself is sugar, never a step
-  refute_fake_logged "web-starter"
+  # a preset is sugar, never a step — not the handout, not its axes
+  [[ "$output" != *"[preset]"* ]]
+}
+
+@test "the stack preset carries no agent, so it needs one named" {
+  plan starter
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"no harness"* ]]
 }
 
 @test "a dependency pulled in twice appears once (node -> mise)" {

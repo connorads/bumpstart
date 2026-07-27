@@ -1,0 +1,3 @@
+KIND=preset
+DESC="Web stack (gh-auth + node + react + context7)"
+INCLUDE="gh-auth node react context7"

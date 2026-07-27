@@ -3,7 +3,7 @@
 # applier. The Windows one-paste bootstrap, the mirror of the `vibe` bash script.
 #
 #   irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1 | iex
-#   & ([scriptblock]::Create((irm .../vibe.ps1))) web-starter   # with ids
+#   & ([scriptblock]::Create((irm .../vibe.ps1))) claude starter   # with ids
 #   $env:VIBE_REF='<sha>'; irm .../vibe.ps1 | iex               # pinned workshop
 #
 # Windows PowerShell 5.1-safe: this is the default shell on a fresh Windows, so
