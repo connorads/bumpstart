@@ -124,6 +124,20 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"adds agent guidance"* ]]
 }
 
+@test "--list / --show emit no shell noise on stderr" {
+  # Every assertion here is a positive substring match, so a set -u failure inside
+  # meta_get (an unlisted field name, e.g. a per-OS variant nobody pre-declared)
+  # would print to stderr, leave status 0, and go unnoticed.
+  vibe --list
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"unbound variable"* ]]
+  [[ "$output" != *"meta.sh: line"* ]]
+  vibe --show claude-cli
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"unbound variable"* ]]
+  [[ "$output" != *"meta.sh: line"* ]]
+}
+
 @test "--show nope: unknown block is a non-zero error" {
   vibe --show nope
   [ "$status" -ne 0 ]

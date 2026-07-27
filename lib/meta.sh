@@ -22,8 +22,10 @@ block_dir() {
 # empty so an unset field yields "" (never a set -u failure) and stray shell in
 # the meta file cannot reference our internals. This pre-declaration is the set -u
 # linchpin: every field the resolver, runner, or plan may read — including the
-# per-OS command cells (CHECK/INSTALL/SATISFIED × MAC/WIN/LINUX) and the reserved
-# Windows/Linux targets — must be listed here or a block that omits it would fail.
+# per-OS command cells (CHECK/INSTALL/SATISFIED × MAC/WIN/LINUX) and the per-OS
+# targets — must be listed here or a block that omits it would fail. TARGET_MAC is
+# declared but never set by a block: mac's target is the plain TARGET, and a
+# TARGET_<OS>-then-TARGET read is what makes one code path serve all three OSes.
 # LINUX/WIN cells are reserved now, authored in slice 3+; MAC is live. AXIS is
 # the human taxonomy (which question a block answers, if any); ORDER/SELECT/
 # DEFAULT belong to the axes themselves, read through this same function.
@@ -31,7 +33,7 @@ meta_get() {
   (
     KIND=""; DESC=""; AGENT=""; ACCOUNT=""; TARGET=""; INCLUDE=""; LABEL=""
     AXIS=""; ORDER=""; SELECT=""; DEFAULT=""
-    TARGET_WIN=""; TARGET_LINUX=""
+    TARGET_MAC=""; TARGET_WIN=""; TARGET_LINUX=""
     LINK_MAC=""; LINK_WIN=""; LINK_LINUX=""
     CHECK_MAC=""; INSTALL_MAC=""; SATISFIED_MAC=""
     CHECK_WIN=""; INSTALL_WIN=""; SATISFIED_WIN=""
