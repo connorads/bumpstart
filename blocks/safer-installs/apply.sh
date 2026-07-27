@@ -23,6 +23,10 @@ set -euo pipefail
 
 # shellcheck source=lib/common.sh
 . "$VIBE_LIB/common.sh"
+# os.sh for vibe_os: pnpm's global config dir is platform-dependent, and reading
+# the OS through the seam (rather than uname) is what makes that branch testable.
+# shellcheck source=lib/os.sh
+. "$VIBE_LIB/os.sh"
 
 # The one wait, spelled once per tool in each tool's own unit. Kept adjacent so a
 # drift test can normalise them (tests/safer_installs.bats).
@@ -96,13 +100,25 @@ fi
 
 # ── pnpm ──────────────────────────────────────────────────────────────────────
 # Only when pnpm is actually here (it arrives with the pnpm block, not this one).
-# On macOS pnpm reads its global config from the native preferences dir, NOT
-# ~/.config/pnpm — writing the latter would be a gate set but never enforced.
 # Strict matters: pnpm's default is advisory, silently falling back to the
 # next-oldest satisfying version rather than refusing.
+#
+# pnpm resolves its global config dir in this order, on every platform:
+#   1. $XDG_CONFIG_HOME/pnpm   — when the variable is set, whatever the OS
+#   2. ~/Library/Preferences/pnpm  — macOS default (NOT ~/.config/pnpm)
+#   3. ~/.config/pnpm          — everywhere else
+# Writing the wrong one is worse than writing nothing: the gate exists, looks set,
+# and pnpm never reads it. So resolve it the way pnpm does rather than hardcoding
+# the mac path, which was also wrong on a Mac with XDG_CONFIG_HOME set.
 if command -v pnpm >/dev/null 2>&1 ||
    { command -v mise >/dev/null 2>&1 && mise which pnpm >/dev/null 2>&1; }; then
-  PNPM_CFG="$HOME/Library/Preferences/pnpm/config.yaml"
+  if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+    PNPM_CFG="$XDG_CONFIG_HOME/pnpm/config.yaml"
+  elif [ "$(vibe_os)" = mac ]; then
+    PNPM_CFG="$HOME/Library/Preferences/pnpm/config.yaml"
+  else
+    PNPM_CFG="$HOME/.config/pnpm/config.yaml"
+  fi
   mkdir -p "$(dirname "$PNPM_CFG")"
   if grep -qs '^minimumReleaseAge:' "$PNPM_CFG"; then
     success "pnpm already waits before installing a new package version"

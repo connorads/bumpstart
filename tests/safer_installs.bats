@@ -13,7 +13,8 @@ setup() {
   export XDG_CONFIG_HOME="$HOME/.config"
   MISE_CFG="$XDG_CONFIG_HOME/mise/config.toml"
   NPMRC="$HOME/.npmrc"
-  PNPM_CFG="$HOME/Library/Preferences/pnpm/config.yaml"
+  # XDG_CONFIG_HOME is set here, so this is where pnpm looks — on every platform.
+  PNPM_CFG="$XDG_CONFIG_HOME/pnpm/config.yaml"
 }
 
 apply_block() {
@@ -98,7 +99,9 @@ apply_block() {
   [ ! -e "$PNPM_CFG" ]
 }
 
-@test "gates pnpm at the path macOS actually reads, strictly" {
+@test "gates pnpm strictly, at the path pnpm reads when XDG_CONFIG_HOME is set" {
+  # pnpm honours XDG_CONFIG_HOME on EVERY platform, macOS included, and this suite
+  # sets it. Writing the mac preferences dir here would be a gate pnpm never reads.
   make_fake pnpm
   apply_block
   [ "$status" -eq 0 ]
@@ -106,9 +109,30 @@ apply_block() {
   # pnpm's default is advisory: without strict it silently falls back to the
   # next-oldest satisfying version instead of refusing.
   grep -Fxq "minimumReleaseAgeStrict: true" "$PNPM_CFG"
-  # NOT ~/.config/pnpm — on macOS pnpm reads the native preferences dir, so a
-  # gate written there would be set but never enforced.
+  [ ! -e "$HOME/Library/Preferences/pnpm/config.yaml" ]
+}
+
+@test "with XDG_CONFIG_HOME unset, macOS gets the native preferences dir" {
+  unset XDG_CONFIG_HOME
+  export VIBE_OS=mac
+  make_fake pnpm
+  apply_block
+  [ "$status" -eq 0 ]
+  grep -Fxq "minimumReleaseAge: 5760" "$HOME/Library/Preferences/pnpm/config.yaml"
+  # ~/.config/pnpm is the non-mac default; pnpm would never read it here
   [ ! -e "$HOME/.config/pnpm/config.yaml" ]
+}
+
+@test "with XDG_CONFIG_HOME unset, Linux gets ~/.config/pnpm" {
+  unset XDG_CONFIG_HOME
+  export VIBE_OS=linux
+  make_fake pnpm
+  apply_block
+  [ "$status" -eq 0 ]
+  grep -Fxq "minimumReleaseAge: 5760" "$HOME/.config/pnpm/config.yaml"
+  grep -Fxq "minimumReleaseAgeStrict: true" "$HOME/.config/pnpm/config.yaml"
+  # the mac path is not a plausible place for a Linux pnpm to look
+  [ ! -e "$HOME/Library/Preferences/pnpm/config.yaml" ]
 }
 
 @test "the one wait agrees across all four units it is spelled in" {
