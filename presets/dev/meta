@@ -1,0 +1,4 @@
+KIND=preset
+AXIS=steering
+DESC="Developer habits: verify, small commits, match the codebase"
+INCLUDE="concise ask-first verify secrets check-first commit-often follow-conventions remember"

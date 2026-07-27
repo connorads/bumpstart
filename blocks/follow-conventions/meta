@@ -1,0 +1,3 @@
+KIND=instructions
+AXIS=steering
+DESC="Match the codebase you're in, not your own defaults"

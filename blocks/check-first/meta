@@ -1,0 +1,3 @@
+KIND=instructions
+AXIS=steering
+DESC="Read the code and the docs before answering from memory"

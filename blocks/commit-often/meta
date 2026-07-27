@@ -1,0 +1,3 @@
+KIND=instructions
+AXIS=steering
+DESC="Commit at every working checkpoint; never force-push"

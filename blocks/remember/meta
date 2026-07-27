@@ -1,0 +1,3 @@
+KIND=instructions
+AXIS=steering
+DESC="Write down decisions and surprises where the next reader will find them"

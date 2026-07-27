@@ -173,6 +173,23 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq "## Keys and passwords" "$canon"
 }
 
+@test "claude web dev lands the dev habits and not the beginner welcome" {
+  apply claude web dev --yes --no-launch
+  [ "$status" -eq 0 ]
+  canon="$HOME/.agents/AGENTS.md"
+  # the safety habits dev shares with beginner...
+  grep -Fq "## Ask first" "$canon"
+  grep -Fq "## Check it works" "$canon"
+  grep -Fq "## Keys and passwords" "$canon"
+  # ...plus the four that only matter once you're writing real code
+  grep -Fq "## Check, don't recall" "$canon"
+  grep -Fq "## Commit as you go" "$canon"
+  grep -Fq "## Match the codebase" "$canon"
+  grep -Fq "## Write down what you learned" "$canon"
+  # dev drops welcome: it exists to explain the basics
+  ! grep -Fq "## Working with a beginner" "$canon"
+}
+
 @test "an agent id appended to a preset adds a harness and moves the launcher" {
   apply claude starter codex --yes --no-launch
   [ "$status" -eq 0 ]

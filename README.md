@@ -118,6 +118,10 @@ question is adding a directory.
 | `ask-first`      | steering | instructions | Ask before installing tools / deleting files                       |
 | `verify`         | steering | instructions | Run it before calling it done; show the real error                 |
 | `secrets`        | steering | instructions | Keep keys out of the chat, and out of GitHub                        |
+| `check-first`    | steering | instructions | Read the code / the docs instead of answering from memory          |
+| `commit-often`   | steering | instructions | Commit at every working checkpoint; never force-push               |
+| `follow-conventions` | steering | instructions | Match the codebase's conventions, not the agent's defaults     |
+| `remember`       | steering | instructions | Write down decisions and surprises for the next reader             |
 | `claude-desktop` | -        | app          | Install the Claude desktop app (arrives with `claude`)             |
 | `codex-desktop`  | -        | app          | Install the ChatGPT app, Codex's desktop home (arrives with `codex`) |
 | `mise`           | -        | tool         | Install mise (runtime version manager; arrives with `node`/`pnpm`) |
@@ -130,7 +134,9 @@ the app, so it is off the paste's critical path - `--plan` says so.
 ### Presets, one per axis
 
 A preset is just a block whose content is a list of other ids. Each of these
-covers exactly one axis, so you pick one from each and they compose.
+covers exactly one axis, so they compose - pick the one you want per axis (on a
+multi-select axis you *may* pick more than one, but two steering presets is
+rarely what you want: you'd get both sets of habits).
 
 | preset     | axis     | expands to                  |
 | ---------- | -------- | --------------------------- |
@@ -138,6 +144,16 @@ covers exactly one axis, so you pick one from each and they compose.
 | `codex`    | agent    | `codex-cli codex-desktop`   |
 | `web`      | tools    | `gh-auth git node`          |
 | `beginner` | steering | `welcome concise ask-first verify secrets` |
+| `dev`      | steering | `concise ask-first verify secrets check-first commit-often follow-conventions remember` |
+
+`beginner` and `dev` are the two steering tiers. `dev` is the same safety habits
+plus the ones that matter once you're writing real code - check before you
+recall, commit at every checkpoint, match the codebase, write down what you
+learned - and deliberately drops `welcome`, which exists to explain the basics:
+
+```text
+… _ claude web dev        # the stack, steered for someone who codes
+```
 
 ### Recipes
 
