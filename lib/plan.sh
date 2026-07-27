@@ -193,6 +193,13 @@ _render_expectations() {
     *" gh-auth "*)
       _exp "You'll also sign into GitHub - create a free account first if you don't have one." ;;
   esac
+  # gh and GitHub Desktop keep separate credential stores, so a plan with both
+  # means two GitHub sign-ins. The second is not on this paste's critical path —
+  # it happens whenever the app is first opened — so name it and say when.
+  case " ${PLAN_STEP_IDS[*]} " in
+    *" github-desktop "*)
+      _exp "GitHub Desktop asks for its own GitHub sign-in the first time you open it - it can't reuse the terminal's." ;;
+  esac
   _exp "At the end you'll sign into your $_p_acct account in the browser - create one first if you don't have it."
   # Which agent to install is not a tooling choice — it follows the subscription
   # the person already pays for, and a mismatch otherwise only surfaces at that

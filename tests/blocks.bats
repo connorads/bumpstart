@@ -83,6 +83,23 @@ run_block() {
   [ "$count" -eq 1 ]
 }
 
+@test "github-desktop block installs the cask once when the app is absent" {
+  make_fake brew
+  run_cell github-desktop
+  [ "$status" -eq 0 ]
+  count="$(grep -c -F 'brew install --cask github' "$VIBE_FAKE_LOG")"
+  [ "$count" -eq 1 ]
+}
+
+@test "github-desktop block installs nothing when the app is present" {
+  make_fake brew
+  mkdir -p "$VIBE_APPS_DIR/GitHub Desktop.app"
+  run_cell github-desktop
+  [ "$status" -eq 0 ]
+  refute_fake_logged "brew install --cask github"
+  [[ "$output" == *"already installed"* ]]
+}
+
 @test "mise block installs via brew when absent" {
   make_fake brew
   run_cell mise

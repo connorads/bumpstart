@@ -234,6 +234,18 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" != *"default branch for new projects"* ]]
 }
 
+@test "github-desktop pulls in git and discloses its own GitHub sign-in" {
+  apply claude github-desktop --plan
+  [ "$status" -eq 0 ]
+  # the GUI is useless on a non-repo, so the block pulls git (and so gh-auth) in
+  [[ "$output" == *"name, email, and default branch"* ]]
+  # two credential stores, two sign-ins — the second is disclosed, not hidden
+  [[ "$output" == *"GitHub Desktop asks for its own GitHub sign-in"* ]]
+  # a plan without the app makes no such promise
+  apply claude starter --plan
+  [[ "$output" != *"GitHub Desktop asks"* ]]
+}
+
 @test "full mode names the .gitconfig path when git is in the plan" {
   apply claude starter --plan
   [ "$status" -eq 0 ]

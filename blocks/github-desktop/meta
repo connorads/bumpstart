@@ -1,0 +1,8 @@
+KIND=app
+DESC="Install GitHub Desktop (see and undo the agent's changes)"
+INCLUDE="git"
+LABEL="GitHub Desktop"
+CHECK_MAC='[ -d "${VIBE_APPS_DIR:-/Applications}/GitHub Desktop.app" ]'
+INSTALL_MAC='brew install --cask github'
+CHECK_WIN='winget list --id "GitHub.GitHubDesktop" -e 2>$null | Select-String -SimpleMatch "GitHub.GitHubDesktop"'
+INSTALL_WIN='winget install --id "GitHub.GitHubDesktop" -e --accept-package-agreements --accept-source-agreements'

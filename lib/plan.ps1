@@ -146,7 +146,7 @@ function Show-Expectations {
   # UAC narration - the honest analogue of mac's "password once". CLI agents are
   # the no-UAC critical path; winget-installed Node/Git each raise one prompt.
   Add-Expectation "Claude Code and Codex install just for you - no admin prompt."
-  $needsWinget = @('node', 'git', 'gh-auth', 'claude-desktop', 'codex-desktop') | Where-Object { $Plan.StepIds -contains $_ }
+  $needsWinget = @('node', 'git', 'gh-auth', 'claude-desktop', 'codex-desktop', 'github-desktop') | Where-Object { $Plan.StepIds -contains $_ }
   if (($Plan.StepIds -contains 'node') -or ($Plan.StepIds -contains 'git')) {
     Add-Expectation "Node.js and Git install for everyone via winget - Windows asks permission once for each."
   } elseif ($needsWinget) {
@@ -174,6 +174,12 @@ function Show-Expectations {
   }
   if ($Plan.StepIds -contains 'gh-auth') {
     Add-Expectation "You'll also sign into GitHub - create a free account first if you don't have one."
+  }
+  # gh and GitHub Desktop keep separate credential stores, so a plan with both
+  # means two GitHub sign-ins. The second is not on this paste's critical path -
+  # it happens whenever the app is first opened - so name it and say when.
+  if ($Plan.StepIds -contains 'github-desktop') {
+    Add-Expectation "GitHub Desktop asks for its own GitHub sign-in the first time you open it - it can't reuse the terminal's."
   }
   Add-Expectation "At the end you'll sign into your $acct account in the browser - create one first if you don't have it."
 
