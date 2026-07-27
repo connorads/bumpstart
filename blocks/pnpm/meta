@@ -4,6 +4,6 @@ DESC="Install pnpm (via mise)"
 INCLUDE="mise"
 LABEL="pnpm"
 CHECK_MAC='command -v pnpm >/dev/null 2>&1 || mise which pnpm >/dev/null 2>&1'
-INSTALL_MAC='mise use -g pnpm@latest'
+INSTALL_MAC='cd "$HOME" && mise use -g pnpm@latest'
 CHECK_WIN='Get-Command pnpm -ErrorAction SilentlyContinue'
 INSTALL_WIN='npm install -g pnpm'

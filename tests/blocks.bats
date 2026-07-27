@@ -75,6 +75,16 @@ run_block() {
   [ "$count" -eq 1 ]
 }
 
+@test "codex-cli tells the installer not to prompt" {
+  # Codex's installer prompts on /dev/tty, which bypasses spin's log redirect: the
+  # question is written over the spinner and a keystroke meant for the setup can be
+  # eaten by it. CODEX_NON_INTERACTIVE has to reach `sh`, not `curl`, or it is inert.
+  make_fake_curl
+  run_cell codex-cli
+  [ "$status" -eq 0 ]
+  fake_logged "INSTALL codex 1"
+}
+
 @test "codex-desktop block installs the ChatGPT cask once when the app is absent" {
   make_fake brew
   run_cell codex-desktop
@@ -114,18 +124,27 @@ run_block() {
   [[ "$output" == *"already installed"* ]]
 }
 
-@test "node block installs via mise when absent" {
-  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
+@test "node block installs via mise when absent, from the home dir" {
+  # `mise use -g` writes the GLOBAL config, but it still reads the cwd's mise.toml
+  # first and aborts outright when that file is untrusted — verified live: a config
+  # carrying [env] or [tasks] fails the whole command, writing nothing. Anyone who
+  # runs the setup from inside a checkout (this repo included) would hit it, so the
+  # cell moves to $HOME before installing.
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
+    'printf "CWD %s\n" "$PWD" >> "$VIBE_FAKE_LOG"'
   run_cell node
   [ "$status" -eq 0 ]
   fake_logged "mise use -g node@lts"
+  fake_logged "CWD $HOME"
 }
 
-@test "pnpm block installs via mise when absent" {
-  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
+@test "pnpm block installs via mise when absent, from the home dir" {
+  make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
+    'printf "CWD %s\n" "$PWD" >> "$VIBE_FAKE_LOG"'
   run_cell pnpm
   [ "$status" -eq 0 ]
   fake_logged "mise use -g pnpm"
+  fake_logged "CWD $HOME"
 }
 
 @test "gh-auth block installs gh via brew when absent" {
