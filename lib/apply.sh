@@ -32,6 +32,8 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/brew.sh"
 # shellcheck source=lib/trust.sh
 . "$LIB/trust.sh"
+# shellcheck source=lib/shellpath.sh
+. "$LIB/shellpath.sh"
 
 ROOT="${VIBE_ROOT:-$(cd "$LIB/.." && pwd -P)}"
 
@@ -163,6 +165,12 @@ printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 printf "\n  %s[·]%s %sPreparing your Mac%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$RESET"
 ensure_brew
 
+# Before the loop, not after it: a block's CHECK cell has to be able to see what an
+# earlier block installed (mise writes shims that node's own check then looks for),
+# and the Codex installer skips writing its own rc block when its bin dir is
+# already on PATH — so vibe owns that edit instead of two tools both making it.
+fixup_path
+
 # An INSTALL cell runs in a `bash -c` child (run_cell), which inherits functions
 # only when they are exported. vibe_fetch is the one helper a cell needs — a cell
 # cannot source a lib, and hardcoding curl would make every install cell a silent
@@ -250,6 +258,11 @@ if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
   done
 fi
 
+# The other central persistent effect, beside the instructions file: make the dirs
+# we installed into outlive this terminal window. A block cannot own this — every
+# block would want it, and the edit is one line about vibe's own install dirs.
+persist_path
+
 CANON="$(canonical_path)"
 if [ "$INSTRUCTIONS_WROTE" = true ]; then
   echo ""
@@ -293,9 +306,6 @@ case " ${PLAN_STEP_IDS[*]} " in
 esac
 
 # ── Launch ────────────────────────────────────────────────────────────────────
-
-# Freshly-installed CLIs may not be on PATH yet.
-fixup_path
 
 # Last write to the clipboard before we exec the agent — covers both the launch
 # and --no-launch paths, and survives the browser sign-in in between.

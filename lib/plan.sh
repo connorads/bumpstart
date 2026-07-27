@@ -202,6 +202,16 @@ _render_expectations() {
       _exp "Creates one instructions file that your agent reads every session."
     fi
   fi
+  # The one edit vibe makes to a file the user owns outside its own config paths,
+  # so it is named here rather than discovered later. State-aware: an rc file that
+  # already carries the marker is left alone, and saying "adds" there would promise
+  # a change that won't happen.
+  _p_rc="$(_shell_rc)"
+  if [ -n "$_p_rc" ] && [ -f "$_p_rc" ] && grep -Fq -- "$VIBE_PATH_MARKER_BEGIN" "$_p_rc"; then
+    _exp "Your shell startup file already has vibe's PATH line - it is left as-is."
+  elif [ -n "$_p_rc" ]; then
+    _exp "Adds one line to $_p_rc so a NEW terminal window still finds the tools it installs (it is marked, so you can delete it)."
+  fi
   if [ "$PLAN_DEFAULT_HARNESS" = claude ] && [ -e "$HOME/.claude.json" ]; then
     _exp "You already have a Claude config, so vibe won't change its trust settings - you may see a one-time 'trust this folder?' prompt."
   else

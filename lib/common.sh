@@ -130,7 +130,11 @@ vibe_fetch() {
 }
 
 # fixup_path: freshly-installed CLIs often land in these dirs — make the current
-# shell see them without a re-login.
+# shell see them without a re-login. Called BEFORE the block loop, so a later
+# block's CHECK cell sees a binary an earlier block just installed (mise's shims
+# dir is why: `mise use -g node` writes a shim, and node's own check looks for
+# node). persist_path (shellpath.sh) writes this same list into the login shell's
+# rc file, so this run and the next terminal cannot disagree about it.
 fixup_path() {
-  export PATH="$HOME/.local/bin:$HOME/.codex/bin:$PATH"
+  export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
 }
