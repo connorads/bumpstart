@@ -137,6 +137,14 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Match 'skipped \(file exists\)'
   }
 
+  It 'a re-run tags a content-carrying tool row, not just the instruction rows' {
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-Null
+    # node ships content.win.md, so on the re-run its guidance is skipped too -
+    # an unqualified 'already set up' would claim the whole row landed.
+    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
+    $out | Should -Match 'guidance skipped'
+  }
+
   It '-Force rewrites the canonical but keeps a .bak of what was there' {
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     New-Item -ItemType Directory -Path (Split-Path -Parent $canon) -Force | Out-Null

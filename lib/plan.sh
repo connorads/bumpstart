@@ -80,17 +80,39 @@ render_plan() {
       0) _p_actionable=$((_p_actionable+1)); _p_done=$((_p_done+1)) ;;
       1) _p_actionable=$((_p_actionable+1)) ;;
     esac
-    # Pad the PLAIN badge text (longest is "[instructions]" = 14) and wrap the
-    # colour in separate %s args, so ANSI bytes never enter the width count.
-    if [ "$_p_rc" -eq 0 ]; then
-      printf "    %s%-14s %s%s  %s✓ already set up%s\n" \
-        "$DIM" "[$_p_kind]" "${PLAN_STEP_DESCS[$_p_i]}" "$RESET" "$GREEN" "$RESET"
-    elif [ "$_p_kind" = instructions ] && [ "$PLAN_INSTR_BACKOFF" = true ]; then
-      # Pure instruction rows on a warm Mac: the guidance won't be merged, so a
-      # neutral row would overclaim. "skipped" is honest whether or not this
-      # guidance is already present; DIM keeps it a calm no-op, distinct from ✓.
-      printf "    %s%-14s %s%s  %s↷ skipped (file exists)%s\n" \
-        "$DIM" "[$_p_kind]" "${PLAN_STEP_DESCS[$_p_i]}" "$RESET" "$DIM" "$RESET"
+    # Will this row's guidance be merged? Keyed on *carries content*, not on KIND:
+    # a tool block stacks a section into the canonical file too, and on a warm Mac
+    # where we back off, its "✓ already set up" (a binary probe) would otherwise
+    # imply guidance that was silently not merged. So say so on any row that
+    # contributes content, and keep the pure-instruction wording it already had.
+    _p_tag=""
+    if [ "$PLAN_INSTR_BACKOFF" = true ] &&
+       block_has_content "$(block_dir "$ROOT" "${PLAN_STEP_IDS[$_p_i]}")"; then
+      if [ "$_p_kind" = instructions ]; then
+        _p_tag="↷ skipped (file exists)"
+      else
+        _p_tag="↷ guidance skipped"
+      fi
+    fi
+    # The trailing state text, from two independent facts: is the step already
+    # done, and will its guidance land. ANSI lives in this string and never in the
+    # %-14s badge arg, so colour bytes stay out of the badge's width count (the
+    # longest PLAIN badge is "[instructions]" = 14).
+    _p_state=""
+    [ "$_p_rc" -eq 0 ] && _p_state="${GREEN}✓ already set up${RESET}"
+    if [ -n "$_p_tag" ]; then
+      [ -n "$_p_state" ] && _p_state="$_p_state ${DIM}·${RESET} "
+      _p_state="${_p_state}${DIM}${_p_tag}${RESET}"
+    fi
+    if [ -n "$_p_state" ] && { [ "$_p_rc" -eq 0 ] || [ "$_p_kind" = instructions ]; }; then
+      # A done step, or a pure instruction row that is a whole no-op: DIM the row,
+      # a calm "nothing happens here" distinct from an actionable one.
+      printf "    %s%-14s %s%s  %s\n" \
+        "$DIM" "[$_p_kind]" "${PLAN_STEP_DESCS[$_p_i]}" "$RESET" "$_p_state"
+    elif [ -n "$_p_state" ]; then
+      # Still actionable, but its guidance won't land — keep the kind colour.
+      printf "    %s%-14s%s %s  %s\n" \
+        "$(_kind_colour "$_p_kind")" "[$_p_kind]" "$RESET" "${PLAN_STEP_DESCS[$_p_i]}" "$_p_state"
     else
       printf "    %s%-14s%s %s\n" \
         "$(_kind_colour "$_p_kind")" "[$_p_kind]" "$RESET" "${PLAN_STEP_DESCS[$_p_i]}"

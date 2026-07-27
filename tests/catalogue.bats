@@ -116,6 +116,14 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"adds agent guidance"* ]]
 }
 
+@test "--show: a block whose only content is per-OS still reports its guidance" {
+  # os-guidance ships content.mac.md and no neutral content.md — the case a
+  # plain content.md test misses, and the case --plan and the resolver both count.
+  run env VIBE_ROOT="$FIX" VIBE_OS=mac bash "$REPO_ROOT/lib/apply.sh" --show os-guidance
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"adds agent guidance"* ]]
+}
+
 @test "--show nope: unknown block is a non-zero error" {
   vibe --show nope
   [ "$status" -ne 0 ]

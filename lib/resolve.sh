@@ -118,7 +118,7 @@ resolve() {
   while [ "$_r_i" -lt "$_r_n" ]; do
     _r_dir="$(block_dir "$_r_root" "${PLAN_STEP_IDS[$_r_i]}")"
     # A per-OS content.<os>.md counts as content too (Windows node guidance).
-    if [ -f "$_r_dir/content.md" ] || [ -f "$_r_dir/content.$(vibe_os).md" ]; then
+    if block_has_content "$_r_dir"; then
       _r_writes=true; break
     fi
     _r_i=$((_r_i + 1))

@@ -217,6 +217,19 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"skipped (file exists)"* ]]
 }
 
+@test "a re-run tags a tool row whose guidance won't be merged" {
+  apply claude node --yes --no-launch
+  [ "$status" -eq 0 ]
+  # first run merges node's + mise's guidance, so nothing is skipped yet
+  [[ "$output" != *"guidance skipped"* ]]
+  # second run: node is installed AND its guidance won't be merged. A bare
+  # "already set up" would claim the whole row landed, guidance included.
+  apply claude node --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"guidance skipped"* ]]
+  [[ "$output" == *"already set up"* ]]
+}
+
 @test "the Claude trust back-off is disclosed when a config already exists" {
   : > "$HOME/.claude.json"
   apply claude --yes --no-launch

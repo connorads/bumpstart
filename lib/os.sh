@@ -26,3 +26,18 @@ vibe_os_key() {
     linux) printf 'LINUX' ;;
   esac
 }
+
+# block_has_content <block_dir> — true when this block stacks a section into the
+# canonical instructions file on the current OS: a per-OS content.<os>.md, else
+# the neutral content.md. The one answer to "does this block carry guidance",
+# shared by the resolver (are there targets to link?), the catalogue (--show) and
+# the plan (is guidance being skipped?), so the three can never disagree.
+#
+# Lives here, not in run.sh, because it takes a block DIR and needs only vibe_os:
+# the resolve drivers source meta + os + resolve alone, and a predicate in run.sh
+# would break them. bash-3.2-clean.
+block_has_content() {
+  [ -f "$1/content.$(vibe_os).md" ] && return 0
+  [ -f "$1/content.md" ] && return 0
+  return 1
+}

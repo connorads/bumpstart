@@ -79,7 +79,8 @@ render_block() {
   _b_axis="$(meta_get "$_b_dir" AXIS)"
   _b_desc="$(meta_get "$_b_dir" DESC)"
   _b_inc="$(meta_get "$_b_dir" INCLUDE)"
-  _b_target="$(meta_get "$_b_dir" TARGET)"
+  _b_target="$(meta_get "$_b_dir" "TARGET_$(vibe_os_key)")"
+  [ -n "$_b_target" ] || _b_target="$(meta_get "$_b_dir" TARGET)"
 
   printf "\n  %s%s%s  %s[%s]%s\n" "$BOLD" "$_b_id" "$RESET" "$DIM" "$_b_kind" "$RESET"
   printf "    %s\n" "$_b_desc"
@@ -99,8 +100,8 @@ render_block() {
   if [ -n "$_b_target" ]; then
     printf "    %sinstructions written to:%s %s\n" "$DIM" "$RESET" "$_b_target"
   fi
-  # A content.md means this block also stacks guidance into the canonical file.
-  if [ -f "$_b_dir/content.md" ]; then
+  # Content means this block also stacks guidance into the canonical file.
+  if block_has_content "$_b_dir"; then
     printf "    %sadds agent guidance%s\n" "$DIM" "$RESET"
   fi
   printf "\n"

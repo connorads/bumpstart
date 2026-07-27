@@ -1,0 +1,2 @@
+KIND=tool
+DESC="A block whose guidance is per-OS only (no neutral content.md)"

@@ -29,3 +29,16 @@ function Get-VibeOsKey {
     default { 'LINUX' }
   }
 }
+
+# Test-BlockHasContent <blockDir> - $true when this block stacks a section into the
+# canonical instructions file on the current OS: a per-OS content.<os>.md, else the
+# neutral content.md. The one answer to "does this block carry guidance", shared by
+# the resolver, the catalogue and the plan. Mirrors block_has_content in os.sh.
+#
+# Lives here, not in run.ps1, because it takes a block DIR and needs only
+# Get-VibeOs: Contract.Tests.ps1 dot-sources os + meta + resolve alone.
+function Test-BlockHasContent {
+  param([string]$BlockDir)
+  if (Test-Path -LiteralPath (Join-Path $BlockDir ("content." + (Get-VibeOs) + '.md'))) { return $true }
+  return (Test-Path -LiteralPath (Join-Path $BlockDir 'content.md'))
+}

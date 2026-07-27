@@ -82,11 +82,32 @@ function Show-Plan {
     if ($rc -eq 0) { $actionable++; $done++ }
     elseif ($rc -eq 1) { $actionable++ }
 
+    # Will this row's guidance be merged? Keyed on *carries content*, not on KIND:
+    # a tool block stacks a section into the canonical file too, and its "already
+    # set up" (a binary probe) would otherwise imply guidance that was silently
+    # not merged.
+    $tag = ''
+    if ($instrBackoff -and (Test-BlockHasContent (Get-BlockDir $Root $id))) {
+      if ($kind -eq 'instructions') {
+        $tag = [char]0x21B7 + ' skipped (file exists)'
+      } else {
+        $tag = [char]0x21B7 + ' guidance skipped'
+      }
+    }
+    # The trailing state text, from two independent facts: is the step already
+    # done, and will its guidance land.
+    $state = ''
+    if ($rc -eq 0) { $state = $script:Green + [char]0x2713 + ' already set up' + $script:Reset }
+    if ($tag) {
+      if ($state) { $state = $state + ' ' + $script:Dim + [char]0x00B7 + $script:Reset + ' ' }
+      $state = $state + $script:Dim + $tag + $script:Reset
+    }
+
     $badge = "[$kind]".PadRight(14)
-    if ($rc -eq 0) {
-      Write-Host ("    {0}{1} {2}{3}  {4}{5}{3}" -f $script:Dim, $badge, $desc, $script:Reset, $script:Green, ([char]0x2713 + ' already set up'))
-    } elseif ($kind -eq 'instructions' -and $instrBackoff) {
-      Write-Host ("    {0}{1} {2}{3}  {0}{4}{3}" -f $script:Dim, $badge, $desc, $script:Reset, ([char]0x21B7 + ' skipped (file exists)'))
+    if ($state -and (($rc -eq 0) -or ($kind -eq 'instructions'))) {
+      Write-Host ("    {0}{1} {2}{3}  {4}" -f $script:Dim, $badge, $desc, $script:Reset, $state)
+    } elseif ($state) {
+      Write-Host ("    {0}{1}{2} {3}  {4}" -f (Get-KindColour $kind), $badge, $script:Reset, $desc, $state)
     } else {
       Write-Host ("    {0}{1}{2} {3}" -f (Get-KindColour $kind), $badge, $script:Reset, $desc)
     }

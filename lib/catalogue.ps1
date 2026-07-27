@@ -91,8 +91,7 @@ function Show-Block {
   if ($target) {
     Write-Host ("    {0}instructions written to:{1} {2}" -f $script:Dim, $script:Reset, (Expand-VibeHome $target))
   }
-  if ((Test-Path -LiteralPath (Join-Path $dir 'content.md')) -or
-      (Test-Path -LiteralPath (Join-Path $dir ("content." + (Get-VibeOs) + '.md')))) {
+  if (Test-BlockHasContent $dir) {
     Write-Host ("    {0}adds agent guidance{1}" -f $script:Dim, $script:Reset)
   }
   Write-Host ''

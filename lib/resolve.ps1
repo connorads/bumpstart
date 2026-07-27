@@ -114,14 +114,11 @@ function Resolve-Plan {
   # Instruction targets = the OS-native TARGET of each harness present, deduped in
   # order - only meaningful when some step ships content (content.md or a per-OS
   # content.<os>.md), since that is what the canonical file is assembled from.
-  $osTok = (Get-VibeOs)
   $targetField = @{ MAC = 'TARGET'; WIN = 'TARGET_WIN'; LINUX = 'TARGET_LINUX' }[(Get-VibeOsKey)]
   $targets = @()
   $writes = $false
   foreach ($id in $stepIds) {
-    $dir = Get-BlockDir $Root $id
-    if ((Test-Path -LiteralPath (Join-Path $dir 'content.md')) -or
-        (Test-Path -LiteralPath (Join-Path $dir "content.$osTok.md"))) {
+    if (Test-BlockHasContent (Get-BlockDir $Root $id)) {
       $writes = $true
       break
     }
