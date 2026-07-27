@@ -10,7 +10,7 @@ setup() {
   setup_isolated_env
   FIX="$REPO_ROOT/tests/fixtures"
   DRIVER="$REPO_ROOT/tests/helpers/instructions_driver.sh"
-  CANON="$HOME/.config/agents/AGENTS.md"
+  CANON="$HOME/.agents/AGENTS.md"
 }
 
 assemble() { run bash "$DRIVER" "$REPO_ROOT/lib" assemble "$FIX" "$@"; }
@@ -48,14 +48,6 @@ link()     { run bash "$DRIVER" "$REPO_ROOT/lib" link "$@"; }
   # the section boundary is a blank line, then the next heading
   run grep -A1 -F -- '- Keep replies short and to the point.' "$CANON"
   [[ "${lines[1]}" == "" ]]
-}
-
-@test "assemble honours XDG_CONFIG_HOME" {
-  export XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/xdg"
-  assemble false concise
-  [ "$status" -eq 0 ]
-  [ -f "$XDG_CONFIG_HOME/agents/AGENTS.md" ]
-  grep -Fq "## Be concise" "$XDG_CONFIG_HOME/agents/AGENTS.md"
 }
 
 @test "assemble is a no-op when no block ships content.md" {

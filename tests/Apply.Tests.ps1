@@ -53,7 +53,6 @@ Describe 'apply.ps1 (Windows spine)' {
     New-Item -ItemType Directory -Path $script:testHome -Force | Out-Null
     Set-Variable -Name HOME -Scope Global -Value $script:testHome -Force
     $env:HOME = $script:testHome
-    Remove-Item Env:XDG_CONFIG_HOME -ErrorAction SilentlyContinue
     $env:VIBE_OS = 'win'
     $env:VIBE_ROOT = $script:repoRoot
     $env:VIBE_FAKE_LOG = Join-Path $script:testHome 'fake.log'
@@ -81,7 +80,7 @@ Describe 'apply.ps1 (Windows spine)' {
     $log | Should -Match 'winget install --id OpenJS.NodeJS.LTS' # node (winget, no mise)
     $log | Should -Match 'winget install --id GitHub.cli'        # gh-auth
 
-    $canon = Join-Path $script:testHome '.config/agents/AGENTS.md'
+    $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     Test-Path -LiteralPath $canon | Should -BeTrue
     $canonText = Get-Content -Raw -LiteralPath $canon
     $canonText | Should -Match '## Be concise'
@@ -117,7 +116,7 @@ Describe 'apply.ps1 (Windows spine)' {
   It 'codex copies instructions (no import) and writes the trust TOML' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>&1 | Out-Null
 
-    $canon = Join-Path $script:testHome '.config/agents/AGENTS.md'
+    $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     $agents = Join-Path $script:testHome '.codex/AGENTS.md'
     (Get-Content -Raw -LiteralPath $agents) | Should -Match '## Be concise'   # physical copy, not an @import
     (Get-Content -Raw -LiteralPath $agents) | Should -Not -Match "^@"
@@ -129,7 +128,7 @@ Describe 'apply.ps1 (Windows spine)' {
 
   It 'a second run leaves the canonical identical and backs off' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-Null
-    $canon = Join-Path $script:testHome '.config/agents/AGENTS.md'
+    $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     $once = Get-Content -Raw -LiteralPath $canon
 
     $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-String
@@ -139,7 +138,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It '-Force rewrites the canonical but keeps a .bak of what was there' {
-    $canon = Join-Path $script:testHome '.config/agents/AGENTS.md'
+    $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     New-Item -ItemType Directory -Path (Split-Path -Parent $canon) -Force | Out-Null
     Set-Content -LiteralPath $canon -Value 'MY OWN NOTES'
 

@@ -9,11 +9,12 @@
 #   $script:InstructionsBackedOff  a canonical existed and we left it as-is
 #   $script:LinkBackoffs           native paths we refused to overwrite
 
-# Get-CanonicalPath - the single editable source of truth. Honours
-# $env:XDG_CONFIG_HOME, default ~/.config, then agents/AGENTS.md.
+# Get-CanonicalPath - the single editable source of truth: ~/.agents/AGENTS.md,
+# the one agents root. No $env:XDG_CONFIG_HOME branch - ~/.agents is not an XDG
+# path, so honouring the variable there would be incoherent. Mirrors
+# canonical_path in instructions.sh.
 function Get-CanonicalPath {
-  $base = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path $HOME '.config' }
-  return (Join-Path (Join-Path $base 'agents') 'AGENTS.md')
+  return (Join-Path (Join-Path $HOME '.agents') 'AGENTS.md')
 }
 
 # Assemble-Instructions <plan> <root> <force> - concatenate each in-plan block's

@@ -49,7 +49,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 @test "instructions land in the canonical file; Claude's path links to it" {
   apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   grep -Fq "## Be concise" "$canon"
   ! grep -Fq "<!-- vibe" "$canon"
   [ -L "$HOME/.claude/CLAUDE.md" ]
@@ -59,7 +59,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 @test "Codex's path links to the same canonical file" {
   apply codex concise --yes --no-launch
   [ "$status" -eq 0 ]
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   grep -Fq "## Be concise" "$canon"
   [ -L "$HOME/.codex/AGENTS.md" ]
   [ "$(readlink "$HOME/.codex/AGENTS.md")" = "$canon" ]
@@ -69,7 +69,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 @test "a tool block's guidance lands in the canonical file" {
   apply claude node --yes --no-launch
   [ "$status" -eq 0 ]
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   grep -Fq "## Node.js" "$canon"
   grep -Fq "## Installing tools (mise)" "$canon"
   [ -L "$HOME/.claude/CLAUDE.md" ]
@@ -77,7 +77,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 @test "second run leaves the canonical byte-identical and the link intact" {
   apply claude concise --yes --no-launch
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   once="$(cat "$canon")"
   apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
@@ -102,7 +102,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Agent to launch: claude"* ]]
   # node (via mise dep) is in the plan, and instructions land in the canonical file
   [[ "$output" == *"Node.js"* ]]
-  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Be concise" "$HOME/.agents/AGENTS.md"
   # the git block is in the plan, so the starter dir is a real git repo
   [ -d "$HOME/git/first-project/.git" ]
 }
@@ -113,7 +113,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Agent to launch: codex"* ]]
   # the same stack + habits land...
   [[ "$output" == *"Node.js"* ]]
-  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Be concise" "$HOME/.agents/AGENTS.md"
   [ -d "$HOME/git/first-project/.git" ]
   # ...and nothing Claude is installed or linked: the agent axis is the only
   # thing the id swap changed
@@ -125,7 +125,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   apply claude codex starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   # both harnesses are present, so both native paths link at the one canonical file
   [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
   [ "$(readlink "$HOME/.codex/AGENTS.md")" = "$canon" ]
@@ -137,7 +137,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Agent to launch: codex"* ]]
   [[ "$output" == *"Node.js"* ]]
   # the stack ships no instruction blocks, so no welcome text is written
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   ! grep -Fq "## Welcome" "$canon"
   ! grep -Fq "## Be concise" "$canon"
 }
@@ -157,13 +157,13 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Setup complete"* ]]
   # not the old bare-agent error path
   [[ "$output" != *"no blocks requested"* ]]
-  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Be concise" "$HOME/.agents/AGENTS.md"
 }
 
 @test "the beginner habits all land in the canonical file" {
   apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
-  canon="$HOME/.config/agents/AGENTS.md"
+  canon="$HOME/.agents/AGENTS.md"
   grep -Fq "## Welcome" "$canon"
   grep -Fq "## Be concise" "$canon"
   grep -Fq "## Ask first" "$canon"

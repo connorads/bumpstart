@@ -19,10 +19,15 @@
 #   INSTRUCTIONS_BACKED_OFF  true when a canonical existed and we left it as-is
 #   LINK_BACKOFFS            newline-separated native paths we refused to link
 
-# canonical_path — the single editable source of truth for agent instructions.
-# Honours $XDG_CONFIG_HOME, default ~/.config/agents/AGENTS.md.
+# canonical_path — the single editable source of truth for agent instructions:
+# ~/.agents/AGENTS.md, the one agents root. No $XDG_CONFIG_HOME branch, because
+# ~/.agents is not an XDG path and honouring the variable there would be
+# incoherent. ~/.agents is where Codex, Amp, opencode and pi already look for
+# user-scope skills, so instructions and skills share one root; no ratified
+# standard names a user-level AGENTS.md, and the XDG-shaped proposal
+# (agents.md issue #91) is unanswered.
 canonical_path() {
-  printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/agents/AGENTS.md"
+  printf '%s\n' "$HOME/.agents/AGENTS.md"
 }
 
 # assemble_instructions <root> <force> — concatenate each in-plan block's

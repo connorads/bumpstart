@@ -42,7 +42,7 @@ setup() {
   # the default installs the Claude CLI and its instructions land
   fake_logged "INSTALL claude"
   [[ "$output" == *"Agent to launch: claude"* ]]
-  grep -Fq "## Be concise" "$HOME/.config/agents/AGENTS.md"
+  grep -Fq "## Be concise" "$HOME/.agents/AGENTS.md"
 }
 
 @test "rejects an unknown agent at plan time, applying nothing" {

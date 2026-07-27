@@ -185,9 +185,9 @@ skill or MCP block ships yet - better none than a redundant one.
 4. Install Homebrew if needed, then apply each block (check-then-act, so re-runs
    skip what is already there).
 5. Assemble the block instructions into **one canonical file**
-   (`~/.config/agents/AGENTS.md`, honouring `$XDG_CONFIG_HOME`), then symlink
-   each installed agent's own path to it (`~/.claude/CLAUDE.md` for Claude,
-   `~/.codex/AGENTS.md` for Codex) so both agents read the single source.
+   (`~/.agents/AGENTS.md`), then symlink each installed agent's own path to it
+   (`~/.claude/CLAUDE.md` for Claude, `~/.codex/AGENTS.md` for Codex) so both
+   agents read the single source.
 6. Create a starter project (`~/git/first-project`, a git repo when the `git`
    block is in the plan), pre-trust it, copy a
    friendly first message to the clipboard (survives the sign-in - paste it with
@@ -264,9 +264,18 @@ install the latest.
   a failed cask install warns and continues rather than aborting.
 - Codex's desktop experience lives inside the ChatGPT app (`brew install --cask
   chatgpt`) since the July 2026 Codex/ChatGPT merge.
-- Instructions live in one canonical file (`~/.config/agents/AGENTS.md`); each
-  agent's own path is a symlink to it (the documented `ln -s AGENTS.md CLAUDE.md`
+- Instructions live in one canonical file (`~/.agents/AGENTS.md`); each agent's
+  own path is a symlink to it (the documented `ln -s AGENTS.md CLAUDE.md`
   pattern), so editing one file steers every agent and every session.
+  `~/.agents/` is the one agents root: it is already where Codex, Amp, opencode
+  and pi look for user-scope skills. No standard names a user-level `AGENTS.md`
+  yet - [agents.md](https://agents.md) is repo-scoped.
+- **Set up before this moved?** Earlier versions wrote the canonical file to
+  `~/.config/agents/AGENTS.md`. A re-run writes the new path but will **not**
+  relink: `~/.claude/CLAUDE.md` still points at the old file, so vibe sees a
+  foreign symlink and backs off, and your agent keeps reading the old file. Move
+  your edits into `~/.agents/AGENTS.md`, delete the old file, and re-run - or
+  re-run with `--force`, which backs the old links up to `.bak` and relinks.
 - Why `kind` and `axis` are separate labels, and what was rejected on the way:
   [docs/adr/0001](docs/adr/0001-axis-as-the-human-taxonomy.md).
 
