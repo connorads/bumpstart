@@ -341,6 +341,8 @@ else
   echo ""
   info "Run '$PLAN_DEFAULT_HARNESS' in $STARTER to start (you'll sign in on first launch)."
   if [ "${STARTER_PROMPT_COPIED:-false}" = true ]; then
-    info "A starter message is on your clipboard — press Cmd+V at the agent's prompt, then Enter."
+    info "A starter message is on your clipboard — press $(paste_key) at the agent's prompt, then Enter."
+  elif [ -n "${STARTER_PROMPT_FILE:-}" ]; then
+    info "A starter message is saved in $STARTER_PROMPT_FILE — paste it in as your first message."
   fi
 fi

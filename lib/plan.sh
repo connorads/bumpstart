@@ -181,12 +181,22 @@ _render_expectations() {
 
   printf "\n  %sWhat will happen%s\n" "$BOLD" "$RESET"
   # Homebrew's install prompts for the Mac password once; a cold Mac without the
-  # Command Line Tools also fetches them, which can be slow.
-  if ! command -v brew >/dev/null 2>&1; then
+  # Command Line Tools also fetches them, which can be slow. Mac-only: on Linux
+  # there is no Homebrew in the plan at all, and the bullet would be a promise about
+  # a tool that never gets installed.
+  if [ "$(vibe_os)" = mac ] && ! command -v brew >/dev/null 2>&1; then
     _exp "Installs Homebrew (a trusted tool installer) so the tools above can be added - macOS asks for your Mac password once."
     if ! xcode-select -p >/dev/null 2>&1; then
       _exp "A one-time download may take ~10-15 min."
     fi
+  fi
+  # Linux's own password moment: only the git install needs root, and only when git
+  # is absent — which on a fresh Ubuntu Desktop it is.
+  if [ "$(vibe_os)" = linux ] && ! command -v git >/dev/null 2>&1; then
+    case " ${PLAN_STEP_IDS[*]} " in
+      *" git "*)
+        _exp "Installs git using your system's package manager, which asks for your login password once." ;;
+    esac
   fi
   # Linux installs mise before the first block step, unconditionally — that is what
   # lets a rank-20 step (gh-auth) use it at all. The cost is that an agent-only plan
@@ -253,6 +263,13 @@ _render_expectations() {
       _exp "GitHub Desktop asks for its own GitHub sign-in the first time you open it - it can't reuse the terminal's." ;;
   esac
   _exp "At the end you'll sign into your $_p_acct account in the browser - create one first if you don't have it."
+  # On a Mac the browser always opens. On Linux it may not: a server or container has
+  # none, and a WSL shell has no xdg-open unless wslu is installed. One line covers
+  # all three, because the fix is the same in each — the sign-in URL is printed and
+  # can be opened anywhere.
+  if [ "$(vibe_os)" = linux ]; then
+    _exp "If a browser doesn't open, copy the web address it prints, open that on your phone or another computer, and type the code back in here."
+  fi
   # Which agent to install is not a tooling choice — it follows the subscription
   # the person already pays for, and a mismatch otherwise only surfaces at that
   # browser sign-in, after a cold-Mac install. So name the alternative here,
