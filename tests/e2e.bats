@@ -34,6 +34,16 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Setup complete"* ]]
 }
 
+@test "a Mac run prepares with Homebrew and never installs mise's own substrate" {
+  # The pre-loop substrate is one per OS: Homebrew on mac, mise on Linux. mise is
+  # still installable as a BLOCK here (node pulls it in via brew), but ensure_mise —
+  # the unconditional pre-loop install — must not fire on a Mac.
+  apply claude --yes --no-launch
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Preparing your Mac"* ]]
+  refute_fake_logged "INSTALL mise"
+}
+
 @test "the claude bundle installs the desktop cask; claude-cli does not" {
   # the bundle pulls in claude-desktop, which installs the cask (app dir empty)
   apply claude --yes --no-launch

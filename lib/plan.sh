@@ -188,6 +188,14 @@ _render_expectations() {
       _exp "A one-time download may take ~10-15 min."
     fi
   fi
+  # Linux installs mise before the first block step, unconditionally — that is what
+  # lets a rank-20 step (gh-auth) use it at all. The cost is that an agent-only plan
+  # installs a version manager it never uses, so say so rather than let it be
+  # discovered. Same trade macOS already makes by installing Homebrew for a
+  # CLI-only plan.
+  if [ "$(vibe_os)" = linux ] && ! command -v mise >/dev/null 2>&1; then
+    _exp "Installs mise, a small version manager for developer tools - it goes in your home folder and needs no admin password. Set up even if nothing in this plan needs it."
+  fi
   # Central persistent effects the applier performs (not per-block), disclosed in
   # plain language. Idempotent verbs stay honest on re-runs where the effect is a
   # skip; the two effects that silently BACK OFF on a warm Mac (the instructions

@@ -47,6 +47,7 @@ make_fake_curl() {
     'case "$url" in' \
     '  *claude.ai/install.sh*)       printf "%s\n" '\''printf "INSTALL claude\n" >> "$VIBE_FAKE_LOG"'\'' ;;' \
     '  *chatgpt.com/codex/install.sh*) printf "%s\n" '\''printf "INSTALL codex %s\n" "${CODEX_NON_INTERACTIVE:-unset}" >> "$VIBE_FAKE_LOG"'\'' ;;' \
+    '  *mise.run*)                   printf "%s\n" '\''printf "INSTALL mise %s\n" "${MISE_INSTALL_HELP:-unset}" >> "$VIBE_FAKE_LOG"'\'' ;;' \
     'esac'
 }
 

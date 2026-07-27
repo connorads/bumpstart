@@ -30,6 +30,8 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 . "$LIB/build.sh"
 # shellcheck source=lib/brew.sh
 . "$LIB/brew.sh"
+# shellcheck source=lib/mise.sh
+. "$LIB/mise.sh"
 # shellcheck source=lib/trust.sh
 . "$LIB/trust.sh"
 # shellcheck source=lib/shellpath.sh
@@ -158,12 +160,21 @@ fi
 printf "\n  %s✦ vibe-setup%s\n" "$BOLD$CYAN" "$RESET"
 printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 
-# Homebrew underpins the auth + desktop/cask installs; get it in place first.
-# An un-numbered section marker (non-numeric [·]) so the earliest visible effect
-# — installing Homebrew, which prompts for the Mac password — isn't a silent
-# surprise. ensure_brew narrates the install (or "already installed") itself.
-printf "\n  %s[·]%s %sPreparing your Mac%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$RESET"
-ensure_brew
+# One substrate per OS, in place before any block step: Homebrew underpins the mac
+# auth + cask installs, mise underpins the Linux tool installs. An un-numbered
+# section marker (non-numeric [·]) so the earliest visible effect — on mac,
+# installing Homebrew, which prompts for the Mac password — isn't a silent surprise.
+# Each ensure_* narrates its own install (or "already installed").
+case "$(vibe_os)" in
+  mac)   _prep="your Mac" ;;
+  linux) _prep="your machine" ;;
+  *)     _prep="your machine" ;;
+esac
+printf "\n  %s[·]%s %sPreparing %s%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$_prep" "$RESET"
+case "$(vibe_os)" in
+  mac)   ensure_brew ;;
+  linux) ensure_mise ;;
+esac
 
 # Before the loop, not after it: a block's CHECK cell has to be able to see what an
 # earlier block installed (mise writes shims that node's own check then looks for),
