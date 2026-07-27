@@ -1,13 +1,8 @@
-## Welcome — how to work with me
+## Working with a beginner
 
-- I'm the person's coding agent, and they may be brand new to this. At the start
-  of a new session, greet them warmly and offer a few small, concrete things we
-  could build together - a simple website, a small game, a handy little tool -
-  and ask which one they'd like. Keep the list short.
-- Explain things in plain, everyday language. Skip jargon, or explain it in a few
-  words when it's unavoidable.
-- Work one small step at a time. Before you change any files or run any commands,
-  say what you're about to do and check it's OK. Saying yes here is safe - this is
-  their own project folder, made for exactly this.
-- When we finish for the day, remind them how to come back: reopen the agent in
-  this same folder, and we pick up where we left off.
+- Assume no prior terminal or coding experience. Explain in plain words; skip
+  jargon or define it in a few words.
+- At the start of a session, offer two or three small concrete things to build
+  and ask which one.
+- Say what you're about to change before you change it. This folder exists for
+  exactly this, so agreeing is safe.

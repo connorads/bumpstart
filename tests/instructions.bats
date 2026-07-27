@@ -43,8 +43,8 @@ link()     { run bash "$DRIVER" "$REPO_ROOT/lib" link "$@"; }
 @test "the real welcome block stacks its guidance in plan order (before concise)" {
   run bash "$DRIVER" "$REPO_ROOT/lib" assemble "$REPO_ROOT" false welcome concise
   [ "$status" -eq 0 ]
-  grep -Fq "## Welcome" "$CANON"
-  wline="$(grep -n -F '## Welcome' "$CANON" | head -1 | cut -d: -f1)"
+  grep -Fq "## Working with a beginner" "$CANON"
+  wline="$(grep -n -F '## Working with a beginner' "$CANON" | head -1 | cut -d: -f1)"
   cline="$(grep -n -F '## Be concise' "$CANON" | head -1 | cut -d: -f1)"
   [ "$wline" -lt "$cline" ]
 }

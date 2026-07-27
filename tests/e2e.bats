@@ -138,7 +138,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [[ "$output" == *"Node.js"* ]]
   # the stack ships no instruction blocks, so no welcome text is written
   canon="$HOME/.agents/AGENTS.md"
-  ! grep -Fq "## Welcome" "$canon"
+  ! grep -Fq "## Working with a beginner" "$canon"
   ! grep -Fq "## Be concise" "$canon"
 }
 
@@ -164,7 +164,7 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
   canon="$HOME/.agents/AGENTS.md"
-  grep -Fq "## Welcome" "$canon"
+  grep -Fq "## Working with a beginner" "$canon"
   grep -Fq "## Be concise" "$canon"
   grep -Fq "## Ask first" "$canon"
 }
