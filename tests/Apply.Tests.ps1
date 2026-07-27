@@ -137,6 +137,19 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Match 'skipped \(file exists\)'
   }
 
+  It 'puts the instruction sections above the tool guidance' {
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-Null
+    $canon = Join-Path $script:testHome '.agents/AGENTS.md'
+    $lines = Get-Content -LiteralPath $canon
+    # node is a [tool] (kind rank 30), so the plan runs it before the
+    # [instructions] blocks - but the behavioural frame leads the file.
+    $frame = [array]::IndexOf($lines, '## Be concise')
+    $reference = [array]::IndexOf($lines, '## Node.js')
+    $frame | Should -BeGreaterThan -1
+    $reference | Should -BeGreaterThan -1
+    $frame | Should -BeLessThan $reference
+  }
+
   It 'a re-run tags a content-carrying tool row, not just the instruction rows' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-Null
     # node ships content.win.md, so on the re-run its guidance is skipped too -

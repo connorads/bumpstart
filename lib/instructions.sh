@@ -31,41 +31,60 @@ canonical_path() {
 }
 
 # assemble_instructions <root> <force> — concatenate each in-plan block's
-# content.md (in PLAN_STEP_IDS order, one blank line between sections) and write
-# the canonical file. No content anywhere → no-op. Canonical present without
-# force → back off (leave it). Sets INSTRUCTIONS_WROTE / INSTRUCTIONS_BACKED_OFF.
+# content.md (one blank line between sections) and write the canonical file. No
+# content anywhere → no-op. Canonical present without force → back off (leave it).
+# Sets INSTRUCTIONS_WROTE / INSTRUCTIONS_BACKED_OFF.
+#
+# Section order is instruction blocks first, then everything else, each group in
+# PLAN_STEP_IDS order. Content order is PRESENTATION, not execution: KIND's step
+# rank (tool=30 before instructions=60) is when a block runs, and letting it also
+# decide section order put reference material (git, mise, node) ahead of the
+# behavioural frame (welcome, be concise, ask first) — broad-to-specific inverted.
+# Two sequential passes, deliberately not a re-sort: relative order WITHIN a group
+# still follows the plan.
 assemble_instructions() {
   _ai_root="$1"; _ai_force="$2"
   INSTRUCTIONS_WROTE=false
   INSTRUCTIONS_BACKED_OFF=false
 
-  # Stack every in-plan block's content.md, newest section last. $(cat) strips a
-  # section's own trailing newlines, so joining with a blank line is exact.
   _ai_buf=""
-  _ai_n=${#PLAN_STEP_IDS[@]}
-  _ai_i=0
-  while [ "$_ai_i" -lt "$_ai_n" ]; do
-    _ai_id="${PLAN_STEP_IDS[$_ai_i]}"
-    _ai_dir="$(block_dir "$_ai_root" "$_ai_id")"
-    # Skip a non-instruction block that does no work on this OS (e.g. mise on
-    # Windows): its guidance would describe a tool we didn't install. Mac-invariant
-    # — every mac tool block has an INSTALL_MAC, so _block_runs is always true.
-    _ai_kind="$(meta_get "$_ai_dir" KIND)"
-    if [ "$_ai_kind" != instructions ] && ! _block_runs "$_ai_root" "$_ai_id"; then
-      _ai_i=$((_ai_i + 1)); continue
-    fi
-    # Prefer a per-OS content override (content.<os>.md) over the neutral content.md.
-    _ai_content="$_ai_dir/content.$(vibe_os).md"
-    [ -f "$_ai_content" ] || _ai_content="$_ai_dir/content.md"
-    if [ -f "$_ai_content" ]; then
-      _ai_c="$(cat "$_ai_content")"
-      if [ -n "$_ai_buf" ]; then
-        _ai_buf="$_ai_buf"$'\n'$'\n'"$_ai_c"
-      else
-        _ai_buf="$_ai_c"
+  _ai_pass=1
+  while [ "$_ai_pass" -le 2 ]; do
+    _ai_n=${#PLAN_STEP_IDS[@]}
+    _ai_i=0
+    while [ "$_ai_i" -lt "$_ai_n" ]; do
+      _ai_id="${PLAN_STEP_IDS[$_ai_i]}"
+      _ai_dir="$(block_dir "$_ai_root" "$_ai_id")"
+      _ai_kind="$(meta_get "$_ai_dir" KIND)"
+      # Pass 1 takes the instruction blocks, pass 2 the rest.
+      if [ "$_ai_pass" -eq 1 ] && [ "$_ai_kind" != instructions ]; then
+        _ai_i=$((_ai_i + 1)); continue
       fi
-    fi
-    _ai_i=$((_ai_i + 1))
+      if [ "$_ai_pass" -eq 2 ] && [ "$_ai_kind" = instructions ]; then
+        _ai_i=$((_ai_i + 1)); continue
+      fi
+      # Skip a non-instruction block that does no work on this OS (e.g. mise on
+      # Windows): its guidance would describe a tool we didn't install. Mac-invariant
+      # — every mac tool block has an INSTALL_MAC, so _block_runs is always true.
+      if [ "$_ai_kind" != instructions ] && ! _block_runs "$_ai_root" "$_ai_id"; then
+        _ai_i=$((_ai_i + 1)); continue
+      fi
+      # Prefer a per-OS content override (content.<os>.md) over the neutral content.md.
+      # $(cat) strips a section's own trailing newlines, so joining with a blank
+      # line is exact.
+      _ai_content="$_ai_dir/content.$(vibe_os).md"
+      [ -f "$_ai_content" ] || _ai_content="$_ai_dir/content.md"
+      if [ -f "$_ai_content" ]; then
+        _ai_c="$(cat "$_ai_content")"
+        if [ -n "$_ai_buf" ]; then
+          _ai_buf="$_ai_buf"$'\n'$'\n'"$_ai_c"
+        else
+          _ai_buf="$_ai_c"
+        fi
+      fi
+      _ai_i=$((_ai_i + 1))
+    done
+    _ai_pass=$((_ai_pass + 1))
   done
 
   # Nothing to write → leave the filesystem untouched and the preview honest.

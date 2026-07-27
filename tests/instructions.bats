@@ -18,7 +18,7 @@ link()     { run bash "$DRIVER" "$REPO_ROOT/lib" link "$@"; }
 
 # --- assemble -----------------------------------------------------------------
 
-@test "assemble stacks sections in plan order with no markers or preamble" {
+@test "assemble stacks sections with no markers or preamble" {
   assemble false concise mise
   [ "$status" -eq 0 ]
   [ -f "$CANON" ]
@@ -27,7 +27,14 @@ link()     { run bash "$DRIVER" "$REPO_ROOT/lib" link "$@"; }
   # no vibe markers, no novice scaffold/preamble
   ! grep -Fq "<!-- vibe" "$CANON"
   ! grep -Fq "coding-agent instructions" "$CANON"
-  # concise (first in plan) sits above mise
+}
+
+@test "instruction sections lead the file, whatever the plan's step order" {
+  # mise is a [tool] (kind rank 30), concise an [instructions] block (rank 60), so
+  # the plan runs mise first — but the behavioural frame belongs above the
+  # reference material, so section order must NOT follow the step order.
+  assemble false mise concise
+  [ "$status" -eq 0 ]
   cline="$(grep -n -F '## Be concise' "$CANON" | head -1 | cut -d: -f1)"
   mline="$(grep -n -F '## Tools via mise' "$CANON" | head -1 | cut -d: -f1)"
   [ "$cline" -lt "$mline" ]

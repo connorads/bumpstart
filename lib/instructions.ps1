@@ -18,11 +18,17 @@ function Get-CanonicalPath {
 }
 
 # Assemble-Instructions <plan> <root> <force> - concatenate each in-plan block's
-# content (per-OS content.<os>.md preferred over content.md), in StepIds order,
-# one blank line between sections, and write the canonical file. A non-instruction
-# block that does no work on this OS is skipped (its guidance would describe a
-# tool we didn't install). No content anywhere -> no-op. Canonical present without
-# force -> back off.
+# content (per-OS content.<os>.md preferred over content.md), one blank line
+# between sections, and write the canonical file. A non-instruction block that
+# does no work on this OS is skipped (its guidance would describe a tool we didn't
+# install). No content anywhere -> no-op. Canonical present without force -> back
+# off.
+#
+# Section order is instruction blocks first, then everything else, each group in
+# StepIds order. Content order is PRESENTATION, not execution: letting KIND's step
+# rank also decide section order put reference material ahead of the behavioural
+# frame. Two sequential passes, not a re-sort - relative order within a group
+# still follows the plan. Mirrors assemble_instructions in instructions.sh.
 function Assemble-Instructions {
   param($Plan, [string]$Root, [bool]$Force)
   $script:InstructionsWrote = $false
@@ -30,15 +36,20 @@ function Assemble-Instructions {
 
   $osTok = Get-VibeOs
   $sections = @()
-  foreach ($id in $Plan.StepIds) {
-    $dir = Get-BlockDir $Root $id
-    $kind = Get-Meta $dir 'KIND'
-    if ($kind -ne 'instructions' -and -not (Test-BlockRuns $Root $id)) { continue }
+  foreach ($pass in 1, 2) {
+    foreach ($id in $Plan.StepIds) {
+      $dir = Get-BlockDir $Root $id
+      $kind = Get-Meta $dir 'KIND'
+      # Pass 1 takes the instruction blocks, pass 2 the rest.
+      if ($pass -eq 1 -and $kind -ne 'instructions') { continue }
+      if ($pass -eq 2 -and $kind -eq 'instructions') { continue }
+      if ($kind -ne 'instructions' -and -not (Test-BlockRuns $Root $id)) { continue }
 
-    $content = Join-Path $dir "content.$osTok.md"
-    if (-not (Test-Path -LiteralPath $content)) { $content = Join-Path $dir 'content.md' }
-    if (Test-Path -LiteralPath $content) {
-      $sections += ((Get-Content -LiteralPath $content -Raw).TrimEnd("`r", "`n"))
+      $content = Join-Path $dir "content.$osTok.md"
+      if (-not (Test-Path -LiteralPath $content)) { $content = Join-Path $dir 'content.md' }
+      if (Test-Path -LiteralPath $content) {
+        $sections += ((Get-Content -LiteralPath $content -Raw).TrimEnd("`r", "`n"))
+      }
     }
   }
 
