@@ -116,6 +116,8 @@ question is adding a directory.
 | `welcome`        | steering | instructions | Greet the beginner + how to work with the agent every session      |
 | `concise`        | steering | instructions | Ask the agent to keep answers concise                              |
 | `ask-first`      | steering | instructions | Ask before installing tools / deleting files                       |
+| `verify`         | steering | instructions | Run it before calling it done; show the real error                 |
+| `secrets`        | steering | instructions | Keep keys out of the chat, and out of GitHub                        |
 | `claude-desktop` | -        | app          | Install the Claude desktop app (arrives with `claude`)             |
 | `codex-desktop`  | -        | app          | Install the ChatGPT app, Codex's desktop home (arrives with `codex`) |
 | `mise`           | -        | tool         | Install mise (runtime version manager; arrives with `node`/`pnpm`) |
@@ -135,7 +137,7 @@ covers exactly one axis, so you pick one from each and they compose.
 | `claude`   | agent    | `claude-cli claude-desktop` |
 | `codex`    | agent    | `codex-cli codex-desktop`   |
 | `web`      | tools    | `gh-auth git node`          |
-| `beginner` | steering | `welcome concise ask-first` |
+| `beginner` | steering | `welcome concise ask-first verify secrets` |
 
 ### Recipes
 

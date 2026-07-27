@@ -136,10 +136,12 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
   [[ "$output" == *"Node.js"* ]]
-  # the stack ships no instruction blocks, so no welcome text is written
+  # the stack ships no instruction blocks, so the tools axis stays steering-free
   canon="$HOME/.agents/AGENTS.md"
   ! grep -Fq "## Working with a beginner" "$canon"
   ! grep -Fq "## Be concise" "$canon"
+  ! grep -Fq "## Check it works" "$canon"
+  ! grep -Fq "## Keys and passwords" "$canon"
 }
 
 @test "a claude-only run (no git block) leaves the starter dir un-versioned" {
@@ -167,6 +169,8 @@ apply() { run bash "$REPO_ROOT/lib/apply.sh" "$@"; }
   grep -Fq "## Working with a beginner" "$canon"
   grep -Fq "## Be concise" "$canon"
   grep -Fq "## Ask first" "$canon"
+  grep -Fq "## Check it works" "$canon"
+  grep -Fq "## Keys and passwords" "$canon"
 }
 
 @test "an agent id appended to a preset adds a harness and moves the launcher" {

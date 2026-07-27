@@ -1,4 +1,4 @@
 KIND=preset
 AXIS=steering
-DESC="Beginner habits: a warm welcome, concise answers, ask first"
-INCLUDE="welcome concise ask-first"
+DESC="Beginner habits: plain words, ask first, check it works, keep keys safe"
+INCLUDE="welcome concise ask-first verify secrets"
