@@ -25,14 +25,36 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"concise output"* ]]
 }
 
-@test "--list: groups harness before tool before instructions" {
+@test "--list: groups by axis, in the axes' declared ORDER" {
   vibe --list
   [ "$status" -eq 0 ]
-  h="$(line_of 'harness')"
-  t="$(line_of 'tool')"
-  i="$(line_of 'instructions')"
-  [ "$h" -lt "$t" ]
-  [ "$t" -lt "$i" ]
+  r="$(line_of 'recipe —')"
+  a="$(line_of 'agent —')"
+  t="$(line_of 'tools —')"
+  s="$(line_of 'steering —')"
+  [ "$r" -lt "$a" ]
+  [ "$a" -lt "$t" ]
+  [ "$t" -lt "$s" ]
+  # each heading carries the wizard's own question, so the two speak one vocabulary
+  [[ "$output" == *"Which agent should launch?"* ]]
+}
+
+@test "--list: an axis-less block lands in the dependencies group, last" {
+  vibe --list
+  [ "$status" -eq 0 ]
+  d="$(line_of 'dependencies')"
+  m="$(line_of 'Install mise')"
+  s="$(line_of 'steering —')"
+  [ "$s" -lt "$d" ]
+  [ "$d" -lt "$m" ]
+  [[ "$output" == *"never asked about"* ]]
+}
+
+@test "--list: kind survives as a tag, not a heading" {
+  vibe --list
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[harness]"*"Install Claude Code"* ]]
+  [[ "$output" == *"[instructions]"* ]]
 }
 
 @test "--list: node row shows its mise dep inline" {
@@ -76,14 +98,16 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
   [[ "$output" == *"expands to:"*"claude-cli"*"claude-desktop"* ]]
 }
 
-@test "--list groups the app kind between harness and auth" {
-  vibe --list
+@test "--show node: names the axis it is offered on" {
+  vibe --show node
   [ "$status" -eq 0 ]
-  h="$(line_of 'harness')"
-  ap="$(line_of 'Install the Claude desktop app')"
-  au="$(line_of 'Set up GitHub')"
-  [ "$h" -lt "$ap" ]
-  [ "$ap" -lt "$au" ]
+  [[ "$output" == *"axis:"*"tools"* ]]
+}
+
+@test "--show mise: says plainly that it is never offered on its own" {
+  vibe --show mise
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pulled in as a dependency"* ]]
 }
 
 @test "--show mise: notes it adds agent guidance" {
