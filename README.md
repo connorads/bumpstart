@@ -9,7 +9,7 @@ It composes vetted **blocks**. You (or a workshop leader) hand out one paste
 listing the blocks you want; the applier resolves them, shows a plain-language
 plan, asks **once**, then sets everything up and drops you into the agent.
 
-macOS and native Windows (no WSL needed).
+macOS and native Windows (no WSL needed). Linux is not supported yet.
 
 ## Quick start
 
@@ -84,35 +84,66 @@ every user of it wants.
 The one single-choice is which agent launches, and there **last in the list
 wins** (`claude codex` launches Codex, `codex claude` launches Claude).
 
+### Axes
+
+Every block carries two labels. `kind` is for the applier: it decides when a
+block runs. **`axis` is for you**: it names the question the block answers, and
+it is what `--build` asks and `--list` groups by.
+
+| axis       | the question it asks             |
+| ---------- | -------------------------------- |
+| `recipe`   | Start from a ready-made setup?    |
+| `agent`    | Which agent should launch?        |
+| `tools`    | What should we install?           |
+| `steering` | How should the agent be steered?  |
+
+A block with no axis is never offered on its own but is still pulled in as a
+dependency - `mise` is the example: nobody picks a version manager directly, it
+arrives with `node` or `pnpm`. Axes are data (`axes/<id>/meta`), so adding a
+question is adding a directory.
+
 ### Atoms
 
-| id               | kind         | what it does                                                       |
-| ---------------- | ------------ | ------------------------------------------------------------------ |
-| `claude-cli`     | harness      | Install Claude Code (CLI); can be the launched agent               |
-| `claude-desktop` | app          | Install the Claude desktop app                                     |
-| `codex-cli`      | harness      | Install Codex (CLI); can be the launched agent                     |
-| `codex-desktop`  | app          | Install the ChatGPT app (Codex's desktop home)                     |
-| `gh-auth`        | auth         | Install GitHub CLI + offer sign-in                                 |
-| `git`            | tool         | Install git + set your name/email from GitHub (pulls in `gh-auth`) |
-| `mise`           | tool         | Install mise (runtime version manager)                             |
-| `node`           | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
-| `pnpm`           | tool         | Install pnpm via mise (pulls in `mise`)                            |
-| `concise`        | instructions | Ask the agent to keep answers concise                              |
-| `ask-first`      | instructions | Ask before installing tools / deleting files                       |
-| `welcome`        | instructions | Greet the beginner + how to work with the agent every session      |
+| id               | axis     | kind         | what it does                                                       |
+| ---------------- | -------- | ------------ | ------------------------------------------------------------------ |
+| `claude-cli`     | agent    | harness      | Install Claude Code (CLI); can be the launched agent               |
+| `codex-cli`      | agent    | harness      | Install Codex (CLI); can be the launched agent                     |
+| `gh-auth`        | tools    | auth         | Install GitHub CLI + offer sign-in                                 |
+| `git`            | tools    | tool         | Install git + set your name/email from GitHub (pulls in `gh-auth`) |
+| `github-desktop` | tools    | app          | Install GitHub Desktop, so you can see and undo what the agent did (pulls in `git`) |
+| `node`           | tools    | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
+| `pnpm`           | tools    | tool         | Install pnpm via mise (pulls in `mise`)                            |
+| `welcome`        | steering | instructions | Greet the beginner + how to work with the agent every session      |
+| `concise`        | steering | instructions | Ask the agent to keep answers concise                              |
+| `ask-first`      | steering | instructions | Ask before installing tools / deleting files                       |
+| `claude-desktop` | -        | app          | Install the Claude desktop app (arrives with `claude`)             |
+| `codex-desktop`  | -        | app          | Install the ChatGPT app, Codex's desktop home (arrives with `codex`) |
+| `mise`           | -        | tool         | Install mise (runtime version manager; arrives with `node`/`pnpm`) |
+
+`github-desktop` is opt-in, not part of `web` or `starter`. Note it means a
+second GitHub sign-in: `gh` and GitHub Desktop keep separate credential stores
+and neither can read the other's token. That one happens whenever you first open
+the app, so it is off the paste's critical path - `--plan` says so.
 
 ### Presets, one per axis
 
-A preset is just a block whose content is a list of other ids. Each covers
-exactly one axis, so you pick one from each and they compose.
+A preset is just a block whose content is a list of other ids. Each of these
+covers exactly one axis, so you pick one from each and they compose.
 
-| preset     | axis    | expands to                     |
-| ---------- | ------- | ------------------------------ |
-| `claude`   | agent   | `claude-cli claude-desktop`    |
-| `codex`    | agent   | `codex-cli codex-desktop`      |
-| `web`      | stack   | `gh-auth git node`             |
-| `beginner` | habits  | `welcome concise ask-first`    |
-| `starter`  | handout | `web beginner`                 |
+| preset     | axis     | expands to                  |
+| ---------- | -------- | --------------------------- |
+| `claude`   | agent    | `claude-cli claude-desktop` |
+| `codex`    | agent    | `codex-cli codex-desktop`   |
+| `web`      | tools    | `gh-auth git node`          |
+| `beginner` | steering | `welcome concise ask-first` |
+
+### Recipes
+
+A recipe spans axes: it is the ready-made setup a workshop hands out.
+
+| recipe    | axis   | expands to     |
+| --------- | ------ | -------------- |
+| `starter` | recipe | `web beginner` |
 
 `starter` is deliberately **agent-free**: which agent you want is not a tooling
 choice, it is which subscription you already pay for, and a workshop handout
@@ -124,6 +155,7 @@ can't know that for the room. So the agent is always a separate id:
 … _ claude-cli starter    # CLI only, no desktop app
 … _ claude codex starter  # both agents, launches codex (last in the list wins)
 … _ codex web             # the stack without the beginner instructions
+… _ claude starter github-desktop   # …plus a GUI for seeing and undoing changes
 ```
 
 Appending an agent id to *any* preset sets the launcher: the launch scan runs
@@ -179,9 +211,9 @@ an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
 | flag             | effect                                        |
 | ---------------- | --------------------------------------------- |
 | `--plan`         | Print the resolved plan and exit - no changes |
-| `--list`         | Print the block/preset catalogue and exit     |
-| `--show <id>`    | Print one block's detail (kind, deps, target) |
-| `--build`        | Interactive wizard - assemble a bundle, emit the paste |
+| `--list`         | Print the catalogue, grouped by axis, and exit |
+| `--show <id>`    | Print one block's detail (axis, kind, deps, target) |
+| `--build`        | Interactive wizard - one question per axis, emit the paste |
 | `--yes` / `-y`   | Skip the confirm (for headless / VM runs)     |
 | `--force`        | Rewrite an existing canonical file; back real agent configs up to `.bak` then link |
 | `--no-launch`    | Don't drop into the agent at the end          |
@@ -203,12 +235,13 @@ recalling ids from the table above.
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --build      # wizard
 ```
 
-`--build` asks which agent launches (required), then offers every other block as
-opt-in, plus the agent-free presets (`web`, `beginner`, `starter`) so a handout
-is one tick rather than six. The agent bundles are deliberately absent from that
-list - the agent question above is the only place that choice is made. It
-previews the resolved plan, then **prints the one-paste command** to
-hand out (and copies it to the clipboard where `pbcopy` exists), and offers to
+`--build` asks **one question per axis**, in the order the axes declare: start
+from a recipe, which agent launches (required, pick a number), what to install,
+how to steer. Each row shows what it pulls in, so a whole and its parts read as
+nested rather than as separate ticks. Answering "starter" then "claude" emits
+`claude starter` - the same string the Quick start hands out. It previews the
+resolved plan, then **prints the one-paste command** to hand out (and copies it
+to the clipboard where `pbcopy` exists), and offers to
 run the setup now. The emitted command inherits the run's `VIBE_REF`: pin the
 run (`VIBE_REF=<sha> … --build`) and the paste carries the same `VIBE_REF=<sha>`
 prefix, so a workshop stays reproducible.
@@ -234,6 +267,8 @@ install the latest.
 - Instructions live in one canonical file (`~/.config/agents/AGENTS.md`); each
   agent's own path is a symlink to it (the documented `ln -s AGENTS.md CLAUDE.md`
   pattern), so editing one file steers every agent and every session.
+- Why `kind` and `axis` are separate labels, and what was rejected on the way:
+  [docs/adr/0001](docs/adr/0001-axis-as-the-human-taxonomy.md).
 
 ## Development
 
