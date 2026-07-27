@@ -54,3 +54,26 @@ Describe 'Test-VibeCopyOwned' {
     Test-VibeCopyOwned $f | Should -BeFalse
   }
 }
+
+Describe 'Test-PullsInHarness' {
+  BeforeAll {
+    . "$PSScriptRoot/../lib/resolve.ps1"
+    . "$PSScriptRoot/../lib/build.ps1"
+    $script:fix = "$PSScriptRoot/fixtures"
+  }
+
+  It 'is true for an agent bundle and false for the agent-free axis presets' {
+    # the wizard offers only the false ones, so the agent question stays the
+    # single place that choice is made
+    Test-PullsInHarness $script:fix 'claude'  | Should -BeTrue
+    Test-PullsInHarness $script:fix 'codex'   | Should -BeTrue
+    Test-PullsInHarness $script:fix 'web'     | Should -BeFalse
+    Test-PullsInHarness $script:fix 'beginner'| Should -BeFalse
+    Test-PullsInHarness $script:fix 'starter' | Should -BeFalse
+  }
+
+  It 'is false rather than throwing for an unknown id or a cycle' {
+    Test-PullsInHarness $script:fix 'bogus' | Should -BeFalse
+    Test-PullsInHarness $script:fix 'cyc-a' | Should -BeFalse
+  }
+}

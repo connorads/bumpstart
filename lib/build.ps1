@@ -28,6 +28,19 @@ function Show-PasteCommands {
   if (Copy-ToClipboard $win) { Info 'Copied the Windows command to your clipboard.' }
 }
 
+# Test-PullsInHarness <root> <id> - $true when <id>'s full expansion contains a
+# harness block. Borrows resolve.ps1's _Expand, and so its cycle/unknown guards.
+function Test-PullsInHarness {
+  param([string]$Root, [string]$Id)
+  $expanded = New-Object System.Collections.Generic.List[string]
+  $err = [ref]''
+  if (-not (_Expand $Root $Id '' ([ref]$expanded) $err)) { return $false }
+  foreach ($e in $expanded) {
+    if ((Get-Meta (Get-BlockDir $Root $e) 'KIND') -eq 'harness') { return $true }
+  }
+  return $false
+}
+
 # Invoke-VibeWizard <root> - drive the interactive build. Returns an object with
 # .Ids (chosen ids, harness first) and .RunNow ($true iff apply-now was asked).
 # On no answers (input redirected) or an invalid choice, .Ids is empty + .RunNow
@@ -61,11 +74,20 @@ function Invoke-VibeWizard {
   if ($num -lt 1 -or $num -gt $harnesses.Count) { Err "Choose a number between 1 and $($harnesses.Count)."; return $result }
   $ids = @($harnesses[$num - 1])
 
-  # Optional blocks, grouped by kind (harness/preset skipped).
+  # Optional blocks + presets, grouped by kind. Presets are offered too (they are
+  # what the README hands out), but only the agent-free ones: a harness block, or
+  # a preset that pulls one in, would be a second place the agent gets decided.
+  # The question above stays the only one.
   $rows = @()
-  foreach ($d in (Get-ChildItem -LiteralPath (Join-Path $Root 'blocks') -Directory | Sort-Object Name)) {
+  $dirs = @()
+  foreach ($sub in 'blocks', 'presets') {
+    $path = Join-Path $Root $sub
+    if (Test-Path -LiteralPath $path) { $dirs += Get-ChildItem -LiteralPath $path -Directory }
+  }
+  foreach ($d in ($dirs | Sort-Object Name)) {
     $kind = Get-Meta $d.FullName 'KIND'
-    if ($kind -eq 'harness' -or $kind -eq 'preset') { continue }
+    if ($kind -eq 'harness') { continue }
+    if ($kind -eq 'preset' -and (Test-PullsInHarness $Root $d.Name)) { continue }
     $rows += [pscustomobject]@{ Rank = Get-KindRank $kind; Id = $d.Name; Kind = $kind }
   }
   Write-Host ("`n  Add optional blocks - {0}y{1} to include, Enter to skip:" -f $script:Bold, $script:Reset)

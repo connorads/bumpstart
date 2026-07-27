@@ -204,7 +204,10 @@ recalling ids from the table above.
 ```
 
 `--build` asks which agent launches (required), then offers every other block as
-opt-in. It previews the resolved plan, then **prints the one-paste command** to
+opt-in, plus the agent-free presets (`web`, `beginner`, `starter`) so a handout
+is one tick rather than six. The agent bundles are deliberately absent from that
+list - the agent question above is the only place that choice is made. It
+previews the resolved plan, then **prints the one-paste command** to
 hand out (and copies it to the clipboard where `pbcopy` exists), and offers to
 run the setup now. The emitted command inherits the run's `VIBE_REF`: pin the
 run (`VIBE_REF=<sha> … --build`) and the paste carries the same `VIBE_REF=<sha>`

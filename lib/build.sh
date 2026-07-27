@@ -25,6 +25,23 @@ emit_paste_command() {
   fi
 }
 
+# _pulls_in_harness <root> <id> — true when <id>'s full expansion contains a
+# harness block. Borrows resolve.sh's _expand (and so its cycle/unknown guards),
+# saving and restoring _EXPANDED so a later resolve is unaffected.
+_pulls_in_harness() {
+  _ph_saved="${_EXPANDED:-}"
+  _EXPANDED=""
+  _ph_rc=1
+  if _expand "$1" "$2" ""; then
+    for _ph_id in $_EXPANDED; do
+      _ph_dir="$(block_dir "$1" "$_ph_id")"
+      if [ "$(meta_get "$_ph_dir" KIND)" = "harness" ]; then _ph_rc=0; break; fi
+    done
+  fi
+  _EXPANDED="$_ph_saved"
+  return "$_ph_rc"
+}
+
 # run_wizard <root> — drive the interactive build. Populates WIZARD_IDS[] (the
 # chosen ids, harness first) and WIZARD_RUN_NOW (true iff the operator asked to
 # apply now). Returns 1 on no answers (EOF/headless) or an invalid choice.
@@ -76,13 +93,21 @@ run_wizard() {
   fi
   WIZARD_IDS+=("${_w_h_ids[$((_w_num - 1))]}")
 
-  # ── Optional blocks: per-block y/N, grouped by kind (harness/preset skipped) ─
+  # ── Optional blocks + presets: per-id y/N, grouped by kind ──────────────────
+  #
+  # Presets are offered too (they are what the README hands out), but only the
+  # agent-free ones: a harness block, or a preset that pulls one in, would be a
+  # second place the agent gets decided. The question above stays the only one.
   _w_decorated=""
-  for _w_dir in "$_w_root"/blocks/*/; do
+  for _w_dir in "$_w_root"/blocks/*/ "$_w_root"/presets/*/; do
     [ -f "$_w_dir/meta" ] || continue
+    _w_id="$(basename "$_w_dir")"
     _w_kind="$(meta_get "$_w_dir" KIND)"
-    case "$_w_kind" in harness|preset) continue ;; esac
-    _w_decorated="$_w_decorated$(_kind_rank "$_w_kind") $(basename "$_w_dir")
+    [ "$_w_kind" = harness ] && continue
+    if [ "$_w_kind" = preset ] && _pulls_in_harness "$_w_root" "$_w_id"; then
+      continue
+    fi
+    _w_decorated="$_w_decorated$(_kind_rank "$_w_kind") $_w_id
 "
   done
 
