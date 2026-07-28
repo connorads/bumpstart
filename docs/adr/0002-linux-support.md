@@ -82,6 +82,13 @@ is narrower than the support claim: CI covers `ubuntu:24.04`, `debian:12`,
 `fedora:42` and `archlinux:base`; WSL and Ubuntu Desktop are a documented manual
 checklist, because hosted runners have neither.
 
+The Ubuntu Desktop half of that checklist has since shrunk. [0003](0003-real-installs-on-pristine-machines.md)
+adds real-install lanes with a **`no-curl` axis** (and a `no-git` one), which is what
+finding 1 above actually needs: `docker run ubuntu:24.04` is the server rootfs, so the
+wget fallback the Linux paste is shaped around had never once run on a machine lacking
+curl. What the synthesised axis still does not reach is snapd, flatpak, a session
+D-Bus or a keyring — none of which any block touches yet.
+
 ## Considered Options
 
 **A `*_UNIX` cell tier, with macOS migrated off Homebrew onto mise.** One cell serves

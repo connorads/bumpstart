@@ -406,10 +406,67 @@ associative arrays / `mapfile` / `${v,,}`); PowerShell stays 5.1-clean — no
 gated by `PSUseCompatibleSyntax`/`PSUseCompatibleCommands`/`PSUseCompatibleTypes`
 against the bundled 5.1 profile in `lint-ps`, plus a windows-latest 5.1 smoke.
 
-CI runs three lanes: `macos-latest` (the real bash 3.2 floor + the pwsh pure core),
-`windows-latest` (the PowerShell spine on real Windows), and `ubuntu-latest`, which
-runs the bats suite inside `ubuntu:24.04`, `debian:12`, `fedora:42` and
-`archlinux:base` under bash 5. A separate weekly job does a *real* install in a bare
-`ubuntu:24.04` (wget, no curl, no git) and checks that `claude` and `node` resolve in
-a **fresh login shell** - the only assertion that catches a broken PATH line, since
-the installing shell is green either way.
+CI runs three lanes for the faked suite: `macos-latest` (the real bash 3.2 floor + the
+pwsh pure core), `windows-latest` (the PowerShell spine on real Windows), and
+`ubuntu-latest`, which runs the bats suite inside `ubuntu:24.04`, `debian:12`,
+`fedora:42` and `archlinux:base` under bash 5.
+
+### Real installs, on pristine machines
+
+Fakes cannot reach **acquisition**: whether a vendor installer still exists and still
+works, whether the thing people actually paste runs end to end, whether a desktop app
+really installs, whether the sudo password prompt fires. So a separate set of lanes
+really installs from vendor URLs into machines that have never seen vibe. Rationale
+and rejected alternatives: [docs/adr/0003](docs/adr/0003-real-installs-on-pristine-machines.md).
+
+```bash
+mise run vm-test-linux    # the container lanes (~10 min; needs a running colima)
+mise run vm-test-macos    # the pristine-Mac lanes (needs tart + a 23 GB image)
+mise run vm-test          # everything, 30-60 min
+mise run vm-clean         # reap leftover guests and log bundles
+```
+
+Prerequisites, never auto-installed - a harness that silently installs a hypervisor
+has the same manners problem vibe exists to avoid:
+
+- **colima** running (`colima start`) for the container lanes.
+- **tart** and **sshpass** for the macOS lanes, plus `mise run vm-image-macos` once for
+  the 23 GB `macos-tahoe-vanilla` image (~30-43 GB resident). Lanes run serially: one
+  macOS guest at 6 GB plus colima's own VM does not fit twice on 16 GB.
+
+The lane matrix is data in [`tests/real/lanes.tsv`](tests/real/lanes.tsv), read by the
+local driver **and** by CI, so both run the same thing:
+
+| lane | machine | what only it covers |
+| --- | --- | --- |
+| `ubuntu-base` | `ubuntu:24.04` | the Claude desktop app from Anthropic's apt repository, signing key and all |
+| `ubuntu-no-curl` | `ubuntu:24.04` minus curl | the wget fallback the Linux paste is shaped around |
+| `ubuntu-no-git` | `ubuntu:24.04` minus git | installing git through the system package manager |
+| `debian-codex` | `debian:12` | Codex, and its sandbox diagnostic on a restricted-userns kernel |
+| `debian-install-sh` | `debian:12` | the legacy `install.sh` entry point with no ids |
+| `fedora-safer` | `fedora:42` | a non-apt distro, pnpm, and the `safer-installs` config |
+| `ubuntu-password` | `ubuntu:24.04`, password sudo | the **sudo password prompt** - every other lane is NOPASSWD or root |
+| `arch-base` | `archlinux:base` | `pacman` as the manager that installs git. x86-only upstream, so it reports class 2 on Apple Silicon |
+| `macos-vanilla` | Tart, vanilla Tahoe | the only genuinely first-time Mac: Homebrew, the Xcode CLT, casks |
+| `macos-vanilla-paste` | Tart, vanilla Tahoe | the real paste, fetching `vibe` from the commit under test |
+| `macos-drift` | `macos-latest`, de-brewed | CI only, weekly. **Drift detection, not a pristine Mac** |
+| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the User-scope registry |
+
+How a lane decides it worked: one guest-side probe emits a normalised state manifest,
+and one **pure** judge turns that plus the resolved block list into TAP. The judge
+touches no machine, so its assertions are unit-tested over fixture manifests in the
+fast suite (`tests/real_judge.bats`) - a wrong assertion is caught by `mise run check`,
+not by a 40-minute lane run. It asserts only what a fake cannot reach; everything else
+is proved by making runs that *ought* to agree produce an identical manifest.
+
+Three exit classes, not pass/fail, because a lane that reports "upstream moved" as
+"vibe is broken" is a lane that gets muted: **1** an assertion failed, **2**
+infrastructure (a guest, an image, a vendor URL), **3** a harness bug. No retries
+anywhere. A class-1 failure keeps the guest alive and prints how to reattach.
+
+Two caveats worth stating plainly. The vanilla macOS image has **Gatekeeper disabled**
+and passwordless sudo baked in, so it is pristine with respect to Homebrew but *more
+permissive* than a real Mac - a cask install cannot hit a "developer cannot be
+verified" refusal there, and macOS's own password path is not exercised. And the
+container images are barer than any real desktop, so a lane adds a package to its
+minimum only when a real machine of that family already ships it.
