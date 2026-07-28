@@ -40,6 +40,8 @@ REPO="$(cd "$REAL/../.." && pwd -P)"
 . "$REAL/lib/manifest.sh"
 # shellcheck source=tests/real/lib/class.sh
 . "$REAL/lib/class.sh"
+# shellcheck source=tests/real/lib/triage.sh
+. "$REAL/lib/triage.sh"
 
 LANE=""
 KEEP=false
@@ -387,38 +389,18 @@ do_run() {
     return "$CLASS_HARNESS"
   fi
 
-  # The bootstrap failing to DELIVER vibe is infrastructure, not a vibe assertion:
-  # there is no install to judge.
-  if grep -Fq 'could not fetch' "$OUT/run$_dr_n.transcript" ||
-     grep -Fq 'unexpected tarball layout' "$OUT/run$_dr_n.transcript"; then
-    fail_infra "the bootstrap could not fetch vibe (ref '$REF')"
-    return "$CLASS_INFRA"
-  fi
-
-  # So is the network being unreachable. Observed the hard way: a lane went red for
-  # "Couldn't install Node.js" when the real cause was one DNS lookup failing inside
-  # the container. Reporting that as "vibe is wrong" is how a lane earns a mute.
-  #
-  # TRANSPORT failures only, matched on the vendor tools' own wording. A 404 is
-  # included because a vendor deleting an installer is the single most likely thing
-  # these lanes exist to catch — with the caveat spelled out, since a 404 can equally
-  # mean OUR url is wrong, and that is a class-1 bug wearing a class-2 coat.
-  _dr_net="$(grep -oE 'Temporary failure in name resolution|Could not resolve host|dns error|Connection timed out|Connection refused|Network is unreachable|Could not connect to server|error sending request|The requested URL returned error: (404|5[0-9][0-9])|HTTP request sent.*(404|503)' \
-    "$OUT/run$_dr_n.transcript" 2>/dev/null | head -1)"
-  if [ -n "$_dr_net" ]; then
-    fail_infra "the guest could not reach the network: '$_dr_net'"
-    note "if that was a 404, check the INSTALL cell's url as well as the vendor"
-    return "$CLASS_INFRA"
-  fi
-
-  # And so is a guest whose CPU cannot execute the vendor's binary. archlinux:base
-  # publishes no arm64 image, so on Apple Silicon that lane runs emulated x86_64 and
-  # Claude Code's x64 build dies on missing AVX. That says nothing about vibe.
-  _dr_cpu="$(grep -oE 'CPU lacks AVX support|Illegal instruction|exec format error|cannot execute binary file|Exec format error' \
-    "$OUT/run$_dr_n.transcript" 2>/dev/null | head -1)"
-  if [ -n "$_dr_cpu" ]; then
-    fail_infra "the guest cannot execute a vendor binary: '$_dr_cpu' (an emulated arch?)"
-    return "$CLASS_INFRA"
+  # Is this transcript a story about vibe, or about the world around it?
+  # lib/triage.sh owns the rule and is unit-tested over transcripts; the one thing
+  # worth repeating here is that a run which printed its own clean verdict is NEVER
+  # triaged away, however much transport wording it survived on the way.
+  triage "$OUT/run$_dr_n.transcript" "$REF"
+  if [ "$TRIAGE_CLASS" != 0 ]; then
+    case "$TRIAGE_CLASS" in
+      "$CLASS_INFRA") fail_infra "$TRIAGE_REASON" ;;
+      *)              fail_harness "$TRIAGE_REASON" ;;
+    esac
+    [ -n "$TRIAGE_HINT" ] && note "$TRIAGE_HINT"
+    return "$TRIAGE_CLASS"
   fi
 
   note "run $_dr_n: probing"
