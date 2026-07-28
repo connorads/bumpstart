@@ -275,6 +275,21 @@ if [ -z "$ENTRY_CMD" ]; then
   exit "$CLASS_HARNESS"
 fi
 
+# For the paste, check from the HOST that the ref is fetchable before running anything.
+# Not belt-and-braces: `$(curl … || wget …)` around an unreachable url yields an EMPTY
+# script, so `bash -c ""` exits 0 having done nothing and the lane would report
+# "aborted" - class 1, vibe is wrong - for a ref that was simply never pushed. This is a
+# precondition, not a retry.
+if [ "$ENTRY" = paste ]; then
+  _boot_url="https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe"
+  if ! curl -fsSL -o /dev/null "$_boot_url" 2>/dev/null; then
+    fail_infra "the bootstrap script is not fetchable at ref '$REF' — push the commit first"
+    note "$_boot_url"
+    cleanup
+    exit "$CLASS_INFRA"
+  fi
+fi
+
 # ── One run, then the probe, then the judge ─────────────────────────────────
 
 RUN_CLASS=0
