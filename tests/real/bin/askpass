@@ -1,0 +1,30 @@
+#!/bin/sh
+# shellcheck shell=sh
+# askpass: the SUDO_ASKPASS target for the password-sudo lane.
+#
+# Upstream sudo: SUDO_ASKPASS "specifies the path to a helper program used to read
+# the password IF NO TERMINAL IS AVAILABLE or if the -A option is specified". The
+# lanes deliberately have no TTY, so this one environment variable is the whole
+# mechanism — blocks/git/apply.sh runs completely unmodified, with no PATH shadowing
+# and no keystroke choreography. What is asserted is the actual promise ("asks once,
+# and only if git needs installing"), not how the characters got there.
+#
+# It logs the prompt sudo passed as $1, one line per invocation, so the count is
+# measurable. An unstubbed prompt would otherwise be a six-hour hang.
+#
+# Fails closed: no password file means exit non-zero, so sudo refuses rather than
+# silently proceeding as if the password were empty.
+#
+# POSIX sh, not bash: it runs as sudo's helper on every distro in the matrix, and it
+# needs nothing bash provides.
+
+STATE="${VIBE_REAL_DIR:-/tmp/vibe-real}"
+
+printf '%s\n' "${1:-<sudo gave no prompt>}" >> "$STATE/askpass.log" 2>/dev/null
+
+if [ ! -f "$STATE/password" ]; then
+  printf 'askpass: no password file at %s/password\n' "$STATE" >&2
+  exit 1
+fi
+
+cat "$STATE/password"

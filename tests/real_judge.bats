@@ -444,3 +444,67 @@ assert_plan_matches() {
     "$BASH" "$REAL/judge.sh" "$M" $(mblocks)
   [ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+# ── The differentials: the half of the oracle with no hand-written expectations ─
+#
+# The judge asserts only what a fake cannot reach; everything else is proved by
+# making two runs that OUGHT to agree produce an identical normalised state. Which
+# keys are compared is the load-bearing choice - too strict and every version bump is
+# a red, too loose and the differential proves nothing - so it is pinned down here.
+
+@test "the state subset ignores what identifies a run, and what a run narrates" {
+  . "$REAL/lib/manifest.sh"
+  mani linux-ubuntu-base.manifest
+  run manifest_state_subset "$M"
+  [ "$status" -eq 0 ]
+  for k in lane adapter guest axis mode run manifest_version; do
+    printf '%s\n' "$output" | grep -q "^$k	" && { echo "$k should not be compared"; false; }
+  done
+  for p in 'transcript\.' 'warn\.' 'info\.' 'error\.' 'askpass\.' '\.version_raw'; do
+    printf '%s\n' "$output" | grep -q "$p" && { echo "$p should not be compared"; false; }
+  done
+  # And it DOES carry the state.
+  printf '%s\n' "$output" | grep -q '^rc.marker_count	1$' || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q '^path.agents	file:' || { echo "$output"; false; }
+  true
+}
+
+@test "two runs of the same lane differing only in the run number are identical" {
+  . "$REAL/lib/manifest.sh"
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/run1"
+  mset run 2
+  mset transcript.warn_count 1
+  mset warn.0001 'the Claude desktop app already installed'
+  mset tool.node.version_raw 'v24.9.0'
+  run manifest_diff 'run 1' "$BATS_TEST_TMPDIR/run1" 'run 2' "$M" manifest_state_subset
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "a file that changed between runs breaks idempotence, and is named" {
+  . "$REAL/lib/manifest.sh"
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/run1"
+  mset path.npmrc 'file:deadbeef'
+  run manifest_diff 'run 1' "$BATS_TEST_TMPDIR/run1" 'run 2' "$M" manifest_state_subset
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q 'path.npmrc' || { echo "$output"; false; }
+}
+
+@test "the invariant subset holds across every POSIX lane, whatever the paste" {
+  . "$REAL/lib/manifest.sh"
+  local base="$FIX/linux-ubuntu-base.manifest"
+  for other in linux-debian-codex linux-fedora-nodesktop linux-arch-password mac-casks; do
+    run manifest_diff ubuntu "$base" "$other" "$FIX/$other.manifest" manifest_invariant_subset
+    [ "$status" -eq 0 ] || { echo "$other diverges: $output"; false; }
+  done
+}
+
+@test "a distro-specific PATH line breaks the invariant subset" {
+  . "$REAL/lib/manifest.sh"
+  mani linux-fedora-nodesktop.manifest
+  mset rc.block 'export PATH="$HOME/.local/bin:$PATH"'
+  run manifest_diff ubuntu "$FIX/linux-ubuntu-base.manifest" fedora "$M" manifest_invariant_subset
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q 'rc.block' || { echo "$output"; false; }
+}
