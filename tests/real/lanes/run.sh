@@ -272,16 +272,23 @@ entry_command() {
         "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
         "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
         "$IDS" ;;
-    *) return 1 ;;
+    *) return 2 ;;
   esac
 }
 
+# 1 and 2 are told apart because they send the reader to different places: a typo in
+# the lane row's entry column reported itself as a missing --ref, and a ref has
+# nothing to do with it.
 ENTRY_CMD="$(entry_command)"
-if [ -z "$ENTRY_CMD" ]; then
-  fail_harness "entry '$ENTRY' needs --ref <sha> (the paste cannot see an unpushed tree)"
-  cleanup
-  exit "$CLASS_HARNESS"
-fi
+case "$?" in
+  0) ;;
+  1) fail_harness "entry 'paste' needs --ref <sha> (the paste cannot see an unpushed tree)"
+     cleanup
+     exit "$CLASS_HARNESS" ;;
+  *) fail_harness "lane '$LANE' has an unknown entry kind '$ENTRY' (expected apply, install or paste)"
+     cleanup
+     exit "$CLASS_HARNESS" ;;
+esac
 
 # For the paste, check from the HOST that the ref is fetchable before running anything.
 # Not belt-and-braces: `$(curl … || wget …)` around an unreachable url yields an EMPTY
