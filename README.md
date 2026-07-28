@@ -442,6 +442,7 @@ local driver **and** by CI, so both run the same thing:
 | `ubuntu-base` | `ubuntu:24.04` | the Claude desktop app from Anthropic's apt repository, signing key and all |
 | `ubuntu-no-curl` | `ubuntu:24.04` minus curl | the wget fallback the Linux paste is shaped around |
 | `ubuntu-no-git` | `ubuntu:24.04` minus git | installing git through the system package manager |
+| `ubuntu-paste` | `ubuntu:24.04` | the **real paste** on Linux: the `vibe` bootstrap, the tarball fetch, and the `VIBE_REF` pin - and the apply-vs-paste differential against `ubuntu-base` |
 | `debian-codex` | `debian:12` | Codex, and its sandbox diagnostic on a restricted-userns kernel |
 | `debian-install-sh` | `debian:12` | the legacy `install.sh` entry point with no ids |
 | `fedora-safer` | `fedora:42` | a non-apt distro, pnpm, and the `safer-installs` config |
@@ -450,7 +451,7 @@ local driver **and** by CI, so both run the same thing:
 | `macos-vanilla` | Tart, vanilla Tahoe | the only genuinely first-time Mac: Homebrew, the Xcode CLT, casks |
 | `macos-vanilla-paste` | Tart, vanilla Tahoe | the real paste, fetching `vibe` from the commit under test |
 | `macos-drift` | `macos-latest`, de-brewed | CI only, weekly. **Drift detection, not a pristine Mac** |
-| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the registry rather than any rc file |
+| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the registry rather than any rc file. Twice, like every other lane |
 
 How a lane decides it worked: a guest-side **precheck** measures the machine before
 anything runs, a guest-side **probe** measures it again afterwards and emits a
@@ -461,7 +462,11 @@ a fresh shell" is true on a machine that shipped git, so the judge asserts the
 touches no machine, so its assertions are unit-tested over fixture manifests in the
 fast suite (`tests/real_judge.bats`) - a wrong assertion is caught by `mise run check`,
 not by a 40-minute lane run. It asserts only what a fake cannot reach; everything else
-is proved by making runs that *ought* to agree produce an identical manifest.
+is proved by making runs that *ought* to agree produce an identical manifest: run 1
+against run 2 on every lane, `apply.sh` against the real paste on every image that
+has both rows, and the one PATH line against itself across every POSIX lane. The
+cross-lane half runs locally through `drive.sh` and in CI through a job that
+collects the manifests every lane uploaded.
 
 Three exit classes, not pass/fail, because a lane that reports "upstream moved" as
 "vibe is broken" is a lane that gets muted: **1** an assertion failed, **2**

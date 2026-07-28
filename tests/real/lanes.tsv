@@ -6,9 +6,14 @@ lane	adapter	image	axis	entry	paste	deps
 # archlinux:base publishes no arm64 image, so on Apple Silicon that lane runs
 # emulated x86_64 and the vendors' x64 binaries hit missing CPU features. It is
 # CI-primary (ubuntu-latest is x86_64) and reports class 2 locally.
+# ubuntu-paste mirrors ubuntu-base cell for cell except the entry point, which is
+# what makes the apply-vs-paste differential meaningful: same image, same ids, so
+# any disagreement is the entry point. It is also the only lane anywhere that runs
+# the `vibe` bootstrap - the untested thing ADR 0003 exists to fix.
 ubuntu-base	container	ubuntu:24.04	base	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 ubuntu-no-curl	container	ubuntu:24.04	no-curl	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 ubuntu-no-git	container	ubuntu:24.04	no-git	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
+ubuntu-paste	container	ubuntu:24.04	base	paste	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 debian-codex	container	debian:12	base	apply	codex starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 debian-install-sh	container	debian:12	base	install	-	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 fedora-safer	container	fedora:42	base	apply	claude starter pnpm safer-installs	dnf install -y -q wget ca-certificates sudo gnupg2 curl git libatomic

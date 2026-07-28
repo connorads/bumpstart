@@ -147,7 +147,11 @@ jobs:
           LANE: ${{ matrix.lane }}
         run: |
           set +e
-          bash tests/real/lanes/run.sh "$LANE"
+          # --ref, always: the `paste` entry point fetches `vibe` itself from the
+          # commit under test, and only drive.sh defaulted it - so a paste lane
+          # joining the matrix died class 3 here, and NO CI job anywhere ran the
+          # bootstrap ADR 0003 exists to test.
+          bash tests/real/lanes/run.sh "$LANE" --ref "$GITHUB_SHA"
           rc=$?
           # Three exit classes, honoured here rather than collapsed to pass/fail: a
           # class 2 (the guest, an image, or a vendor URL) is reported without going
@@ -179,6 +183,38 @@ jobs:
           path: .vibe-real/
           retention-days: 7
 
+  real-differentials:
+    # The half of the oracle that needs no hand-written expectations, and which no CI
+    # job ran: the lanes each execute on their own runner, so the cross-lane
+    # comparisons could only ever happen somewhere that has all the manifests. Here.
+    if: always() && github.event_name != 'pull_request'
+    needs: [real-lanes, linux-real-install, macos-real-install]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real-verdict-*
+          path: verdicts
+      - name: reconstruct the lane layout
+        run: |
+          # differentials.sh reads <dir>/<lane>/run1.manifest, which is what run.sh
+          # writes locally. upload-artifact roots each artifact at the least common
+          # ancestor of the files it matched, so the lane directory may or may not
+          # survive - the ARTIFACT NAME is the thing that reliably carries it.
+          for d in verdicts/real-verdict-*; do
+            [ -d "$d" ] || continue
+            lane="$(basename "$d")"
+            lane="${lane#real-verdict-}"
+            mkdir -p ".vibe-real/$lane"
+            find "$d" -type f \( -name 'lane.verdict' -o -name 'run*.manifest' \) \
+              -exec cp {} ".vibe-real/$lane/" \;
+          done
+          find .vibe-real -type f | sort
+      - name: cross-lane differentials
+        run: bash tests/real/differentials.sh .vibe-real
+
   real-summary:
     # The failure NO per-lane job can see: whether the SUITE proved anything.
     #
@@ -188,7 +224,7 @@ jobs:
     # weekly schedule. And a lane silently dropped from the matrix looks exactly like
     # a lane that passed. This job is the assertion that assertions ran.
     if: always() && github.event_name != 'pull_request'
-    needs: [real-lanes, linux-real-install]
+    needs: [real-lanes, linux-real-install, macos-real-install]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -204,8 +240,11 @@ jobs:
           # The lanes the matrix DECLARED, not the ones that happened to report -
           # comparing the reports against themselves is how a vanished lane hides.
           lanes="$(printf '%s' "$LANES" | jq -r '.[]' | tr '\n' ' ')"
+          # macos-drift is not in that list - it is a runner lane, invoked by name
+          # rather than through the matrix - but it uploads a verdict like every
+          # other, so it is held to the same account.
           # shellcheck disable=SC2086  # the lane list is deliberately word-split
-          bash tests/real/verdicts.sh verdicts $lanes
+          bash tests/real/verdicts.sh verdicts $lanes macos-drift
 
   macos-real-install:
     # DRIFT DETECTION, NOT A PRISTINE MAC. There is no clean hosted macOS and GitHub
@@ -281,8 +320,9 @@ jobs:
       matrix:
         os: [windows-2025, windows-11-arm]
     runs-on: ${{ matrix.os }}
-    # winget currently HANGS rather than failing, so the timeout is the guard.
-    timeout-minutes: 20
+    # winget currently HANGS rather than failing, so the timeout is the guard. Two
+    # runs now, so it is twice what one needs plus room for the second's no-ops.
+    timeout-minutes: 35
     defaults:
       run:
         # Windows PowerShell 5.1, NOT the runner's default pwsh 7 - which would
@@ -322,36 +362,34 @@ jobs:
           [ -n "$blocks" ] || { echo "the resolver produced nothing"; exit 3; }
           echo "VIBE_BLOCKS=$blocks" >> "$GITHUB_ENV"
 
-      - name: lane state
-        env:
-          LANE: ${{ matrix.os }}
+      - name: state dir
         run: |
           $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
           New-Item -ItemType Directory -Path $state -Force | Out-Null
-          $tab = [char]9
-          @(
-            "lane$tab$env:LANE"
-            "adapter${tab}runner"
-            "guest$tab$env:LANE"
-            "axis${tab}base"
-            "mode${tab}apply"
-            "run${tab}1"
-            "blocks$tab$env:VIBE_BLOCKS"
-          ) | Set-Content -LiteralPath (Join-Path $state 'lane.tsv')
 
       - name: precheck (the baseline the judge measures vibe against)
-        # BEFORE the install, deliberately. These images ship Git, Node and gh on the
-        # Machine PATH, so vibe's SATISFIED_WIN cells find them and the INSTALL_WIN
-        # cells never run - while the probe reported `shell.regpath.git 1` and the
-        # judge counted that as a pass. The delta is what tells the two apart.
+        # BEFORE the install, deliberately, and ONCE. These images ship Git, Node and
+        # gh on the Machine PATH, so vibe's SATISFIED_WIN cells find them and the
+        # INSTALL_WIN cells never run - while the probe reported `shell.regpath.git 1`
+        # and the judge counted that as a pass. The delta is what tells the two apart,
+        # and a baseline retaken after run 1 would not be one.
         run: |
           $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
           & powershell.exe -NoProfile -File tests\real\precheck.ps1 `
             -Baseline (Join-Path $state 'precheck.tsv')
 
-      - name: real install (Windows PowerShell 5.1)
+      - name: real install, TWICE (Windows PowerShell 5.1)
+        env:
+          LANE: ${{ matrix.os }}
+        # Twice, like every other lane. Running once contradicted the record in three
+        # places, and because judge.sh deliberately keeps its assertion set small ON
+        # THE GROUNDS THAT THE DIFFERENTIALS COVER THE REST, the Windows oracle was far
+        # weaker than the record implied: a second `winget install` erroring, a
+        # duplicated `@<canonical>` import line and a second registry PATH append were
+        # all undetectable.
         run: |
           $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          $tab = [char]9
           # 'Continue', deliberately. GitHub prepends $ErrorActionPreference='stop' to
           # every step, and under 'stop' Windows PowerShell 5.1 turns a native command's
           # stderr into a TERMINATING NativeCommandError the moment `*>&1` merges it. One
@@ -359,45 +397,73 @@ jobs:
           # unassigned - no transcript, no exit file, and the probe and judge never run.
           # The three-class machinery would be skipped for the only Windows lane.
           $ErrorActionPreference = 'Continue'
-          # Every stream captured: the UI goes to Write-Host and apply.ps1 exits 0 even
-          # when steps warned, so the verdict has to come from the text.
-          $out = & powershell.exe -NoProfile -File lib\apply.ps1 -Yes -NoLaunch claude starter *>&1
-          $rc = $LASTEXITCODE
-          # Out-String -Width, then .NET: `Out-File` renders through the host's
-          # formatter and WRAPS at the console buffer width, so a UI line longer than
-          # that loses its glyph prefix on the continuation - and the prefix is the
-          # channel marker the probe globs on. UTF-8 without a BOM for the same
-          # reason the probe reads it that way: 5.1's default encodings do not
-          # round-trip the U+203A and U+2717 prefixes.
-          $text = ($out | Out-String -Width 4096)
-          $enc = New-Object System.Text.UTF8Encoding($false)
-          [System.IO.File]::WriteAllText((Join-Path $state 'transcript.log'), $text, $enc)
-          $out | ForEach-Object { Write-Host $_ }
-          Set-Content -LiteralPath (Join-Path $state 'exit') -Value $rc
-          # The JUDGE decides, and it asserts transcript.exit is 0. Exiting non-zero here
-          # would skip the probe and the judge, so a real failure would arrive with no
-          # manifest and no TAP - and Set-Content does not reset $LASTEXITCODE, which
-          # GitHub's appended `exit $LASTEXITCODE` would otherwise propagate.
+          foreach ($run in 1, 2) {
+            # Rewritten per run, in one Set-Content, so `run` is honest: the judge
+            # branches on it, and the second run's honest claim is the opposite of the
+            # first's.
+            @(
+              "lane$tab$env:LANE"
+              "adapter${tab}runner"
+              "guest$tab$env:LANE"
+              "axis${tab}base"
+              "mode${tab}apply"
+              "run$tab$run"
+              "blocks$tab$env:VIBE_BLOCKS"
+            ) | Set-Content -LiteralPath (Join-Path $state 'lane.tsv')
+
+            # Every stream captured: the UI goes to Write-Host and apply.ps1 exits 0
+            # even when steps warned, so the verdict has to come from the text.
+            $out = & powershell.exe -NoProfile -File lib\apply.ps1 -Yes -NoLaunch claude starter *>&1
+            $rc = $LASTEXITCODE
+            # Out-String -Width, then .NET: `Out-File` renders through the host's
+            # formatter and WRAPS at the console buffer width, so a UI line longer than
+            # that loses its glyph prefix on the continuation - and the prefix is the
+            # channel marker the probe globs on. UTF-8 without a BOM for the same
+            # reason the probe reads it that way: 5.1's default encodings do not
+            # round-trip the U+203A and U+2717 prefixes.
+            $text = ($out | Out-String -Width 4096)
+            $enc = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText((Join-Path $state 'transcript.log'), $text, $enc)
+            [System.IO.File]::WriteAllText((Join-Path $state "run$run.transcript"), $text, $enc)
+            $out | ForEach-Object { Write-Host $_ }
+            Set-Content -LiteralPath (Join-Path $state 'exit') -Value $rc
+
+            & powershell.exe -NoProfile -File tests\real\probe.ps1 `
+              -StateDir $state -Manifest (Join-Path $state "run$run.manifest")
+          }
+          # The JUDGE decides, and it asserts transcript.exit is 0. Exiting non-zero
+          # here would skip it, so a real failure would arrive with no TAP - and
+          # Set-Content does not reset $LASTEXITCODE, which GitHub's appended
+          # `exit $LASTEXITCODE` would otherwise propagate.
           exit 0
 
-      - name: probe
-        run: |
-          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
-          & powershell.exe -NoProfile -File tests\real\probe.ps1 `
-            -StateDir $state -Manifest (Join-Path $state 'manifest')
-
-      - name: judge
+      - name: judge both runs, and diff them
         shell: bash
         run: |
           state="$(cygpath -u "$RUNNER_TEMP")/vibe-real"
           set +e
-          # shellcheck disable=SC2086  # the block list is deliberately word-split
-          bash tests/real/judge.sh "$state/manifest" $VIBE_BLOCKS
-          rc=$?
-          case "$rc" in
+          worst=0
+          # shellcheck source=tests/real/lib/class.sh
+          . tests/real/lib/class.sh
+          # shellcheck source=tests/real/lib/manifest.sh
+          . tests/real/lib/manifest.sh
+          for n in 1 2; do
+            echo "--- run $n ---"
+            # shellcheck disable=SC2086  # the block list is deliberately word-split
+            bash tests/real/judge.sh "$state/run$n.manifest" $VIBE_BLOCKS | tee "$state/run$n.tap"
+            worst="$(class_worse "$worst" "${PIPESTATUS[0]}")"
+          done
+          # Idempotence, as a differential rather than a second set of assertions -
+          # the same rule every POSIX lane is held to, and the reason judge.sh can
+          # keep its own assertion set small.
+          if ! manifest_diff "run 1" "$state/run1.manifest" "run 2" "$state/run2.manifest" \
+               manifest_state_subset; then
+            worst="$(class_worse "$worst" "$CLASS_ASSERT")"
+          fi
+          case "$worst" in
             0) ;;
             2) echo "::warning::infrastructure, not a vibe failure (class 2)" ;;
-            *) exit "$rc" ;;
+            *) exit "$worst" ;;
           esac
 
       - name: log bundle

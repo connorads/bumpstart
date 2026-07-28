@@ -23,8 +23,6 @@ REAL="$(cd "$(dirname "$0")" && pwd -P)"
 REPO="$(cd "$REAL/.." && pwd -P)"
 REPO="$(cd "$REPO/.." && pwd -P)"
 
-# shellcheck source=tests/real/lib/manifest.sh
-. "$REAL/lib/manifest.sh"
 # shellcheck source=tests/real/lib/class.sh
 . "$REAL/lib/class.sh"
 # shellcheck source=tests/real/lib/lanes.sh
@@ -153,44 +151,14 @@ for LANE in $LANES; do
 done
 
 # ── Cross-lane differentials ────────────────────────────────────────────────
+#
+# tests/real/differentials.sh owns them, and CI calls the same script over the
+# manifests every lane uploaded — until it existed, this half of the oracle was
+# executed by no CI job at all.
 
-printf '\n  === differentials ===\n'
-
-# 1. The design claim that must hold on every POSIX lane whatever the distro and
-#    whatever the paste: one PATH line, written once, identical everywhere, and one
-#    canonical instructions path.
-_base=""
-for LANE in $RAN; do
-  _m="$OUT/$LANE/run1.manifest"
-  [ "$(awk -F'\t' '$1 == "os" { print $2 }' "$_m")" = win ] && continue
-  if [ -z "$_base" ]; then
-    _base="$LANE"
-    continue
-  fi
-  if manifest_diff "$_base" "$OUT/$_base/run1.manifest" "$LANE" "$_m" manifest_invariant_subset; then
-    printf '  %s vs %s: the OS-invariant subset agrees\n' "$_base" "$LANE"
-  else
-    bump_class 1
-  fi
-done
-[ -n "$_base" ] || printf '  (no manifests to compare)\n'
-
-# 2. The entry-point differential: lib/apply.sh from a clone and the real paste must
-#    leave the same machine. Same lane, same expected manifest — which is why the
-#    macOS rows exist twice.
-#    Gated on RAN, not on the files existing: `--group linux` leaves last week's
-#    macOS manifests on disk, and diffing those would report a disagreement between
-#    two runs nobody made today.
-ran_lane() { case " $RAN " in *" $1 "*) return 0 ;; esac; return 1; }
-
-if ran_lane macos-vanilla && ran_lane macos-vanilla-paste; then
-  if manifest_diff "apply.sh" "$OUT/macos-vanilla/run1.manifest" \
-                   "the paste" "$OUT/macos-vanilla-paste/run1.manifest" manifest_state_subset; then
-    printf '  apply.sh vs the real paste: identical state\n'
-  else
-    bump_class 1
-  fi
-fi
+# shellcheck disable=SC2086  # the lane list is deliberately word-split
+bash "$REAL/differentials.sh" "$OUT" $RAN
+bump_class "$?"
 
 # ── Report ──────────────────────────────────────────────────────────────────
 
