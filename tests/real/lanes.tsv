@@ -1,8 +1,19 @@
 lane	adapter	image	axis	entry	paste	deps
+# Notes on the deps column: it is the image's BARE MINIMUM, not a convenience.
+# A package joins it only when a real desktop of that family already ships it
+# (gnupg on Debian/Ubuntu, libatomic on Fedora), or when the container itself
+# cannot work otherwise (pacman's seccomp sandbox under colima's kernel).
+# archlinux:base publishes no arm64 image, so on Apple Silicon that lane runs
+# emulated x86_64 and the vendors' x64 binaries hit missing CPU features. It is
+# CI-primary (ubuntu-latest is x86_64) and reports class 2 locally.
 ubuntu-base	container	ubuntu:24.04	base	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 ubuntu-no-curl	container	ubuntu:24.04	no-curl	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 ubuntu-no-git	container	ubuntu:24.04	no-git	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 debian-codex	container	debian:12	base	apply	codex starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 debian-install-sh	container	debian:12	base	install	-	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
-fedora-safer	container	fedora:42	base	apply	claude starter pnpm safer-installs	dnf install -y -q wget ca-certificates sudo gnupg2 curl git
-arch-password	container	archlinux:base	password-sudo,no-git	apply	claude-cli node git	pacman -Sy --noconfirm --needed wget ca-certificates sudo gnupg curl git
+fedora-safer	container	fedora:42	base	apply	claude starter pnpm safer-installs	dnf install -y -q wget ca-certificates sudo gnupg2 curl git libatomic
+ubuntu-password	container	ubuntu:24.04	password-sudo,no-git	apply	claude-cli node git	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
+arch-base	container	archlinux:base	no-git	apply	claude-cli node git	printf 'DisableSandbox\n' >> /etc/pacman.conf && pacman -Sy --noconfirm --needed wget ca-certificates sudo gnupg curl git
+macos-vanilla	tart	macos-tahoe-vanilla	base	apply	claude starter github-desktop pnpm safer-installs	-
+macos-vanilla-paste	tart	macos-tahoe-vanilla	base	paste	claude starter github-desktop pnpm safer-installs	-
+macos-drift	runner	macos-latest	base	apply	claude starter github-desktop pnpm safer-installs	-

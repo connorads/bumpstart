@@ -1,0 +1,37 @@
+#!/bin/sh
+# shellcheck shell=sh
+# sudo-forces-askpass: copied into the guest as `sudo`, ahead of the real one on
+# PATH, for the password-sudo lane only. It adds -A and execs the real sudo.
+#
+# WHY THIS EXISTS, because it is a deliberate exception to "the lanes shadow
+# nothing". Upstream sudo's own man page says SUDO_ASKPASS "specifies the path to a
+# helper program used to read the password IF NO TERMINAL IS AVAILABLE or if the -A
+# option is specified", which would have made one environment variable the whole
+# mechanism. Measured on sudo 1.9.15p5 (Ubuntu 24.04, aarch64), it is not true: with
+# no terminal and SUDO_ASKPASS exported, sudo refuses with
+#
+#   sudo: a terminal is required to read the password; either use the -S option to
+#   read from standard input or configure an askpass helper
+#
+# and never runs the helper. `Path askpass` in /etc/sudo.conf does not change it
+# either. Only an explicit -A works. The product calls plain `sudo`, so without this
+# shim the password path cannot be exercised headlessly at all — and giving the run a
+# real TTY instead would hang it on the other `[ -t 0 ]`-gated prompts.
+#
+# What it does NOT change is the thing being asserted: whether privilege was
+# required, whether it was granted, and HOW MANY TIMES it was asked for. Only how the
+# password is read. blocks/git/apply.sh still runs completely unmodified.
+#
+# Installed on the password axis only, and never on the probe's PATH, so every
+# measurement is of the real machine.
+
+# The real sudo, found by location rather than by re-searching PATH (which starts
+# with this shim's own directory).
+for d in /usr/bin /bin /usr/local/bin /sbin /usr/sbin; do
+  if [ -x "$d/sudo" ]; then
+    exec "$d/sudo" -A "$@"
+  fi
+done
+
+printf 'vibe-test: no real sudo to delegate to\n' >&2
+exit 1

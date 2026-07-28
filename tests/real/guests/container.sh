@@ -48,7 +48,7 @@ guest_start() {
     --name "$GUEST_NAME" \
     --hostname vibe-guest \
     -v "$GUEST_REPO:$GUEST_SRC:ro" \
-    -w "$GUEST_SRC" \
+    -w / \
     "$GUEST_IMAGE" \
     sleep infinity >/dev/null 2>&1
 }
@@ -56,7 +56,10 @@ guest_start() {
 guest_provision() {
   # The image's bare minimum, as data from the lane row — deliberately NOT a
   # convenience "install everything", because what the guest lacks is the point.
-  guest_exec_root "$GUEST_DEPS" || return 1
+  if ! guest_exec_root "{ $GUEST_DEPS ; } > /tmp/vibe-deps.log 2>&1"; then
+    guest_exec_root 'tail -40 /tmp/vibe-deps.log' >&2
+    return 1
+  fi
 
   # -s /bin/bash matters: useradd defaults to /bin/sh, and persist_path keys on the
   # LOGIN shell. A sh user is told the PATH line instead of having it written —
@@ -65,7 +68,9 @@ guest_provision() {
 
   # A sudoers drop-in rather than a group, because the privileged group is `sudo` on
   # Debian and `wheel` on Fedora/Arch and probing for the right name is a distro
-  # table we do not need.
+  # table we do not need. mkdir first: /etc/sudoers.d arrives with the sudo package,
+  # and a lane whose deps do not include sudo would otherwise fail here obscurely.
+  guest_exec_root "mkdir -p /etc/sudoers.d" || return 1
   if [ "$GUEST_SUDO" = password ]; then
     guest_exec_root "printf '%s ALL=(ALL) ALL\n' $GUEST_USER > /etc/sudoers.d/vibe-test" || return 1
     guest_exec_root "printf '%s:%s\n' $GUEST_USER '$GUEST_PASSWORD' | chpasswd" || return 1

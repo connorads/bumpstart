@@ -29,7 +29,7 @@ description = "Shellcheck all scripts"
 run = """
 shellcheck -x lib/*.sh blocks/*/apply.sh install.sh vibe tests/helpers/*.sh \
   tests/real/*.sh tests/real/lib/*.sh tests/real/lanes/*.sh tests/real/guests/*.sh \
-  tests/real/bin/askpass
+  tests/real/bin/askpass tests/real/bin/sudo-forces-askpass
 """
 
 [tasks.test]
@@ -47,6 +47,68 @@ run = "/bin/bash \"$(command -v bats)\" tests/"
 [tasks.check]
 description = "Lint + full suite (bash spine)"
 depends = ["lint", "test"]
+
+# ── Real installs, on pristine machines ───────────────────────────────────────
+# The faked suite above is the commit-time gate and stays fast. These lanes really
+# install from vendor URLs into machines that have never seen vibe, so they are slow
+# (30-60 minutes for everything), hit third parties, and are invoked explicitly.
+# Prerequisites and the lane table are in the README's Development section.
+#
+# Three exit classes, not pass/fail: 1 = an assertion failed (vibe is wrong),
+# 2 = infrastructure (a guest, an image, a vendor URL), 3 = a harness bug.
+# Rationale and rejected alternatives: docs/adr/0003.
+
+[tasks.vm-test]
+description = "Every real-install lane, locally (30-60 min; needs colima + tart)"
+run = "bash tests/real/drive.sh --group all"
+
+[tasks.vm-test-linux]
+description = "The container lanes only (~10 min; needs a running colima)"
+run = "bash tests/real/drive.sh --group linux"
+
+[tasks.vm-test-macos]
+description = "The pristine-Mac lanes (needs tart + the 23 GB image)"
+depends = ["vm-image-macos"]
+run = "bash tests/real/drive.sh --group macos"
+
+[tasks.vm-image-macos]
+description = "Pull the vanilla macOS image once (23 GB)"
+# sources/outputs so the guard is not re-checked on every macOS run. The stamp is the
+# output; lanes.tsv is the source, because that is where the image name lives.
+sources = ["tests/real/lanes.tsv"]
+outputs = [".vibe-real/macos-image.stamp"]
+run = """
+set -eu
+image="$(awk -F'\t' 'NR > 1 && $2 == "tart" { print $3; exit }' tests/real/lanes.tsv)"
+if ! command -v tart >/dev/null 2>&1; then
+  echo "tart is not installed - see the README Development section" >&2
+  exit 1
+fi
+if tart list 2>/dev/null | grep -q -- "$image"; then
+  echo "$image already pulled"
+else
+  echo "pulling $image (~23 GB, once)"
+  TART_NO_AUTO_PRUNE=1 tart pull "ghcr.io/cirruslabs/$image:latest"
+  TART_NO_AUTO_PRUNE=1 tart clone "ghcr.io/cirruslabs/$image:latest" "$image"
+fi
+mkdir -p .vibe-real
+date > .vibe-real/macos-image.stamp
+"""
+
+[tasks.vm-clean]
+description = "Reap leftover real-install guests and their log bundles"
+run = """
+set -u
+docker ps -aq --filter 'name=^vibe-real-' 2>/dev/null | xargs -r docker rm -f
+if command -v tart >/dev/null 2>&1; then
+  tart list --format json 2>/dev/null | grep -o '"Name":"vibe-real-[^"]*"' | sed 's/.*:"//;s/"//' | while read -r vm; do
+    tart stop "$vm" >/dev/null 2>&1 || true
+    tart delete "$vm" >/dev/null 2>&1 || true
+  done
+fi
+rm -rf .vibe-real
+echo "clean"
+"""
 
 # ── PowerShell spine (twin-authored core, Windows support) ────────────────────
 # Tests run under mise's pwsh 7 + Pester 5; the Windows PowerShell 5.1 floor is

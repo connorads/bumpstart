@@ -195,6 +195,7 @@ note "precheck..."
 # shellcheck disable=SC2016
 PRECHECK_SCRIPT='
 set -u
+cd "$HOME" || exit 1
 S='"$S"'
 : > "$S/precheck.tsv"
 for t in curl wget git gpg brew; do
@@ -217,8 +218,23 @@ fi
 # The password file the askpass helper reads. Not an environment variable: sudo runs
 # the helper in a context we do not fully control, and a file is one less thing that
 # has to survive.
+#
+# Plus the one thing the lanes shadow, and only here: a `sudo` ahead of the real one
+# that adds -A. Measured on sudo 1.9.15p5, SUDO_ASKPASS alone is NOT consulted when
+# there is no terminal, contrary to sudo's own man page, so without this the password
+# path cannot be exercised headlessly at all. See bin/sudo-forces-askpass. It is
+# never on the probe's PATH, so every measurement is still of the real machine.
 if [ "$GUEST_SUDO" = password ]; then
-  guest_exec_root "printf '%s' '$GUEST_PASSWORD' > $S/password && chmod 0644 $S/password"
+  guest_exec_root "printf '%s' '$GUEST_PASSWORD' > $S/password && chmod 0644 $S/password" || {
+    fail_harness "could not write the guest's password file"
+    cleanup
+    exit "$CLASS_HARNESS"
+  }
+  guest_exec_root "mkdir -p $S/bin && cp $GUEST_SRC/tests/real/bin/sudo-forces-askpass $S/bin/sudo && chmod 0755 $S/bin/sudo" || {
+    fail_harness "could not install the sudo shim"
+    cleanup
+    exit "$CLASS_HARNESS"
+  }
 fi
 
 # ── The entry point ─────────────────────────────────────────────────────────
@@ -230,14 +246,20 @@ fi
 # the tarball, so pinning alone would test main's `vibe` and hand back a false green
 # on any change to it.
 
+#
+# Every entry point is invoked from $HOME, by absolute path, NEVER with the mounted
+# repo as the working directory. Two reasons, one of them measured the hard way:
+# nobody pastes from inside a clone of vibe-setup, and mise refuses to run at all
+# under a directory holding an untrusted mise.toml — which this repo's own is, in the
+# guest. Running from /src silently broke every mise shim.
+# shellcheck disable=SC2016  # "$HOME" and $(…) must be evaluated in the GUEST
 entry_command() {
   case "$ENTRY" in
-    apply)   printf 'cd %s && bash lib/apply.sh %s --yes --no-launch' "$GUEST_SRC" "$IDS" ;;
-    install) printf 'cd %s && bash install.sh --yes --no-launch' "$GUEST_SRC" ;;
+    apply)   printf 'cd "$HOME" && bash %s/lib/apply.sh %s --yes --no-launch' "$GUEST_SRC" "$IDS" ;;
+    install) printf 'cd "$HOME" && bash %s/install.sh --yes --no-launch' "$GUEST_SRC" ;;
     paste)
       if [ -z "$REF" ]; then return 1; fi
-      # shellcheck disable=SC2016  # $(…) must be evaluated in the GUEST, not here
-      printf 'VIBE_REF=%s /bin/bash -c "$(curl -fsSL %s || wget -qO- %s)" _ %s --yes --no-launch' \
+      printf 'cd "$HOME" && VIBE_REF=%s /bin/bash -c "$(curl -fsSL %s || wget -qO- %s)" _ %s --yes --no-launch' \
         "$REF" \
         "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
         "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
@@ -271,9 +293,16 @@ do_run() {
   # NO_COLOR so the UI glyphs the probe parses are plain, and 2>&1 because warn()
   # writes to stderr ONLY and lib/apply.sh exits 0 even when steps warned — so the
   # verdict has to come from the text.
-  _dr_env="NO_COLOR=1"
+  # `export`, NOT a `VAR=x cmd` prefix. Measured the hard way: the entry command
+  # begins `cd "$HOME" && bash …`, so an assignment prefix binds to `cd` and the
+  # applier ran without it. The password axis reported "couldn't install git" and
+  # asserted nothing.
+  _dr_env="export NO_COLOR=1;"
   if [ "$GUEST_SUDO" = password ]; then
-    _dr_env="$_dr_env SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass VIBE_REAL_DIR=$S"
+    # \$PATH stays unexpanded: it is the GUEST's PATH the shim goes in front of.
+    _dr_env="$_dr_env export PATH=$S/bin:\$PATH;"
+    _dr_env="$_dr_env export SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass;"
+    _dr_env="$_dr_env export VIBE_REAL_DIR=$S;"
   fi
 
   note "run $_dr_n: $ENTRY"
@@ -286,16 +315,41 @@ do_run() {
   fi
 
   # The bootstrap failing to DELIVER vibe is infrastructure, not a vibe assertion:
-  # there is no install to judge. Narrow on purpose — anything the applier itself
-  # warned about stays the judge's business.
+  # there is no install to judge.
   if grep -Fq 'could not fetch' "$OUT/run$_dr_n.transcript" ||
      grep -Fq 'unexpected tarball layout' "$OUT/run$_dr_n.transcript"; then
     fail_infra "the bootstrap could not fetch vibe (ref '$REF')"
     return "$CLASS_INFRA"
   fi
 
+  # So is the network being unreachable. Observed the hard way: a lane went red for
+  # "Couldn't install Node.js" when the real cause was one DNS lookup failing inside
+  # the container. Reporting that as "vibe is wrong" is how a lane earns a mute.
+  #
+  # TRANSPORT failures only, matched on the vendor tools' own wording. A 404 is
+  # included because a vendor deleting an installer is the single most likely thing
+  # these lanes exist to catch — with the caveat spelled out, since a 404 can equally
+  # mean OUR url is wrong, and that is a class-1 bug wearing a class-2 coat.
+  _dr_net="$(grep -oE 'Temporary failure in name resolution|Could not resolve host|dns error|Connection timed out|Connection refused|Network is unreachable|Could not connect to server|error sending request|The requested URL returned error: (404|5[0-9][0-9])|HTTP request sent.*(404|503)' \
+    "$OUT/run$_dr_n.transcript" 2>/dev/null | head -1)"
+  if [ -n "$_dr_net" ]; then
+    fail_infra "the guest could not reach the network: '$_dr_net'"
+    note "if that was a 404, check the INSTALL cell's url as well as the vendor"
+    return "$CLASS_INFRA"
+  fi
+
+  # And so is a guest whose CPU cannot execute the vendor's binary. archlinux:base
+  # publishes no arm64 image, so on Apple Silicon that lane runs emulated x86_64 and
+  # Claude Code's x64 build dies on missing AVX. That says nothing about vibe.
+  _dr_cpu="$(grep -oE 'CPU lacks AVX support|Illegal instruction|exec format error|cannot execute binary file|Exec format error' \
+    "$OUT/run$_dr_n.transcript" 2>/dev/null | head -1)"
+  if [ -n "$_dr_cpu" ]; then
+    fail_infra "the guest cannot execute a vendor binary: '$_dr_cpu' (an emulated arch?)"
+    return "$CLASS_INFRA"
+  fi
+
   note "run $_dr_n: probing"
-  if ! guest_exec "VIBE_REAL_DIR=$S bash $GUEST_SRC/tests/real/probe.sh > $S/manifest 2> $S/probe.err"; then
+  if ! guest_exec "cd \"\$HOME\" && VIBE_REAL_DIR=$S bash $GUEST_SRC/tests/real/probe.sh > $S/manifest 2> $S/probe.err"; then
     guest_fetch "$S/probe.err" "$OUT/run$_dr_n.probe.err"
     fail_harness "the probe failed in the guest (see run$_dr_n.probe.err)"
     return "$CLASS_HARNESS"
