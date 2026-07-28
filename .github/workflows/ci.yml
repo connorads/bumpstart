@@ -285,6 +285,13 @@ jobs:
       - name: real install (Windows PowerShell 5.1)
         run: |
           $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          # 'Continue', deliberately. GitHub prepends $ErrorActionPreference='stop' to
+          # every step, and under 'stop' Windows PowerShell 5.1 turns a native command's
+          # stderr into a TERMINATING NativeCommandError the moment `*>&1` merges it. One
+          # stderr line from winget or the Node installer would kill the step with $out
+          # unassigned - no transcript, no exit file, and the probe and judge never run.
+          # The three-class machinery would be skipped for the only Windows lane.
+          $ErrorActionPreference = 'Continue'
           # Every stream captured: the UI goes to Write-Host and apply.ps1 exits 0 even
           # when steps warned, so the verdict has to come from the text.
           $out = & powershell.exe -NoProfile -File lib\apply.ps1 -Yes -NoLaunch claude starter *>&1
@@ -292,6 +299,11 @@ jobs:
           $out | Out-File -FilePath (Join-Path $state 'transcript.log') -Encoding utf8
           $out | ForEach-Object { Write-Host $_ }
           Set-Content -LiteralPath (Join-Path $state 'exit') -Value $rc
+          # The JUDGE decides, and it asserts transcript.exit is 0. Exiting non-zero here
+          # would skip the probe and the judge, so a real failure would arrive with no
+          # manifest and no TAP - and Set-Content does not reset $LASTEXITCODE, which
+          # GitHub's appended `exit $LASTEXITCODE` would otherwise propagate.
+          exit 0
 
       - name: probe
         run: |
