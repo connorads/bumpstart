@@ -27,6 +27,8 @@ REPO="$(cd "$REPO/.." && pwd -P)"
 . "$REAL/lib/manifest.sh"
 # shellcheck source=tests/real/lib/class.sh
 . "$REAL/lib/class.sh"
+# shellcheck source=tests/real/lib/lanes.sh
+. "$REAL/lib/lanes.sh"
 
 GROUP=all
 KEEP=""
@@ -59,11 +61,15 @@ mkdir -p "$OUT" || exit 3
 # be able to select it by accident. CI asks for it by lane name.
 if [ -z "$LANES" ]; then
   case "$GROUP" in
-    linux) LANES="$(awk -F'\t' 'NR > 1 && $2 == "container" { print $1 }' "$REAL/lanes.tsv")" ;;
-    macos) LANES="$(awk -F'\t' 'NR > 1 && $2 == "tart" { print $1 }' "$REAL/lanes.tsv")" ;;
-    all)   LANES="$(awk -F'\t' 'NR > 1 && ($2 == "container" || $2 == "tart") { print $1 }' "$REAL/lanes.tsv")" ;;
+    linux) LANES="$(lane_names "$REAL/lanes.tsv" container)" ;;
+    macos) LANES="$(lane_names "$REAL/lanes.tsv" tart)" ;;
+    all)   LANES="$(lane_names "$REAL/lanes.tsv" container tart)" ;;
     *)     printf 'drive.sh: unknown group %s\n' "$GROUP" >&2; exit 3 ;;
   esac
+  if [ -z "$LANES" ]; then
+    printf 'drive.sh: no %s lanes in lanes.tsv - the run would cover nothing\n' "$GROUP" >&2
+    exit 3
+  fi
 fi
 
 # The paste entry point cannot see an unpushed tree, and it must fetch `vibe` itself
@@ -74,9 +80,11 @@ if [ -z "$REF" ]; then
 fi
 NEEDS_REF=0
 for _l in $LANES; do
-  if [ "$(awk -F'\t' -v l="$_l" '$1 == l { print $5 }' "$REAL/lanes.tsv")" = paste ]; then
-    NEEDS_REF=1
+  if ! lane_row "$REAL/lanes.tsv" "$_l"; then
+    printf 'drive.sh: %s\n' "$LANE_ERROR" >&2
+    exit 3
   fi
+  [ "$LANE_ENTRY" = paste ] && NEEDS_REF=1
 done
 if [ "$NEEDS_REF" = 1 ]; then
   if [ -z "$REF" ]; then

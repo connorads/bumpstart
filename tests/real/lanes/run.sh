@@ -42,6 +42,8 @@ REPO="$(cd "$REAL/../.." && pwd -P)"
 . "$REAL/lib/class.sh"
 # shellcheck source=tests/real/lib/triage.sh
 . "$REAL/lib/triage.sh"
+# shellcheck source=tests/real/lib/lanes.sh
+. "$REAL/lib/lanes.sh"
 
 LANE=""
 KEEP=false
@@ -86,13 +88,17 @@ fail_harness() { printf '\n  HARNESS BUG: %s\n' "$1" >&2; }
 # ── The lane row ─────────────────────────────────────────────────────────────
 
 LANES_TSV="$REAL/lanes.tsv"
-ROW="$(awk -F'\t' -v l="$LANE" 'NR > 1 && $1 == l { print; exit }' "$LANES_TSV")"
-if [ -z "$ROW" ]; then
-  fail_harness "no lane '$LANE' in $LANES_TSV"
+TAB="$(printf '\t')"
+if ! lane_row "$LANES_TSV" "$LANE"; then
+  fail_harness "$LANE_ERROR"
   exit "$CLASS_HARNESS"
 fi
-TAB="$(printf '\t')"
-IFS="$TAB" read -r _lane ADAPTER IMAGE AXIS ENTRY PASTE DEPS <<< "$ROW"
+ADAPTER="$LANE_ADAPTER"
+IMAGE="$LANE_IMAGE"
+AXIS="$LANE_AXIS"
+ENTRY="$LANE_ENTRY"
+PASTE="$LANE_PASTE"
+DEPS="$LANE_DEPS"
 
 IDS="$PASTE"
 # The bare-paste default, spelled the same way lib/apply.sh spells it, so the

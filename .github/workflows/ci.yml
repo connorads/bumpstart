@@ -110,8 +110,10 @@ jobs:
       - uses: actions/checkout@v5
       - id: matrix
         run: |
-          lanes="$(awk -F'\t' 'NR > 1 && $2 == "container" { print $1 }' tests/real/lanes.tsv \
-            | jq -R . | jq -sc .)"
+          # The same lane_names() the local driver uses, so "local and CI run the
+          # same thing" holds for the lane LIST too, not only for each lane.
+          . tests/real/lib/lanes.sh
+          lanes="$(lane_names tests/real/lanes.tsv container | jq -R . | jq -sc .)"
           # awk exits 0 on no match, so a renamed adapter token yields `[]`, the
           # matrix covers nothing, and eight lanes vanish into a green tick. The
           # Windows job guards its derived list three steps down; this one has to

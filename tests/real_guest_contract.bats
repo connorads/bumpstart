@@ -247,9 +247,22 @@ teardown() {
 }
 
 @test "drive.sh's lane groups can never select the runner adapter" {
-  # Belt to the adapter's braces: the group filters are what `mise run vm-test` uses.
-  run grep -n 'container" || \$2 == "tart"' "$REAL/drive.sh"
-  [ "$status" -eq 0 ] || { echo "the 'all' group no longer excludes runner lanes"; false; }
-  run bash -c "awk -F'\t' 'NR > 1 && \$2 == \"runner\" { print \$1 }' '$REAL/lanes.tsv'"
-  [ -n "$output" ] || skip "no runner lanes to guard"
+  # Belt to the adapter's braces: the group filters are what `mise run vm-test` uses,
+  # and the runner adapter installs into the real $HOME of whatever machine it is on.
+  # Asserted through the same lane_names() drive.sh calls, over the real matrix.
+  # shellcheck source=tests/real/lib/lanes.sh
+  . "$REAL/lib/lanes.sh"
+  local runner_lanes
+  runner_lanes="$(lane_names "$REAL/lanes.tsv" runner)"
+  [ -n "$runner_lanes" ] || skip "no runner lanes to guard"
+
+  local selectable
+  selectable="$(lane_names "$REAL/lanes.tsv" container tart)"
+  for l in $runner_lanes; do
+    printf '%s\n' "$selectable" | grep -qx "$l" \
+      && { echo "the 'all' group can select the runner lane $l"; false; }
+  done
+  # And drive.sh really asks for those two groups, rather than everything.
+  grep -q 'lane_names "$REAL/lanes.tsv" container tart' "$REAL/drive.sh" \
+    || { echo "drive.sh's 'all' group no longer names its adapters"; false; }
 }
