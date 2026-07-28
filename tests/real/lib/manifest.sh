@@ -8,8 +8,8 @@
 # expectations to drift.
 #
 # Which keys are compared is the load-bearing decision: too strict and every version
-# bump is a red, too loose and the differential proves nothing. Hence two subsets,
-# each with a stated reason.
+# bump is a red, too loose and the differential proves nothing. Hence three subsets,
+# each with a stated reason and each answering a different question.
 #
 # Sourced, not executed. bash-3.2-clean.
 #
@@ -41,9 +41,8 @@ _manifest_subset_guard() {
 }
 
 # manifest_state_subset <file> — the keys that must be IDENTICAL between two runs of
-# the same lane (idempotence) and between two entry points on the same guest
-# (apply.sh vs the real paste). Everything about the machine's resulting state; none
-# of the narration.
+# the same lane on ONE guest (idempotence). Everything about the machine's resulting
+# state; none of the narration. Across guests, use manifest_entry_subset.
 #
 # Excluded, and why:
 #   lane / adapter / guest / axis / mode / run  — identify the run, not its result
@@ -65,6 +64,20 @@ manifest_state_subset() {
     $1 ~ /\.version_raw$/ { next }
     { print }
   ' "$1" | sort | _manifest_subset_guard "$1" state "$MANIFEST_STATE_MIN"
+}
+
+# manifest_entry_subset <file> — the state subset MINUS what a vendor seeds with
+# per-install randomness. Used for the apply-vs-paste differential, which compares
+# two different GUESTS; manifest_state_subset compares two runs on ONE guest, where
+# these keys are stable and worth asserting.
+#
+# Exactly one key today, and it is measured rather than assumed: Claude Code's own
+# installer writes ~/.claude.json before vibe looks at it, carrying firstStartTime,
+# machineID and userID. vibe's preseed_claude_trust then leaves it alone by design
+# ("never edit an existing config"), so the hash differs between any two machines
+# and is identical between two runs on one - which is precisely the split below.
+manifest_entry_subset() {
+  manifest_state_subset "$1" | awk -F'\t' '$1 != "path.claude-json"'
 }
 
 # manifest_invariant_subset <file> — the keys that must be identical across EVERY

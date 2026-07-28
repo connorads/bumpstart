@@ -47,14 +47,17 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 
 # ── Emitters ──────────────────────────────────────────────────────────────────
 
-# Home is normalised to the literal string $HOME. sed's replacement needs the
-# dollar escaped inside double quotes; the delimiter is | because a home path
-# never contains one.
+# Home is normalised to the literal string $HOME - as TEXT, never as a pattern. It
+# used to be interpolated into a sed REGEX, so a metacharacter in the path changed
+# what was replaced: HOME=/ rewrote every slash in every value, and an empty HOME
+# made sed error and empty them. Quoting the pattern inside ${v//.../} is what makes
+# bash treat it as literal rather than as a glob.
 _norm() {
-  printf '%s' "$1" \
-    | tr '\t\n\r' '   ' \
-    | sed -e "s|$HOME|\\\$HOME|g" \
-    | sed -e 's/[[:space:]]*$//'
+  _n_v="$(printf '%s' "$1" | tr '\t\n\r' '   ')"
+  if [ -n "${HOME:-}" ] && [ "$HOME" != / ]; then
+    _n_v="${_n_v//"$HOME"/\$HOME}"
+  fi
+  printf '%s' "$_n_v" | sed -e 's/[[:space:]]*$//'
 }
 
 emit() { printf '%s\t%s\n' "$1" "$(_norm "$2")"; }
@@ -71,12 +74,22 @@ emit manifest_version 2
 # left an EMPTY file — no marker, no keys, and a harness failure reported as a page
 # of "nothing was measured", which reads as class 1. An empty measurement is a
 # missing one.
+TAB="$(printf '\t')"
 for _pass in lane precheck; do
   if [ -s "$STATE/$_pass.tsv" ]; then
-    while IFS= read -r _line; do
+    # Through `emit`, never verbatim. These lines used to be copied straight in, so
+    # they escaped the one guarantee judge.sh and lib/tap.sh both depend on - single
+    # line, tab-free, $HOME normalised - and the `|| [ -n ]` is what keeps a final
+    # line that has no trailing newline.
+    while IFS= read -r _line || [ -n "$_line" ]; do
       [ -n "$_line" ] || continue
       case "$_line" in \#*) continue ;; esac
-      printf '%s\n' "$_line"
+      case "$_line" in
+        *"$TAB"*) emit "${_line%%"$TAB"*}" "${_line#*"$TAB"}" ;;
+        # A line with no tab is not a fact. Reported rather than silently reshaped
+        # into a key whose value is itself.
+        *) emit "probe.malformed.$_pass" "$_line" ;;
+      esac
     done < "$STATE/$_pass.tsv"
   else
     emit "probe.missing.$_pass" 1

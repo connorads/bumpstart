@@ -60,6 +60,9 @@ depends = ["lint", "test"]
 
 [tasks.vm-test]
 description = "Every real-install lane, locally (30-60 min; needs colima + tart)"
+# depends on the image, like vm-test-macos: `all` includes the tart lanes, so on a
+# fresh machine this reported class 2 thirty minutes in for want of a 23 GB pull.
+depends = ["vm-image-macos"]
 run = "bash tests/real/drive.sh --group all"
 
 [tasks.vm-test-linux]
@@ -84,8 +87,12 @@ if ! command -v tart >/dev/null 2>&1; then
   echo "tart is not installed - see the README Development section" >&2
   exit 1
 fi
-if tart list 2>/dev/null | grep -q -- "$image"; then
-  echo "$image already pulled"
+# --source local, and an exact name. A bare `tart list` shows the pulled OCI IMAGE
+# as well as the local clone, so an interrupted clone left this task saying
+# "already pulled" while every macOS lane failed class 2 with a remedy pointing
+# back here.
+if tart list --source local --quiet 2>/dev/null | grep -qx -- "$image"; then
+  echo "$image already cloned"
 else
   echo "pulling $image (~23 GB, once)"
   TART_NO_AUTO_PRUNE=1 tart pull "ghcr.io/cirruslabs/$image:latest"
@@ -96,16 +103,24 @@ date > .vibe-real/macos-image.stamp
 """
 
 [tasks.vm-clean]
-description = "Reap leftover real-install guests and their log bundles"
+description = "Reap leftover real-install guests, their log bundles and their scratch"
 run = """
 set -u
 docker ps -aq --filter 'name=^vibe-real-' 2>/dev/null | xargs -r docker rm -f
 if command -v tart >/dev/null 2>&1; then
-  tart list --format json 2>/dev/null | grep -o '"Name":"vibe-real-[^"]*"' | sed 's/.*:"//;s/"//' | while read -r vm; do
+  # --source local --quiet, not a grep over JSON: the old pattern failed OPEN, so a
+  # shape change upstream would leave 6 GB guests behind and say "clean".
+  tart list --source local --quiet 2>/dev/null | grep '^vibe-real-' | while read -r vm; do
     tart stop "$vm" >/dev/null 2>&1 || true
     tart delete "$vm" >/dev/null 2>&1 || true
   done
 fi
+# The runner adapter's read-only repo copy, and the tart console logs. Neither is
+# under .vibe-real, so neither was ever reaped - and the copy is chmod a-w, which is
+# why the write bit goes back first.
+src="${TMPDIR:-/tmp}/vibe-real-src"
+[ -d "$src" ] && chmod -R u+w "$src" 2>/dev/null
+rm -rf "$src" "${TMPDIR:-/tmp}"/vibe-tart-vibe-real-*.log
 rm -rf .vibe-real
 echo "clean"
 """

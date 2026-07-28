@@ -104,6 +104,9 @@ jobs:
     # aspirational. A new lane row joins CI with no workflow change.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    # It gates the whole Linux matrix, so a hang here is the whole real-install suite
+    # not running - and a job with no timeout gets the six-hour default.
+    timeout-minutes: 5
     outputs:
       linux: ${{ steps.matrix.outputs.linux }}
     steps:

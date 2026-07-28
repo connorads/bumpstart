@@ -111,8 +111,13 @@ for _paste in $(lane_names "$LANES_TSV" container tart runner); do
     [ "$LANE_IMAGE" = "$_want_image" ] || continue
     [ "$LANE_PASTE" = "$_want_ids" ] || continue
     PAIRED=$((PAIRED + 1))
+    # manifest_entry_subset, not manifest_state_subset: these are two different
+    # GUESTS, and Claude Code's installer seeds ~/.claude.json with a machineID and
+    # a userID before vibe ever looks at it. Comparing that hash across machines is
+    # a class-1 report of a vendor's randomness. Idempotence still compares it, on
+    # the one guest where it is stable.
     if manifest_diff "$_apply (apply.sh)" "$DIR/$_apply/run1.manifest" \
-                     "$_paste (the paste)" "$DIR/$_paste/run1.manifest" manifest_state_subset; then
+                     "$_paste (the paste)" "$DIR/$_paste/run1.manifest" manifest_entry_subset; then
       printf '  %s vs %s: apply.sh and the real paste left identical state\n' "$_apply" "$_paste"
     else
       bump "$CLASS_ASSERT"

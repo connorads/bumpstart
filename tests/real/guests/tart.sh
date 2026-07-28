@@ -61,8 +61,11 @@ guest_start() {
     printf 'guest: sshpass is not installed — the vanilla image has no tart guest agent\n' >&2
     return 1
   fi
-  if ! tart list 2>/dev/null | grep -q -- "$GUEST_IMAGE"; then
-    printf 'guest: the %s image is not pulled. Run: mise run vm-image-macos (23 GB)\n' "$GUEST_IMAGE" >&2
+  # --source local, and an exact name: a bare `tart list` also shows the pulled OCI
+  # image, so an interrupted clone read as "it is there" and the lane failed later
+  # for a reason the message did not name.
+  if ! tart list --source local --quiet 2>/dev/null | grep -qx -- "$GUEST_IMAGE"; then
+    printf 'guest: no local VM named %s. Run: mise run vm-image-macos (23 GB)\n' "$GUEST_IMAGE" >&2
     return 1
   fi
 
@@ -155,7 +158,7 @@ guest_fetch() {
 # no-op path.
 _tart_stop_and_delete() {
   _tsd_name="$1"
-  tart list 2>/dev/null | grep -q -- "$_tsd_name" || return 0
+  tart list --source local --quiet 2>/dev/null | grep -qx -- "$_tsd_name" || return 0
   tart stop "$_tsd_name" >/dev/null 2>&1 || true
   # tart stop is asynchronous; delete refuses while the VM is still running.
   _tsd_i=0

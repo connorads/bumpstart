@@ -57,9 +57,17 @@ function Format-VibeText {
   $v = $Value -replace "`t", ' '
   $v = $v -replace "`r", ''
   $v = $v -replace "`n", ' '
-  # Both separators, because a path reaches us either way on Windows.
-  $v = $v.Replace($HOME.Replace('\', '/'), '$HOME')
-  $v = $v.Replace($HOME, '$HOME')
+  # Case-INSENSITIVELY, and guarded. String.Replace is ordinal and case-sensitive,
+  # so C:\Users\x and C:\users\x did not both normalise on a filesystem where they
+  # are the same path - and it THROWS on an empty oldValue, which took the whole key
+  # with it. [regex]::Escape keeps the path a literal; '$$HOME' is how .NET spells a
+  # literal dollar in a replacement.
+  if (-not [string]::IsNullOrEmpty($HOME)) {
+    $opts = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+    # Both separators, because a path reaches us either way on Windows.
+    $v = [regex]::Replace($v, [regex]::Escape($HOME), '$$HOME', $opts)
+    $v = [regex]::Replace($v, [regex]::Escape($HOME.Replace('\', '/')), '$$HOME', $opts)
+  }
   return $v.TrimEnd()
 }
 

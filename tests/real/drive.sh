@@ -136,14 +136,16 @@ for LANE in $LANES; do
   bash "$REAL/lanes/run.sh" "$LANE" $KEEP --ref "$REF"
   _rc=$?
   bump_class "$_rc"
-  _tap="$OUT/$LANE/run1.tap"
+  # From the lane's own verdict, which counts EVERY run. Reading run1.tap alone made
+  # a lane whose SECOND run failed print `class 1  33 ok  0 failed`.
+  _v="$OUT/$LANE/lane.verdict"
   _ok=0
   _bad=0
-  if [ -f "$_tap" ]; then
-    _ok="$(grep -c '^ok ' "$_tap" 2>/dev/null)"
-    # `not ok … # TODO` is an ACCEPTED gap, not a failure — counting it as one would
-    # make every lane look permanently broken.
-    _bad="$(grep '^not ok ' "$_tap" 2>/dev/null | grep -vc '# TODO')"
+  if [ -f "$_v" ]; then
+    _ok="$(awk -F'\t' '$1 == "passed" { print $2; exit }' "$_v")"
+    _bad="$(awk -F'\t' '$1 == "failed" { print $2; exit }' "$_v")"
+    [ -n "$_ok" ] || _ok=0
+    [ -n "$_bad" ] || _bad=0
   fi
   SUMMARY="$SUMMARY
   $(printf '%-22s class %s  %s ok  %s failed' "$LANE" "$_rc" "$_ok" "$_bad")"

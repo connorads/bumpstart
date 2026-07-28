@@ -147,3 +147,38 @@ mset() {
   [ "$status" -ne 0 ] || { echo "a Windows manifest yielded a POSIX invariant subset"; false; }
   printf '%s\n' "$output" | grep -q 'POSIX' || { echo "$output"; false; }
 }
+
+# ── One guest or two: the same question has two right answers ─────────────────
+
+@test "the entry-point subset leaves out what a vendor seeds with per-install randomness" {
+  # Claude Code's own installer writes ~/.claude.json before vibe looks at it -
+  # firstStartTime, machineID, userID - and vibe's preseed_claude_trust then leaves
+  # it alone by design. Its hash therefore differs between any two machines, so the
+  # apply-vs-paste differential (two GUESTS) would report a vendor's randomness as
+  # class 1, "vibe is wrong", on the most expensive lane pair in the matrix.
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/other"
+  mset path.claude-json 'file:deadbeef'
+  run manifest_diff apply "$BATS_TEST_TMPDIR/other" paste "$M" manifest_entry_subset
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "idempotence still compares it, because on ONE guest it is stable" {
+  # The other half of the same decision: a second run rewriting Claude's config is a
+  # real finding, and preseed_claude_trust explicitly promises not to.
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/run1"
+  mset path.claude-json 'file:deadbeef'
+  run manifest_diff 'run 1' "$BATS_TEST_TMPDIR/run1" 'run 2' "$M" manifest_state_subset
+  [ "$status" -eq 1 ] || { echo "a rewritten Claude config passed idempotence"; false; }
+  printf '%s\n' "$output" | grep -q 'path.claude-json' || { echo "$output"; false; }
+}
+
+@test "the entry-point subset still carries everything else" {
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/other"
+  mset path.agents 'file:deadbeef'
+  run manifest_diff apply "$BATS_TEST_TMPDIR/other" paste "$M" manifest_entry_subset
+  [ "$status" -eq 1 ] || { echo "the entry subset stopped comparing state"; false; }
+  printf '%s\n' "$output" | grep -q 'path.agents' || { echo "$output"; false; }
+}

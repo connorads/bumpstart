@@ -24,9 +24,22 @@ TAP_TODO=0     # accepted known gaps
 tap_plan() { printf '1..%s\n' "$1"; }
 
 # diag <text>… — a TAP comment. Not an assertion.
+#
+# EVERY line prefixed, not just the first. judge.sh feeds manifest values straight
+# in, and a value carrying a newline would otherwise inject raw lines into the TAP
+# stream - where a bare `not ok` is an assertion to any consumer counting them. The
+# probe's normalisation is the first line of defence and it has had a hole in it;
+# this is where the stream lives, so the guarantee belongs here too.
+#
+# Builtins only, no sed: real_judge.bats starves the judge's PATH down to four text
+# utilities to prove it never reads the machine it is judging.
 diag() {
   for _d_line in "$@"; do
-    printf '# %s\n' "$_d_line"
+    while IFS= read -r _d_part || [ -n "$_d_part" ]; do
+      printf '# %s\n' "$_d_part"
+    done <<EOF
+$_d_line
+EOF
   done
 }
 

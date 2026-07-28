@@ -614,3 +614,34 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q 'npm waits 4 days' && { echo "asserted safer-installs on win"; false; }
   true
 }
+
+# ── The TAP stream itself ─────────────────────────────────────────────────────
+
+@test "a manifest value carrying a newline cannot inject lines into the TAP stream" {
+  # The judge feeds manifest values straight to diag(), which prefixed only the
+  # FIRST line. A value with an embedded newline would put a bare `not ok` line into
+  # the stream, where any consumer counting assertions would believe it. The probe's
+  # own normalisation is the first line of defence, and it has had a hole in it.
+  mani linux-ubuntu-base.manifest
+  # Written past `mset`, because the manifest format cannot carry this and that is
+  # exactly the point: the stream has to be safe anyway.
+  printf 'warn.0001\tinjected\nnot ok 99 - a failure nobody asserted\n' >> "$M"
+  judge
+  # Every emitted line is either an assertion the judge planned, a plan line, or a
+  # comment. Nothing else may appear.
+  local planned emitted
+  planned="$(printf '%s\n' "$output" | sed -n 's/^1\.\.\([0-9]*\)$/\1/p')"
+  emitted="$(printf '%s\n' "$output" | grep -c '^\(ok\|not ok\) ')"
+  [ "$planned" = "$emitted" ] || { echo "planned $planned, emitted $emitted:"; echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q '^not ok 99' && { echo "a raw line reached the stream"; false; }
+  true
+}
+
+@test "diag prefixes every line of a multi-line value" {
+  # shellcheck source=tests/real/lib/tap.sh
+  . "$REAL/lib/tap.sh"
+  run diag "$(printf 'first\nsecond\nthird')"
+  [ "${lines[0]}" = "# first" ] || { echo "$output"; false; }
+  [ "${lines[1]}" = "# second" ] || { echo "$output"; false; }
+  [ "${lines[2]}" = "# third" ] || { echo "$output"; false; }
+}
