@@ -1,0 +1,363 @@
+#!/usr/bin/env pwsh
+# probe.ps1: run INSIDE a Windows guest after a real install and write the state
+# manifest. The pwsh twin of probe.sh, emitting the same key<TAB>value shape so the
+# ONE judge (tests/real/judge.sh) decides every lane.
+#
+#   powershell.exe -File tests\real\probe.ps1 -StateDir C:\vibe-real -Manifest out.tsv
+#
+# It gathers and normalises; it judges nothing.
+#
+# Windows PowerShell 5.1-clean, and run under powershell.exe deliberately: the
+# runner's default is pwsh 7, which would silently defeat the 5.1 floor these tests
+# exist to protect. No ternary, no ??, no && / ||, no OS automatic variables.
+#
+# Two Windows differences the manifest has to carry, both real:
+#   - The PowerShell spine persists NO PATH of its own (there is no shellpath.ps1);
+#     Windows relies entirely on each installer's own registry edit. So the
+#     fresh-shell measurement reads the User- and Machine-scope registry PATH, NEVER
+#     $env:PATH - the harness's own $GITHUB_PATH additions would mask a missing entry
+#     and make the whole check vacuous.
+#   - There are no symlinks here. Claude gets an `@<canonical>` import line, Codex a
+#     physical copy (Link-Harness in lib/instructions.ps1), so instructions.link.* is
+#     `import:<path>` / `copy:current` rather than `symlink:<target>`.
+
+[CmdletBinding()]
+param(
+  # Where the lane runner left lane.tsv / precheck.tsv / transcript.log / exit.
+  [string]$StateDir = 'C:\vibe-real',
+  # Write here rather than to stdout: Windows PowerShell's `>` writes UTF-16LE,
+  # which the judge's awk cannot read. Empty means stdout.
+  #
+  # NOT named -Out: CmdletBinding adds -OutVariable and -OutBuffer, so `-Out` is an
+  # ambiguous prefix and binding fails with no manifest and a zero exit status.
+  [string]$Manifest = ''
+)
+
+$ErrorActionPreference = 'Continue'
+
+$lines = New-Object System.Collections.ArrayList
+$tab = [char]9
+
+# -- Normalisation -------------------------------------------------------------
+#
+# $HOME out, backslashes out of paths, single line, no tabs - because the host
+# driver compares manifests across runs, across entry points and across guests. The
+# hostname is pinned by the adapter rather than normalised here.
+
+function Format-VibeText {
+  param([string]$Value)
+  if ($null -eq $Value) { return '' }
+  $v = $Value -replace "`t", ' '
+  $v = $v -replace "`r", ''
+  $v = $v -replace "`n", ' '
+  # Both separators, because a path reaches us either way on Windows.
+  $v = $v.Replace($HOME.Replace('\', '/'), '$HOME')
+  $v = $v.Replace($HOME, '$HOME')
+  return $v.TrimEnd()
+}
+
+function Format-VibePath {
+  param([string]$Value)
+  if ($null -eq $Value) { return '' }
+  return (Format-VibeText ($Value -replace '\\', '/'))
+}
+
+function Emit {
+  param([string]$Key, $Value)
+  $null = $lines.Add("$Key$tab" + (Format-VibeText ([string]$Value)))
+}
+
+function Emit-Path {
+  param([string]$Key, $Value)
+  $null = $lines.Add("$Key$tab" + (Format-VibePath ([string]$Value)))
+}
+
+function Emit-Bool {
+  param([string]$Key, [bool]$Value)
+  if ($Value) { Emit $Key 1 } else { Emit $Key 0 }
+}
+
+# -- What only the runner knows ------------------------------------------------
+
+$null = $lines.Add('# vibe real-install state manifest')
+Emit 'manifest_version' 1
+
+foreach ($pass in @('lane', 'precheck')) {
+  $f = Join-Path $StateDir "$pass.tsv"
+  if (Test-Path -LiteralPath $f) {
+    foreach ($l in (Get-Content -LiteralPath $f)) {
+      if ([string]::IsNullOrWhiteSpace($l)) { continue }
+      if ($l.StartsWith('#')) { continue }
+      $null = $lines.Add(($l -replace "`r", ''))
+    }
+  } else {
+    Emit "probe.missing.$pass" 1
+  }
+}
+
+# -- The machine ---------------------------------------------------------------
+
+Emit 'os' 'win'
+# No root here. Emitted for the record; the judge skips it on Windows, because
+# "not root" is what makes the POSIX sudo paths non-vacuous and has no analogue.
+Emit 'env.root' 0
+Emit 'env.userns.restricted' 'none'
+
+$exitFile = Join-Path $StateDir 'exit'
+if (Test-Path -LiteralPath $exitFile) {
+  Emit 'transcript.exit' ((Get-Content -LiteralPath $exitFile -TotalCount 1) -replace '\s', '')
+} else {
+  Emit 'probe.missing.exit' 1
+}
+
+# -- The transcript: the verdict, and every warning behind it ------------------
+#
+# lib/apply.ps1 exits 0 even when steps warned, and its UI goes to Write-Host, so
+# the runner captures every stream and the verdict comes from the TEXT. The finish
+# strings are byte-identical to the bash spine's, so one parser serves both.
+
+$log = Join-Path $StateDir 'transcript.log'
+if (Test-Path -LiteralPath $log) {
+  $text = Get-Content -LiteralPath $log -Raw
+  if ($null -eq $text) { $text = '' }
+  if ($text.Contains('Setup complete.')) {
+    Emit 'transcript.verdict' 'clean'
+  } elseif ($text.Contains('Setup finished, but')) {
+    Emit 'transcript.verdict' 'warned'
+  } else {
+    Emit 'transcript.verdict' 'aborted'
+  }
+
+  # The glyph is the channel: Warn is "  ! ", Info "  <U+203A> ", Err "  <U+2717> ".
+  $glyphs = @(
+    @{ Key = 'warn';  Prefix = '  ! ' },
+    @{ Key = 'info';  Prefix = ('  ' + [char]0x203A + ' ') },
+    @{ Key = 'error'; Prefix = ('  ' + [char]0x2717 + ' ') }
+  )
+  foreach ($g in $glyphs) {
+    $n = 0
+    foreach ($l in (Get-Content -LiteralPath $log)) {
+      $line = $l -replace "`r", ''
+      if (-not $line.StartsWith($g.Prefix)) { continue }
+      $body = $line.Substring($g.Prefix.Length)
+      if ([string]::IsNullOrWhiteSpace($body)) { continue }
+      $n++
+      Emit ("{0}.{1:d4}" -f $g.Key, $n) $body
+    }
+    if ($g.Key -eq 'warn') { Emit 'transcript.warn_count' $n }
+  }
+} else {
+  Emit 'probe.missing.transcript' 1
+}
+
+# -- Every installed tool's binary really RUNS --------------------------------
+#
+# On the run's own PATH plus vibe's install dirs, because this asks "did
+# acquisition work" - a different question from "does a new terminal find it".
+# `--version` rather than Get-Command: the faked suite's claude IS a stub, so a
+# binary that executes is the whole point, and it catches a wrong-arch install.
+
+$sep = [System.IO.Path]::PathSeparator
+$probeDirs = @(
+  (Join-Path $HOME '.local\bin')
+  (Join-Path $HOME '.codex\bin')
+)
+if ($env:APPDATA) { $probeDirs += (Join-Path $env:APPDATA 'npm') }
+if ($env:ProgramFiles) { $probeDirs += (Join-Path $env:ProgramFiles 'nodejs') }
+if ($env:LOCALAPPDATA) { $probeDirs += (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links') }
+
+$savedPath = $env:PATH
+foreach ($d in $probeDirs) {
+  if (Test-Path -LiteralPath $d) { $env:PATH = "$d$sep$($env:PATH)" }
+}
+
+$tools = @('claude', 'codex', 'gh', 'git', 'node', 'pnpm', 'mise')
+foreach ($t in $tools) {
+  $ran = $false
+  $ver = 'absent'
+  $cmd = Get-Command $t -ErrorAction SilentlyContinue
+  if ($cmd) {
+    $out = (& $t --version 2>&1 | Out-String)
+    if ($LASTEXITCODE -eq 0) {
+      $ran = $true
+      $ver = $out.Trim()
+    }
+  }
+  Emit-Bool "tool.$t.runs" $ran
+  Emit "tool.$t.version_raw" $ver
+}
+$env:PATH = $savedPath
+
+# -- A FRESH shell finds them: the REGISTRY PATH, not $env:PATH ---------------
+
+$regDirs = @()
+foreach ($scope in @('User', 'Machine')) {
+  $raw = [Environment]::GetEnvironmentVariable('Path', $scope)
+  if ([string]::IsNullOrWhiteSpace($raw)) { continue }
+  foreach ($d in ($raw -split ';')) {
+    if ([string]::IsNullOrWhiteSpace($d)) { continue }
+    $regDirs += [Environment]::ExpandEnvironmentVariables($d.Trim())
+  }
+}
+
+function Test-RegPathResolves {
+  param([string]$Tool, [string[]]$Dirs)
+  $exts = @('.exe', '.cmd', '.bat', '.com', '.ps1', '')
+  foreach ($d in $Dirs) {
+    foreach ($e in $exts) {
+      if (Test-Path -LiteralPath (Join-Path $d "$Tool$e")) { return $true }
+    }
+  }
+  return $false
+}
+
+Emit 'shell.kind' 'registry'
+foreach ($t in $tools) {
+  Emit-Bool "shell.regpath.$t" (Test-RegPathResolves $t $regDirs)
+}
+
+# No rc file on this spine, and no persisted PATH line, so the marker keys the
+# POSIX lanes assert do not exist here. Recorded explicitly rather than omitted, so
+# a reader of the manifest sees the difference is deliberate.
+Emit 'rc.file' 'none'
+Emit 'rc.persists_path' 0
+
+# -- Desktop apps, by the exact ids the CHECK_WIN cells use ------------------
+
+function Test-WingetPackage {
+  param([string]$Id, [string]$Match, [bool]$Exact)
+  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { return $false }
+  if ($Exact) {
+    $out = (winget list --id $Id -e 2>$null | Out-String)
+  } else {
+    $out = (winget list --id $Id 2>$null | Out-String)
+  }
+  if ($null -eq $out) { return $false }
+  return $out.Contains($Match)
+}
+
+Emit-Bool 'app.claude' (Test-WingetPackage 'Anthropic.Claude' 'Anthropic.Claude' $true)
+Emit-Bool 'app.github-desktop' (Test-WingetPackage 'GitHub.GitHubDesktop' 'GitHub.GitHubDesktop' $true)
+Emit-Bool 'app.chatgpt' (Test-WingetPackage '9PLM9XGG6VKS' 'ChatGPT' $false)
+
+# -- safer-installs, at the paths the tools themselves read ------------------
+#
+# The block has no apply.ps1 yet, so it is a Windows no-op and the judge does not
+# assert these - they are emitted anyway so the day an apply.ps1 lands, the lane
+# starts measuring it without a probe change.
+
+function Get-KvValue {
+  param([string]$File, [string]$Separator, [string]$Key)
+  if (-not (Test-Path -LiteralPath $File)) { return 'absent' }
+  foreach ($l in (Get-Content -LiteralPath $File)) {
+    $i = $l.IndexOf($Separator)
+    if ($i -lt 1) { continue }
+    $k = $l.Substring(0, $i).Trim()
+    if ($k -ne $Key) { continue }
+    $v = $l.Substring($i + $Separator.Length).Trim()
+    return $v.Trim('"')
+  }
+  return 'absent'
+}
+
+$npmrc = Join-Path $HOME '.npmrc'
+Emit 'npmrc.min-release-age' (Get-KvValue $npmrc '=' 'min-release-age')
+Emit 'npmrc.allow-git' (Get-KvValue $npmrc '=' 'allow-git')
+Emit 'npmrc.allow-remote' (Get-KvValue $npmrc '=' 'allow-remote')
+
+$miseCfg = Join-Path $HOME '.config\mise\config.toml'
+if ($env:XDG_CONFIG_HOME) { $miseCfg = Join-Path $env:XDG_CONFIG_HOME 'mise\config.toml' }
+Emit 'mise.minimum_release_age' (Get-KvValue $miseCfg '=' 'minimum_release_age')
+
+$pnpmCfg = Join-Path $HOME '.config\pnpm\config.yaml'
+if ($env:XDG_CONFIG_HOME) { $pnpmCfg = Join-Path $env:XDG_CONFIG_HOME 'pnpm\config.yaml' }
+if (Test-Path -LiteralPath $pnpmCfg) { Emit-Path 'pnpm.config' $pnpmCfg } else { Emit 'pnpm.config' 'absent' }
+Emit 'pnpm.minimumReleaseAge' (Get-KvValue $pnpmCfg ':' 'minimumReleaseAge')
+Emit 'pnpm.minimumReleaseAgeStrict' (Get-KvValue $pnpmCfg ':' 'minimumReleaseAgeStrict')
+
+# -- Instructions, sampled ---------------------------------------------------
+
+$canon = Join-Path (Join-Path $HOME '.agents') 'AGENTS.md'
+Emit-Path 'instructions.canonical' $canon
+$canonText = ''
+if (Test-Path -LiteralPath $canon) {
+  $canonText = (Get-Content -LiteralPath $canon -Raw)
+  if ($null -eq $canonText) { $canonText = '' }
+}
+Emit-Bool 'instructions.canonical.nonempty' (-not [string]::IsNullOrWhiteSpace($canonText))
+
+function Get-VibeHash {
+  param([string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) { return 'absent' }
+  return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
+}
+Emit 'instructions.canonical.sha256' (Get-VibeHash $canon)
+
+# Claude: a single bare `@<canonical>` line (a path inside a code fence is not
+# imported, which is why the whole file has to be that one line).
+$claudeTarget = Join-Path (Join-Path $HOME '.claude') 'CLAUDE.md'
+$claudeState = 'absent'
+if (Test-Path -LiteralPath $claudeTarget) {
+  $t = (Get-Content -LiteralPath $claudeTarget -Raw)
+  if ($null -eq $t) { $t = '' }
+  if ($t.Trim() -eq "@$canon") {
+    $claudeState = 'import:' + (Format-VibePath $canon)
+  } else {
+    $claudeState = 'file:' + (Get-VibeHash $claudeTarget)
+  }
+}
+Emit 'instructions.link.claude' $claudeState
+
+# Codex: a physical copy, re-copied each run, so "current" means byte-identical to
+# the canonical right now.
+$codexTarget = Join-Path (Join-Path $HOME '.codex') 'AGENTS.md'
+$codexState = 'absent'
+if (Test-Path -LiteralPath $codexTarget) {
+  $t = (Get-Content -LiteralPath $codexTarget -Raw)
+  if ($null -eq $t) { $t = '' }
+  if ($t -eq $canonText) { $codexState = 'copy:current' } else { $codexState = 'copy:stale' }
+}
+Emit 'instructions.link.codex' $codexState
+
+Emit-Bool 'instructions.section.git' ($canonText.Contains('## Saving your work (git)'))
+Emit-Bool 'instructions.section.node' ($canonText.Contains('## Node.js'))
+
+# -- Every vibe-owned path: the differential's raw material ------------------
+
+function Get-PathState {
+  param([string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) { return 'absent' }
+  $item = Get-Item -LiteralPath $Path -Force
+  if ($item.PSIsContainer) { return 'dir' }
+  return 'file:' + (Get-VibeHash $Path)
+}
+
+$owned = @(
+  @{ Key = 'path.agents';       Path = $canon },
+  @{ Key = 'path.claude-md';    Path = $claudeTarget },
+  @{ Key = 'path.claude-json';  Path = (Join-Path $HOME '.claude.json') },
+  @{ Key = 'path.codex-agents'; Path = $codexTarget },
+  @{ Key = 'path.codex-config'; Path = (Join-Path $HOME '.codex\config.toml') },
+  @{ Key = 'path.npmrc';        Path = $npmrc },
+  @{ Key = 'path.mise-config';  Path = $miseCfg },
+  @{ Key = 'path.pnpm-config';  Path = $pnpmCfg },
+  @{ Key = 'path.starter';      Path = (Join-Path $HOME 'git\first-project') },
+  @{ Key = 'path.starter-git';  Path = (Join-Path $HOME 'git\first-project\.git') }
+)
+foreach ($o in $owned) {
+  Emit-Path $o.Key (Get-PathState $o.Path)
+}
+
+# -- Write it out ------------------------------------------------------------
+#
+# LF and UTF-8 without a BOM, written through .NET: `>` under Windows PowerShell
+# 5.1 produces UTF-16LE, which the judge's awk reads as binary.
+
+$body = ($lines -join "`n") + "`n"
+if ([string]::IsNullOrWhiteSpace($Manifest)) {
+  Write-Output $body
+} else {
+  $enc = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Manifest, $body, $enc)
+}
+exit 0
