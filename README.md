@@ -451,7 +451,7 @@ local driver **and** by CI, so both run the same thing:
 | `macos-vanilla` | Tart, vanilla Tahoe | the only genuinely first-time Mac: Homebrew, the Xcode CLT, casks |
 | `macos-vanilla-paste` | Tart, vanilla Tahoe | the real paste, fetching `vibe` from the commit under test |
 | `macos-drift` | `macos-latest`, de-brewed | CI only, weekly. **Drift detection, not a pristine Mac** |
-| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the registry rather than any rc file. Twice, like every other lane |
+| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the registry rather than any rc file. Twice, like every other lane - but hand-rolled in the workflow rather than a row here, which is a standing drift risk: [docs/adr/0004](docs/adr/0004-the-windows-lane-is-not-a-row.md) |
 
 How a lane decides it worked: a guest-side **precheck** measures the machine before
 anything runs, a guest-side **probe** measures it again afterwards and emits a
