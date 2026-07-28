@@ -307,6 +307,18 @@ do_run() {
 
   # lane.tsv: what only the runner knows. Rewritten per run so `run` is honest.
   guest_exec_root "rm -f $S/lane.tsv $S/transcript.log $S/exit $S/manifest"
+
+  # askpass.log is TRUNCATED, not removed, and by the user rather than root: the
+  # helper appends as the invoking (unprivileged) user, and the judge reads the
+  # file's PRESENCE as "the password axis really ran". Left in place across runs it
+  # made run 2's count a re-reading of run 1 — so `it asked exactly once` passed on a
+  # run that never asked at all, and would invert the moment the timing shifted.
+  if [ "$GUEST_SUDO" = password ]; then
+    guest_exec ": > $S/askpass.log" || {
+      fail_harness "could not reset the askpass log for run $_dr_n"
+      return "$CLASS_HARNESS"
+    }
+  fi
   for _kv in "lane:$LANE" "adapter:$ADAPTER" "guest:$IMAGE" "axis:$AXIS" \
              "mode:$ENTRY" "run:$_dr_n" "blocks:$BLOCKS"; do
     guest_exec_root "printf '%s\\t%s\\n' '${_kv%%:*}' '${_kv#*:}' >> $S/lane.tsv"

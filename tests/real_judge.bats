@@ -326,6 +326,38 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q '^# askpass invocations: 2$' || { echo "$output"; false; }
 }
 
+# The second run finds git already installed, so it has no privileged work left and
+# must NOT ask again — the opposite claim to run 1's, and the reason the runner
+# truncates askpass.log per run. Asserting "exactly once" on both is what a shared
+# log made look true on a run that never asked at all.
+@test "the second password run must not ask again" {
+  mani linux-arch-password.manifest
+  mset run 2
+  mset askpass.count 0
+  mdel askpass.0001
+  judge
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+  assert_plan_matches
+  printf '%s\n' "$output" | grep -q '^ok .* did not ask again' || { echo "$output"; false; }
+}
+
+@test "a second password run that asks again is a finding" {
+  mani linux-arch-password.manifest
+  mset run 2
+  judge
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q '^not ok .* did not ask again' || { echo "$output"; false; }
+}
+
+@test "a manifest with no run number takes the stricter first-run assertion" {
+  mani linux-arch-password.manifest
+  mdel run
+  mset askpass.count 0
+  judge
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q '^not ok .* sudo really asked for a password' || { echo "$output"; false; }
+}
+
 @test "a non-password lane asserts nothing about askpass" {
   mani linux-ubuntu-base.manifest
   judge

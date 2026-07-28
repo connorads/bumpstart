@@ -330,11 +330,24 @@ if has_block safer-installs && [ "$OS" != win ]; then
 fi
 
 # 8. The sudo password prompt -------------------------------------------------
+#
+# Run-aware, because the promise is "it asks once, and only if git needs installing"
+# — so the SECOND run's honest claim is the opposite one. Run 1 installs git and must
+# ask exactly once; run 2 finds git present, does no privileged work, and must not
+# ask again. Asserting "exactly once" on both is what a shared askpass log made look
+# true. An absent or unreadable `run` key takes the stricter branch: a measurement
+# that never happened is not a licence to expect nothing.
 case "$AXIS" in
   *password-sudo*)
-    add_check eq derived.askpass_fired 1 \
-      "sudo really asked for a password (an empty log means NOPASSWD leaked in)"
-    add_check eq askpass.count 1 "it asked exactly once, as the README promises" ;;
+    case "$(mget run)" in
+      ''|1)
+        add_check eq derived.askpass_fired 1 \
+          "sudo really asked for a password (an empty log means NOPASSWD leaked in)"
+        add_check eq askpass.count 1 "it asked exactly once, as the README promises" ;;
+      *)
+        add_check eq askpass.count 0 \
+          "the second run had nothing privileged left to do, so it did not ask again" ;;
+    esac ;;
 esac
 
 # 9. Instructions, sampled ---------------------------------------------------
