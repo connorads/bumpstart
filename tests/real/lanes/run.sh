@@ -38,10 +38,8 @@ REPO="$(cd "$REAL/../.." && pwd -P)"
 . "$REAL/lib/tap.sh"
 # shellcheck source=tests/real/lib/manifest.sh
 . "$REAL/lib/manifest.sh"
-
-CLASS_ASSERT=1
-CLASS_INFRA=2
-CLASS_HARNESS=3
+# shellcheck source=tests/real/lib/class.sh
+. "$REAL/lib/class.sh"
 
 LANE=""
 KEEP=false
@@ -389,7 +387,7 @@ _i=1
 while [ "$_i" -le "$RUNS" ]; do
   do_run "$_i"
   _rc=$?
-  if [ "$_rc" -ne 0 ] && [ "$_rc" -gt "$RUN_CLASS" ]; then RUN_CLASS="$_rc"; fi
+  RUN_CLASS="$(class_worse "$RUN_CLASS" "$_rc")"
   # A harness or infrastructure failure makes every later run meaningless.
   if [ "$_rc" = "$CLASS_HARNESS" ] || [ "$_rc" = "$CLASS_INFRA" ]; then break; fi
   _i=$((_i + 1))
@@ -406,7 +404,7 @@ if [ "$RUNS" -ge 2 ] && [ -f "$OUT/run1.manifest" ] && [ -f "$OUT/run2.manifest"
   if manifest_diff "run 1" "$OUT/run1.manifest" "run 2" "$OUT/run2.manifest" manifest_state_subset; then
     note "  identical state"
   else
-    if [ "$RUN_CLASS" -lt "$CLASS_ASSERT" ]; then RUN_CLASS="$CLASS_ASSERT"; fi
+    RUN_CLASS="$(class_worse "$RUN_CLASS" "$CLASS_ASSERT")"
   fi
 fi
 

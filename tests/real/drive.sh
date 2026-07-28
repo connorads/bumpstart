@@ -24,6 +24,8 @@ REPO="$(cd "$REPO/.." && pwd -P)"
 
 # shellcheck source=tests/real/lib/manifest.sh
 . "$REAL/lib/manifest.sh"
+# shellcheck source=tests/real/lib/class.sh
+. "$REAL/lib/class.sh"
 
 GROUP=all
 KEEP=""
@@ -90,16 +92,8 @@ WORST=0
 SUMMARY=""
 RAN=""
 
-bump_class() {
-  # 1 beats 3 beats 2 beats 0 — severity order, not numeric order.
-  case "$1:$WORST" in
-    1:*)   WORST=1 ;;
-    3:1)   : ;;
-    3:*)   WORST=3 ;;
-    2:1|2:3) : ;;
-    2:*)   WORST=2 ;;
-  esac
-}
+# 1 beats 3 beats 2 beats 0 — severity order, not numeric order. lib/class.sh owns it.
+bump_class() { WORST="$(class_worse "$WORST" "$1")"; }
 
 for LANE in $LANES; do
   # shellcheck disable=SC2086  # KEEP is either empty or one flag
