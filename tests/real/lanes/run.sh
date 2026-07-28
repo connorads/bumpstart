@@ -74,7 +74,7 @@ mkdir -p "$OUT" || exit "$CLASS_HARNESS"
 # Named artefacts rather than `rm -rf "$OUT"`, because --out points wherever the
 # caller says.
 rm -f "$OUT"/run[0-9]*.transcript "$OUT"/run[0-9]*.manifest "$OUT"/run[0-9]*.tap \
-      "$OUT"/run[0-9]*.probe.err "$OUT/lane.tsv" "$OUT/askpass.log" "$OUT/guest.env" \
+      "$OUT"/run[0-9]*.probe.err "$OUT/lane.verdict" "$OUT/askpass.log" "$OUT/guest.env" \
       2>/dev/null
 
 note()  { printf '  %s\n' "$1"; }
@@ -114,6 +114,50 @@ fi
 printf '\n  === lane %s (%s, %s, axis %s, entry %s) ===\n' "$LANE" "$ADAPTER" "$IMAGE" "$AXIS" "$ENTRY"
 note "paste:  $IDS"
 note "blocks: $BLOCKS"
+
+# ── The verdict: how many assertions actually ran ───────────────────────────
+#
+# Written on EVERY exit path, class 0 and class 2 included, because the one thing no
+# single lane can see is whether the SUITE proved anything. Three routes led to a
+# permanently green, permanently useless matrix - an empty lane list, every leg
+# returning class 2 as a green ::warning, and a bundle written only on class 1 - and
+# they share one shape: nothing asserted that anything was asserted. tests/real/
+# verdicts.sh aggregates these; judge.sh already has the instinct one level down
+# ("a lane that asserts nothing cannot pass").
+#
+# An EXIT trap rather than a call at each exit: a lane that dies in provisioning has
+# to say "class 2, nothing asserted" out loud, and there are eight ways out of this
+# script.
+
+# shellcheck disable=SC2329  # invoked from the EXIT trap below
+write_verdict() {
+  _wv_judged=0; _wv_ok=0; _wv_bad=0; _wv_todo=0
+  for _wv_tap in "$OUT"/run[0-9]*.tap; do
+    [ -f "$_wv_tap" ] || continue
+    _wv_judged=$((_wv_judged + 1))
+    _wv_ok=$((_wv_ok + $(grep -c '^ok ' "$_wv_tap" 2>/dev/null)))
+    # `not ok … # TODO` is an ACCEPTED gap, not a failure; counted apart so neither
+    # number lies.
+    _wv_bad=$((_wv_bad + $(grep '^not ok ' "$_wv_tap" 2>/dev/null | grep -vc '# TODO ')))
+    _wv_todo=$((_wv_todo + $(grep -c '^not ok .* # TODO ' "$_wv_tap" 2>/dev/null)))
+  done
+  {
+    printf 'lane\t%s\n'        "$LANE"
+    printf 'adapter\t%s\n'     "$ADAPTER"
+    printf 'image\t%s\n'       "$IMAGE"
+    printf 'axis\t%s\n'        "$AXIS"
+    printf 'entry\t%s\n'       "$ENTRY"
+    printf 'paste\t%s\n'       "$IDS"
+    printf 'blocks\t%s\n'      "$BLOCKS"
+    printf 'class\t%s\n'       "$1"
+    printf 'runs_judged\t%s\n' "$_wv_judged"
+    printf 'assertions\t%s\n'  "$((_wv_ok + _wv_bad + _wv_todo))"
+    printf 'passed\t%s\n'      "$_wv_ok"
+    printf 'failed\t%s\n'      "$_wv_bad"
+    printf 'todo\t%s\n'        "$_wv_todo"
+  } > "$OUT/lane.verdict"
+}
+trap 'write_verdict "$?"' EXIT
 
 # ── The guest ────────────────────────────────────────────────────────────────
 
@@ -425,18 +469,13 @@ if [ "$RUNS" -ge 2 ] && [ -f "$OUT/run1.manifest" ] && [ -f "$OUT/run2.manifest"
 fi
 
 # ── Keep the corpse when it matters ───────────────────────────────────────
+#
+# The bundle is written for EVERY non-zero class, not only class 1. A class 3 used to
+# upload a bundle missing exactly the diagnostics the last round added, and a class 2
+# uploaded nothing at all - so "which vendor URL 404'd" lived only in a step log that
+# ages out, on the one class whose whole purpose is to say what upstream did.
 
-if [ "$RUN_CLASS" = "$CLASS_ASSERT" ]; then
-  printf '\n  lane %s FAILED (class 1: an assertion failed)\n' "$LANE" >&2
-  {
-    printf 'lane\t%s\n' "$LANE"
-    printf 'adapter\t%s\n' "$ADAPTER"
-    printf 'image\t%s\n' "$IMAGE"
-    printf 'axis\t%s\n' "$AXIS"
-    printf 'entry\t%s\n' "$ENTRY"
-    printf 'paste\t%s\n' "$IDS"
-    printf 'blocks\t%s\n' "$BLOCKS"
-  } > "$OUT/lane.tsv"
+if [ "$RUN_CLASS" != 0 ]; then
   # The environment the RUN saw, allow-listed — never a raw `env`. On the runner
   # adapter the guest IS the CI job, and .github/workflows/ci.yml uploads this bundle
   # as an artifact on failure: a public repo's artifacts are downloadable by anyone,
@@ -446,6 +485,12 @@ if [ "$RUN_CLASS" = "$CLASS_ASSERT" ]; then
     > "$OUT/guest.env" 2>/dev/null
   guest_fetch "$S/askpass.log" "$OUT/askpass.log" 2>/dev/null
   printf '  log bundle: %s\n' "$OUT" >&2
+fi
+
+# Only an assertion failure keeps the guest: class 2 and 3 say nothing about the
+# machine, and a kept guest is a 6 GB VM or a container nobody comes back to.
+if [ "$RUN_CLASS" = "$CLASS_ASSERT" ]; then
+  printf '\n  lane %s FAILED (class 1: an assertion failed)\n' "$LANE" >&2
   guest_keep
   exit "$CLASS_ASSERT"
 fi

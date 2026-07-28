@@ -466,7 +466,15 @@ is proved by making runs that *ought* to agree produce an identical manifest.
 Three exit classes, not pass/fail, because a lane that reports "upstream moved" as
 "vibe is broken" is a lane that gets muted: **1** an assertion failed, **2**
 infrastructure (a guest, an image, a vendor URL), **3** a harness bug. No retries
-anywhere. A class-1 failure keeps the guest alive and prints how to reattach.
+anywhere. A class-1 failure keeps the guest alive and prints how to reattach; every
+non-zero class leaves a log bundle.
+
+Class 2 is reported without going red, which is what stops the lanes being muted -
+and is also how *every* leg failing the same way could read as a green tick. So each
+lane writes a `lane.verdict` counting the assertions that actually ran, and a summary
+job aggregates them: a matrix where **no** lane reached a judgement fails, and so does
+one where a declared lane never reported. It is the same rule the judge applies to a
+single lane ("a lane that asserts nothing cannot pass"), one level up.
 
 Two caveats worth stating plainly. The vanilla macOS image has **Gatekeeper disabled**
 and passwordless sudo baked in, so it is pristine with respect to Homebrew but *more

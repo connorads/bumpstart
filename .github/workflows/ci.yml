@@ -112,6 +112,14 @@ jobs:
         run: |
           lanes="$(awk -F'\t' 'NR > 1 && $2 == "container" { print $1 }' tests/real/lanes.tsv \
             | jq -R . | jq -sc .)"
+          # awk exits 0 on no match, so a renamed adapter token yields `[]`, the
+          # matrix covers nothing, and eight lanes vanish into a green tick. The
+          # Windows job guards its derived list three steps down; this one has to
+          # as well.
+          if [ "$lanes" = "[]" ]; then
+            echo "::error::no container lanes in tests/real/lanes.tsv - the matrix would cover nothing"
+            exit 1
+          fi
           echo "linux=$lanes" >> "$GITHUB_OUTPUT"
 
   linux-real-install:
@@ -148,6 +156,19 @@ jobs:
             2) echo "::warning title=$LANE::infrastructure, not a vibe failure (class 2)" ;;
             *) exit "$rc" ;;
           esac
+      # ALWAYS, and small: this is what the summary job aggregates. A lane that
+      # cannot report is indistinguishable from a lane that was never scheduled, and
+      # the whole point of the summary is to tell those apart.
+      - name: verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-verdict-${{ matrix.lane }}
+          path: |
+            .vibe-real/*/lane.verdict
+            .vibe-real/*/run*.manifest
+          if-no-files-found: warn
+          retention-days: 7
       - name: log bundle
         if: failure()
         uses: actions/upload-artifact@v4
@@ -155,6 +176,34 @@ jobs:
           name: real-linux-${{ matrix.lane }}
           path: .vibe-real/
           retention-days: 7
+
+  real-summary:
+    # The failure NO per-lane job can see: whether the SUITE proved anything.
+    #
+    # Class 2 is a green ::warning by design - the structural answer to "the lane
+    # will get muted" - so a stopped docker daemon, a registry rate limit or a guest
+    # that will not boot turns EVERY leg green with annotations nobody reads on a
+    # weekly schedule. And a lane silently dropped from the matrix looks exactly like
+    # a lane that passed. This job is the assertion that assertions ran.
+    if: always() && github.event_name != 'pull_request'
+    needs: [real-lanes, linux-real-install]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: real-verdict-*
+          path: verdicts
+      - name: did the suite prove anything?
+        env:
+          LANES: ${{ needs.real-lanes.outputs.linux }}
+        run: |
+          # The lanes the matrix DECLARED, not the ones that happened to report -
+          # comparing the reports against themselves is how a vanished lane hides.
+          lanes="$(printf '%s' "$LANES" | jq -r '.[]' | tr '\n' ' ')"
+          # shellcheck disable=SC2086  # the lane list is deliberately word-split
+          bash tests/real/verdicts.sh verdicts $lanes
 
   macos-real-install:
     # DRIFT DETECTION, NOT A PRISTINE MAC. There is no clean hosted macOS and GitHub
@@ -200,6 +249,16 @@ jobs:
       - name: disk after
         if: always()
         run: df -h /
+      - name: verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-verdict-macos-drift
+          path: |
+            .vibe-real/*/lane.verdict
+            .vibe-real/*/run*.manifest
+          if-no-files-found: warn
+          retention-days: 7
       - name: log bundle
         if: failure()
         uses: actions/upload-artifact@v4
