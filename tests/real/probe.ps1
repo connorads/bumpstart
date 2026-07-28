@@ -14,9 +14,12 @@
 # Two Windows differences the manifest has to carry, both real:
 #   - The PowerShell spine persists NO PATH of its own (there is no shellpath.ps1);
 #     Windows relies entirely on each installer's own registry edit. So the
-#     fresh-shell measurement reads the User- and Machine-scope registry PATH, NEVER
-#     $env:PATH - the harness's own $GITHUB_PATH additions would mask a missing entry
-#     and make the whole check vacuous.
+#     fresh-shell measurement reads the registry PATH, NEVER $env:PATH - the
+#     harness's own $GITHUB_PATH additions live in the process environment, where
+#     they would mask a missing entry. BOTH scopes, kept apart as well as combined:
+#     "a new terminal finds it" is the union, but the runner images ship Git, Node
+#     and gh on the MACHINE PATH, so the union alone is a fact about the image. What
+#     makes it a fact about vibe is precheck.ps1's baseline and the judge's delta.
 #   - There are no symlinks here. Claude gets an `@<canonical>` import line, Codex a
 #     physical copy (Link-Harness in lib/instructions.ps1), so instructions.link.* is
 #     `import:<path>` / `copy:current` rather than `symlink:<target>`.
@@ -34,6 +37,10 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
+
+# The registry-PATH measurement is shared with precheck.ps1, which takes it BEFORE
+# the run. The judge asserts the difference, so the two have to be one piece of code.
+. (Join-Path $PSScriptRoot 'lib\measure.ps1')
 
 $lines = New-Object System.Collections.ArrayList
 $tab = [char]9
@@ -80,7 +87,8 @@ function Emit-Bool {
 # -- What only the runner knows ------------------------------------------------
 
 $null = $lines.Add('# vibe real-install state manifest')
-Emit 'manifest_version' 1
+# 2 added the precheck's baseline, which the judge's delta assertions require.
+Emit 'manifest_version' 2
 
 foreach ($pass in @('lane', 'precheck')) {
   $f = Join-Path $StateDir "$pass.tsv"
@@ -171,7 +179,7 @@ foreach ($d in $probeDirs) {
   if (Test-Path -LiteralPath $d) { $env:PATH = "$d$sep$($env:PATH)" }
 }
 
-$tools = @('claude', 'codex', 'gh', 'git', 'node', 'pnpm', 'mise')
+$tools = Get-VibeMeasureTool
 foreach ($t in $tools) {
   $ran = $false
   $ver = 'absent'
@@ -189,31 +197,26 @@ foreach ($t in $tools) {
 $env:PATH = $savedPath
 
 # -- A FRESH shell finds them: the REGISTRY PATH, not $env:PATH ---------------
+#
+# As a DELTA, exactly like the POSIX fresh-shell measurement: precheck.ps1 takes the
+# same reading before the run, and the judge asserts the difference. Per scope as
+# well as combined, because the runner images ship Git, Node and gh on the MACHINE
+# PATH - so the union alone said "1" for tools no lane here ever installed.
 
+$regScopeDirs = @{}
 $regDirs = @()
-foreach ($scope in @('User', 'Machine')) {
-  $raw = [Environment]::GetEnvironmentVariable('Path', $scope)
-  if ([string]::IsNullOrWhiteSpace($raw)) { continue }
-  foreach ($d in ($raw -split ';')) {
-    if ([string]::IsNullOrWhiteSpace($d)) { continue }
-    $regDirs += [Environment]::ExpandEnvironmentVariables($d.Trim())
-  }
-}
-
-function Test-RegPathResolves {
-  param([string]$Tool, [string[]]$Dirs)
-  $exts = @('.exe', '.cmd', '.bat', '.com', '.ps1', '')
-  foreach ($d in $Dirs) {
-    foreach ($e in $exts) {
-      if (Test-Path -LiteralPath (Join-Path $d "$Tool$e")) { return $true }
-    }
-  }
-  return $false
+foreach ($scope in (Get-VibeMeasureScope)) {
+  $d = @(Get-VibeRegPathDir $scope)
+  $regScopeDirs[$scope] = $d
+  $regDirs += $d
 }
 
 Emit 'shell.kind' 'registry'
 foreach ($t in $tools) {
-  Emit-Bool "shell.regpath.$t" (Test-RegPathResolves $t $regDirs)
+  foreach ($scope in (Get-VibeMeasureScope)) {
+    Emit-Bool ("shell.regpath." + $scope.ToLower() + ".$t") (Test-VibeRegPathResolves $t $regScopeDirs[$scope])
+  }
+  Emit-Bool "shell.regpath.$t" (Test-VibeRegPathResolves $t $regDirs)
 }
 
 # No rc file on this spine, and no persisted PATH line, so the marker keys the

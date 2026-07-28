@@ -1,63 +1,133 @@
 # debian:12, codex starter. Non-root with apparmor_restrict_unprivileged_userns=1,
 # so the sandbox warning is legitimate AND the printed fix must name that knob.
-manifest_version	1
+# REGENERATED FROM A REAL RUN (tests/real/lanes/run.sh debian-codex), never
+# hand-edited: this is a golden produced by the probe under test.
+manifest_version	2
 lane	debian-codex
 adapter	container
 guest	debian:12
-os	linux
 axis	base
 mode	apply
 run	1
 blocks	codex-cli codex-desktop gh-auth git mise node welcome concise ask-first verify secrets
+precheck.curl	present
+precheck.wget	present
+precheck.git	present
+precheck.gpg	present
+precheck.brew	absent
+precheck.nopasswd	present
+precheck.vibe_marker	absent
+precheck.shell.kind	bash
+precheck.shell.lic.claude	0
+precheck.shell.lic.codex	0
+precheck.shell.lic.gh	0
+precheck.shell.lic.git	1
+precheck.shell.lic.node	0
+precheck.shell.lic.pnpm	0
+precheck.shell.lic.mise	0
+precheck.shell.ic.claude	0
+precheck.shell.ic.codex	0
+precheck.shell.ic.gh	0
+precheck.shell.ic.git	1
+precheck.shell.ic.node	0
+precheck.shell.ic.pnpm	0
+precheck.shell.ic.mise	0
+precheck.shell.lc.claude	0
+precheck.shell.lc.codex	0
+precheck.shell.lc.gh	0
+precheck.shell.lc.git	1
+precheck.shell.lc.node	0
+precheck.shell.lc.pnpm	0
+precheck.shell.lc.mise	0
+os	linux
 env.root	0
 env.login_shell	bash
 env.pkg.apt	1
 env.pkg.dnf	0
 env.pkg.pacman	0
+env.pkg.zypper	0
 env.userns.restricted	apparmor
-precheck.curl	present
-precheck.git	present
-precheck.gpg	present
-precheck.vibe_marker	absent
 transcript.exit	0
 transcript.verdict	clean
-transcript.warn_count	1
 warn.0001	Codex's sandbox can't start here, so it may not be able to edit your files.
-info.0001	To allow it, run these two lines, then open a new terminal:
-info.0002	  echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/99-userns.conf
-info.0003	  sudo sysctl --system
+transcript.warn_count	1
+info.0001	Installing mise (a version manager for your tools)...
+info.0002	To allow it, run these two lines, then open a new terminal:
+info.0003	  echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/99-userns.conf
+info.0004	  sudo sysctl --system
+info.0005	Codex still works without it - it just asks your permission for more things.
+info.0006	Not a terminal — skipping gh auth. Run 'gh auth login' later.
+info.0007	Not signed into GitHub yet — sign in (gh auth login), then re-run to set your git name/email.
+info.0008	Your agent instructions live in one file:
+info.0009	Both Claude and Codex read it (linked from their own config).
+info.0010	💡 Edit that file in plain language to steer every future session.
+info.0011	Your first message to the agent is saved here:
+info.0012	Run 'codex' in $HOME/git/first-project to start (you'll sign in on first launch).
+info.0013	A starter message is saved in $HOME/git/first-project/first-message.txt — paste it in as your first message.
+tool.claude.runs	0
+tool.claude.version_raw	absent
 tool.codex.runs	1
-tool.codex.version_raw	codex-cli 0.55.0
+tool.codex.version_raw	codex-cli 0.145.0
 tool.gh.runs	1
-tool.gh.version_raw	gh version 2.66.1
+tool.gh.version_raw	gh version 2.96.0 (2026-07-02) https://github.com/cli/cli/releases/tag/v2.96.0
 tool.git.runs	1
 tool.git.version_raw	git version 2.39.5
-tool.mise.runs	1
-tool.mise.version_raw	2026.7.1 linux-arm64
 tool.node.runs	1
-tool.node.version_raw	v24.4.0
+tool.node.version_raw	v24.18.0
+tool.pnpm.runs	0
+tool.pnpm.version_raw	absent
+tool.mise.runs	1
+tool.mise.version_raw	2026.7.15 linux-arm64 (2026-07-27)
 shell.kind	bash
+shell.supported	1
+shell.lic.claude	0
 shell.lic.codex	1
 shell.lic.gh	1
 shell.lic.git	1
-shell.lic.mise	1
 shell.lic.node	1
+shell.lic.pnpm	0
+shell.lic.mise	1
+shell.ic.claude	0
 shell.ic.codex	1
 shell.ic.gh	1
 shell.ic.git	1
-shell.ic.mise	1
 shell.ic.node	1
-shell.lc.codex	0
+shell.ic.pnpm	0
+shell.ic.mise	1
+shell.lc.claude	0
+shell.lc.codex	1
 shell.lc.gh	0
 shell.lc.git	1
-shell.lc.mise	0
 shell.lc.node	0
+shell.lc.pnpm	0
+shell.lc.mise	1
 rc.file	$HOME/.bashrc
 rc.marker_count	1
 rc.block	export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
 rc.vendor_path_lines	0
+app.claude-desktop	0
+npmrc.min-release-age	absent
+npmrc.allow-git	absent
+npmrc.allow-remote	absent
+mise.minimum_release_age	absent
+pnpm.config	absent
+pnpm.minimumReleaseAge	absent
+pnpm.minimumReleaseAgeStrict	absent
 instructions.canonical	$HOME/.agents/AGENTS.md
 instructions.canonical.nonempty	1
+instructions.canonical.sha256	de7c8c30bc2b849a254cf5115876cca5cabb4d47c8dc474cb13408e4a2dad5fb
+instructions.link.claude	absent
 instructions.link.codex	symlink:$HOME/.agents/AGENTS.md
 instructions.section.git	1
 instructions.section.node	1
+path.rc	file:4f78282db5640f4e755ccfa9b22416910ad2f6bb649b69e2b9e19a6fe8420478
+path.agents	file:de7c8c30bc2b849a254cf5115876cca5cabb4d47c8dc474cb13408e4a2dad5fb
+path.claude-md	absent
+path.claude-json	absent
+path.codex-agents	symlink:$HOME/.agents/AGENTS.md
+path.codex-config	file:15689bc213a2405c51161f51d3a5fe6ff144d2cc1ae752e58b7d3e67c0c25680
+path.npmrc	absent
+path.mise-config	file:130f31a35162d4f3ce5d7740692923b74e895f8d42fef86260b0d3ece9e0c17e
+path.pnpm-config	absent
+path.starter	dir
+path.starter-git	dir

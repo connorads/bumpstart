@@ -79,16 +79,16 @@ assert_plan_matches() {
   mani linux-ubuntu-base.manifest
   judge
   [ "$status" -eq 0 ]
-  printf '%s\n' "$output" | grep -q 'non-interactive login shell # TODO' \
+  printf '%s\n' "$output" | grep -q '^not ok .* non-interactive login shell.* # TODO ' \
     || { echo "$output"; false; }
 }
 
 @test "the accepted bash -lc gap turning green is reported, not hidden" {
   mani linux-ubuntu-base.manifest
-  mset shell.lc.claude 1
+  mset shell.lc.gh 1
   judge
   [ "$status" -eq 0 ]
-  printf '%s\n' "$output" | grep -q '^ok .* claude resolves in a non-interactive login shell$' \
+  printf '%s\n' "$output" | grep -q '^ok .* gh resolves in a non-interactive login shell, and did not before the run$' \
     || { echo "$output"; false; }
 }
 
@@ -104,10 +104,10 @@ assert_plan_matches() {
 
 @test "an unmeasured key fails even where a mismatch would only be a TODO" {
   mani linux-ubuntu-base.manifest
-  mdel shell.lc.claude
+  mdel shell.lc.gh
   judge
   [ "$status" -eq 1 ]
-  printf '%s\n' "$output" | grep -q "has no key 'shell.lc.claude'" || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q "has no key 'shell.lc.gh'" || { echo "$output"; false; }
 }
 
 # ── The three verdict outcomes ────────────────────────────────────────────────
@@ -210,14 +210,93 @@ assert_plan_matches() {
   true
 }
 
-# ── Persistence into a fresh shell ────────────────────────────────────────────
+# ── Persistence into a fresh shell, as a DELTA ────────────────────────────────
+#
+# The bug this closes: `env -i "$SHELL" -lc` is not an empty PATH — bash substitutes
+# a compiled-in default containing /usr/bin — so `shell.lc.git 1` was true on the
+# ubuntu lane whether or not persist_path ever ran, and the judge counted it as a
+# pass. Nothing here can be vacuous now without the baseline saying so out loud.
+
+@test "a tool that already resolved before the run is credited to the image, not to vibe" {
+  # ubuntu:24.04 ships git, so its fresh-shell pass is a fact about the image. The
+  # assertion still runs — it just says whose doing it was.
+  mani linux-ubuntu-base.manifest
+  judge
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" \
+    | grep -q "^ok .* git resolves in a fresh interactive login shell (it did before the run too" \
+    || { echo "$output"; false; }
+  printf '%s\n' "$output" \
+    | grep -q '^ok .* claude resolves in a fresh interactive login shell, and did not before the run$' \
+    || { echo "$output"; false; }
+}
+
+@test "a tool vibe was supposed to install, on a guest that already had it, is not a pass for vibe" {
+  # The vacuity, made visible: pretend the image shipped claude too. The end state is
+  # identical and the old judge could not tell the difference; the delta reports it.
+  mani linux-ubuntu-base.manifest
+  mset precheck.shell.lic.claude 1
+  judge
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q '^ok .* claude resolves in a fresh interactive login shell, and did not before the run$' \
+    && { echo "still claiming credit for a preinstalled tool"; false; }
+  printf '%s\n' "$output" \
+    | grep -q "^ok .* claude resolves in a fresh interactive login shell (it did before the run too" \
+    || { echo "$output"; false; }
+}
+
+@test "a tool that resolved before the run and does not now is a regression" {
+  # The failure mode no end-state assertion could ever see: vibe BREAKING a machine.
+  mani linux-ubuntu-base.manifest
+  mset shell.lic.git 0
+  judge
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q '^not ok .* git resolves in a fresh interactive login shell' \
+    || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q 'got \[lost\]' || { echo "$output"; false; }
+}
+
+@test "a regression is never softened into an accepted gap" {
+  # `bash -lc` is a documented TODO, so a tool that never resolves there is tolerated.
+  # A tool that STOPPED resolving there is not the same finding, and must go red.
+  mani linux-ubuntu-base.manifest
+  mset shell.lc.git 0
+  judge
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q '^not ok .* git resolves in a non-interactive login shell.*# TODO' \
+    && { echo "a regression was filed as a known gap"; false; }
+  printf '%s\n' "$output" | grep -q 'got \[lost\]' || { echo "$output"; false; }
+}
+
+@test "a run with no baseline cannot be credited with a delta" {
+  mani linux-ubuntu-base.manifest
+  mdel precheck.shell.lic.claude
+  judge
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q "has no key 'precheck.shell.lic.claude'" || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q 'pre-run baseline' || { echo "$output"; false; }
+}
+
+@test "windows tells a machine-PATH preinstall apart from something vibe installed" {
+  # The whole Windows finding in one case: the runner images carry git, node and gh
+  # on the Machine PATH, so INSTALL_WIN for those never runs. Only claude is a delta.
+  mani win-registry.manifest
+  judge
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q '^ok .* claude resolves from the registry PATH, and did not before the run$' \
+    || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q "^ok .* git resolves from the registry PATH (it did before the run too" \
+    || { echo "$output"; false; }
+}
+
+
 
 @test "a tool missing from a fresh interactive login shell fails" {
   mani linux-ubuntu-base.manifest
   mset shell.lic.claude 0
   judge
   [ "$status" -eq 1 ]
-  printf '%s\n' "$output" | grep -q '^not ok .* claude resolves in a fresh interactive login shell$' \
+  printf '%s\n' "$output" | grep -q '^not ok .* claude resolves in a fresh interactive login shell, and did not before the run$' \
     || { echo "$output"; false; }
 }
 
@@ -251,17 +330,17 @@ assert_plan_matches() {
   mani win-registry.manifest
   judge
   [ "$status" -eq 0 ]
-  printf '%s\n' "$output" | grep -q 'User registry PATH' || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q 'resolves from the registry PATH' || { echo "$output"; false; }
   printf '%s\n' "$output" | grep -q 'marker appears exactly once' && { echo "asserted an rc file on win"; false; }
   true
 }
 
 @test "a tool missing from the windows registry PATH fails" {
   mani win-registry.manifest
-  mset shell.regpath.node 0
+  mset shell.regpath.claude 0
   judge
   [ "$status" -eq 1 ]
-  printf '%s\n' "$output" | grep -q '^not ok .* node resolves from the User registry PATH$' \
+  printf '%s\n' "$output" | grep -q '^not ok .* claude resolves from the registry PATH, and did not before the run$' \
     || { echo "$output"; false; }
 }
 
@@ -291,6 +370,26 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q '^not ok .* really has no git' || { echo "$output"; false; }
 }
 
+@test "a de-brewed lane whose guest still has Homebrew fails" {
+  # The macOS drift lane's scrub is best effort by design (`set +e … exit 0`), so if
+  # the uninstaller's flags change the lane would test "brew was already installed"
+  # instead of ensure_brew. Same rule as no-curl, spelled for a scrub.
+  mani mac-casks.manifest
+  mset axis debrewed
+  mset precheck.brew present
+  judge
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -q '^not ok .* really removed Homebrew' || { echo "$output"; false; }
+}
+
+@test "a de-brewed lane with Homebrew genuinely gone passes" {
+  mani mac-casks.manifest
+  mset axis debrewed
+  judge
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q '^ok .* really removed Homebrew' || { echo "$output"; false; }
+}
+
 @test "a guest that already carried the vibe marker is not pristine" {
   mani linux-ubuntu-base.manifest
   mset precheck.vibe_marker present
@@ -302,7 +401,7 @@ assert_plan_matches() {
 # ── The sudo password prompt ──────────────────────────────────────────────────
 
 @test "a password lane where askpass never fired fails" {
-  mani linux-arch-password.manifest
+  mani linux-ubuntu-password.manifest
   mset askpass.count 0
   judge
   [ "$status" -eq 1 ]
@@ -310,7 +409,7 @@ assert_plan_matches() {
 }
 
 @test "a password lane with no askpass log at all fails" {
-  mani linux-arch-password.manifest
+  mani linux-ubuntu-password.manifest
   mdel askpass.count
   judge
   [ "$status" -eq 1 ]
@@ -318,7 +417,7 @@ assert_plan_matches() {
 }
 
 @test "asking twice is a finding, and the count is always reported" {
-  mani linux-arch-password.manifest
+  mani linux-ubuntu-password.manifest
   mset askpass.count 2
   judge
   [ "$status" -eq 1 ]
@@ -331,7 +430,7 @@ assert_plan_matches() {
 # truncates askpass.log per run. Asserting "exactly once" on both is what a shared
 # log made look true on a run that never asked at all.
 @test "the second password run must not ask again" {
-  mani linux-arch-password.manifest
+  mani linux-ubuntu-password.manifest
   mset run 2
   mset askpass.count 0
   mdel askpass.0001
@@ -342,7 +441,7 @@ assert_plan_matches() {
 }
 
 @test "a second password run that asks again is a finding" {
-  mani linux-arch-password.manifest
+  mani linux-ubuntu-password.manifest
   mset run 2
   judge
   [ "$status" -eq 1 ]
@@ -350,7 +449,7 @@ assert_plan_matches() {
 }
 
 @test "a manifest with no run number takes the stricter first-run assertion" {
-  mani linux-arch-password.manifest
+  mani linux-ubuntu-password.manifest
   mdel run
   mset askpass.count 0
   judge
@@ -454,6 +553,16 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q 'disagree with the expected list' || { echo "$output"; false; }
 }
 
+@test "a manifest from an older probe is a harness bug, not a page of vibe failures" {
+  # Without this, a probe/judge skew fails every delta closed — dozens of "nothing
+  # was measured" lines, which read as class 1. The version says "wrong shape".
+  mani linux-ubuntu-base.manifest
+  mset manifest_version 1
+  judge
+  [ "$status" -eq 3 ]
+  printf '%s\n' "$output" | grep -q 'the probe and the judge disagree' || { echo "$output"; false; }
+}
+
 @test "a manifest with no usable os is a harness bug (class 3)" {
   mani linux-ubuntu-base.manifest
   mset os plan9
@@ -526,7 +635,7 @@ assert_plan_matches() {
 @test "the invariant subset holds across every POSIX lane, whatever the paste" {
   . "$REAL/lib/manifest.sh"
   local base="$FIX/linux-ubuntu-base.manifest"
-  for other in linux-debian-codex linux-fedora-nodesktop linux-arch-password mac-casks; do
+  for other in linux-debian-codex linux-fedora-nodesktop linux-ubuntu-password mac-casks; do
     run manifest_diff ubuntu "$base" "$other" "$FIX/$other.manifest" manifest_invariant_subset
     [ "$status" -eq 0 ] || { echo "$other diverges: $output"; false; }
   done

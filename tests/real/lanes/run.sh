@@ -190,34 +190,21 @@ case "$AXIS" in
     axis_remove git || { fail_infra "could not remove git"; cleanup; exit "$CLASS_INFRA"; } ;;
 esac
 
-# ── Precheck: measured BEFORE the run, once ─────────────────────────────────
+# ── Precheck: the BASELINE, measured before the run, once ───────────────────
 #
 # Written once and left in place for both runs, so `precheck.vibe_marker absent`
 # keeps meaning "the guest was pristine when we started" rather than "run 2 found
-# what run 1 wrote". It is what stops an axis going vacuous: a base image that starts
-# shipping curl cannot silently turn the no-curl leg into a second base leg.
+# what run 1 wrote". It stops an axis going vacuous — a base image that starts
+# shipping curl cannot silently turn the no-curl leg into a second base leg — and it
+# is what the judge's fresh-shell DELTA is measured against: precheck.sh and probe.sh
+# take the same reading through the same lib/measure.sh, before and after.
+#
+# Written in one shot via a .part file, not appended to a truncated one: a precheck
+# that dies half-way must not leave a short file that reads as a complete
+# measurement.
 
 note "precheck..."
-# The '"$S"' breaks are deliberate: the state dir is interpolated by the HOST, and
-# everything else must reach the guest unexpanded.
-# shellcheck disable=SC2016
-PRECHECK_SCRIPT='
-set -u
-cd "$HOME" || exit 1
-S='"$S"'
-: > "$S/precheck.tsv"
-for t in curl wget git gpg brew; do
-  if command -v "$t" >/dev/null 2>&1; then v=present; else v=absent; fi
-  printf "precheck.%s\t%s\n" "$t" "$v" >> "$S/precheck.tsv"
-done
-if sudo -n true >/dev/null 2>&1; then n=present; else n=absent; fi
-printf "precheck.nopasswd\t%s\n" "$n" >> "$S/precheck.tsv"
-rc="$HOME/.bashrc"
-case "$(basename "${SHELL:-}")" in zsh) rc="${ZDOTDIR:-$HOME}/.zshrc" ;; esac
-if [ -f "$rc" ] && grep -Fq "# >>> vibe-setup >>>" "$rc"; then m=present; else m=absent; fi
-printf "precheck.vibe_marker\t%s\n" "$m" >> "$S/precheck.tsv"
-'
-if ! guest_exec "$PRECHECK_SCRIPT"; then
+if ! guest_exec "cd \"\$HOME\" && VIBE_REAL_DIR=$S bash $GUEST_SRC/tests/real/precheck.sh > $S/precheck.part && mv $S/precheck.part $S/precheck.tsv"; then
   fail_harness "the precheck script failed in the guest"
   cleanup
   exit "$CLASS_HARNESS"

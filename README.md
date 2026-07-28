@@ -450,10 +450,14 @@ local driver **and** by CI, so both run the same thing:
 | `macos-vanilla` | Tart, vanilla Tahoe | the only genuinely first-time Mac: Homebrew, the Xcode CLT, casks |
 | `macos-vanilla-paste` | Tart, vanilla Tahoe | the real paste, fetching `vibe` from the commit under test |
 | `macos-drift` | `macos-latest`, de-brewed | CI only, weekly. **Drift detection, not a pristine Mac** |
-| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the User-scope registry |
+| Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the registry rather than any rc file |
 
-How a lane decides it worked: one guest-side probe emits a normalised state manifest,
-and one **pure** judge turns that plus the resolved block list into TAP. The judge
+How a lane decides it worked: a guest-side **precheck** measures the machine before
+anything runs, a guest-side **probe** measures it again afterwards and emits a
+normalised state manifest, and one **pure** judge turns that plus the resolved block
+list into TAP. The two measurements matter as much as either alone: "git resolves in
+a fresh shell" is true on a machine that shipped git, so the judge asserts the
+**delta** and names whose doing each pass was. The judge
 touches no machine, so its assertions are unit-tested over fixture manifests in the
 fast suite (`tests/real_judge.bats`) - a wrong assertion is caught by `mise run check`,
 not by a 40-minute lane run. It asserts only what a fake cannot reach; everything else

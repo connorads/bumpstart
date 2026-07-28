@@ -1,61 +1,105 @@
 # fedora:42 — no apt-get, so claude-desktop legitimately warns and skips, and the
 # run's own verdict is STILL a green "Setup complete." (its skip paths exit 0).
 # That combination is the blind spot the unexpected-warning assertion closes.
-manifest_version	1
-lane	fedora-base
+# REGENERATED FROM A REAL RUN (tests/real/lanes/run.sh fedora-safer), never
+# hand-edited: this is a golden produced by the probe under test.
+manifest_version	2
+lane	fedora-safer
 adapter	container
 guest	fedora:42
-os	linux
 axis	base
 mode	apply
 run	1
 blocks	claude-cli claude-desktop gh-auth git mise node pnpm safer-installs welcome concise ask-first verify secrets
+precheck.curl	present
+precheck.wget	present
+precheck.git	present
+precheck.gpg	present
+precheck.brew	absent
+precheck.nopasswd	present
+precheck.vibe_marker	absent
+precheck.shell.kind	bash
+precheck.shell.lic.claude	0
+precheck.shell.lic.codex	0
+precheck.shell.lic.gh	0
+precheck.shell.lic.git	1
+precheck.shell.lic.node	0
+precheck.shell.lic.pnpm	0
+precheck.shell.lic.mise	0
+precheck.shell.ic.claude	0
+precheck.shell.ic.codex	0
+precheck.shell.ic.gh	0
+precheck.shell.ic.git	1
+precheck.shell.ic.node	0
+precheck.shell.ic.pnpm	0
+precheck.shell.ic.mise	0
+precheck.shell.lc.claude	0
+precheck.shell.lc.codex	0
+precheck.shell.lc.gh	0
+precheck.shell.lc.git	1
+precheck.shell.lc.node	0
+precheck.shell.lc.pnpm	0
+precheck.shell.lc.mise	0
+os	linux
 env.root	0
 env.login_shell	bash
 env.pkg.apt	0
 env.pkg.dnf	1
 env.pkg.pacman	0
-env.userns.restricted	none
-precheck.curl	present
-precheck.git	present
-precheck.gpg	present
-precheck.vibe_marker	absent
+env.pkg.zypper	0
+env.userns.restricted	apparmor
 transcript.exit	0
 transcript.verdict	clean
+warn.0001	the Claude desktop app only ships for Debian/Ubuntu so far — skipping it.
 transcript.warn_count	1
-warn.0001	the Claude desktop app only ships for Debian/Ubuntu so far - skipping it.
-info.0001	Claude Code (the terminal one) is installed and is what this setup launches.
+info.0001	Installing mise (a version manager for your tools)...
+info.0002	Claude Code (the terminal one) is installed and is what this setup launches.
+info.0003	Not a terminal — skipping gh auth. Run 'gh auth login' later.
+info.0004	Not signed into GitHub yet — sign in (gh auth login), then re-run to set your git name/email.
+info.0005	Your agent instructions live in one file:
+info.0006	Both Claude and Codex read it (linked from their own config).
+info.0007	💡 Edit that file in plain language to steer every future session.
+info.0008	Claude config already exists — leaving it; you may see a one-time trust prompt.
+info.0009	Your first message to the agent is saved here:
+info.0010	Run 'claude' in $HOME/git/first-project to start (you'll sign in on first launch).
+info.0011	A starter message is saved in $HOME/git/first-project/first-message.txt — paste it in as your first message.
 tool.claude.runs	1
-tool.claude.version_raw	2.1.0 (Claude Code)
+tool.claude.version_raw	2.1.220 (Claude Code)
+tool.codex.runs	0
+tool.codex.version_raw	absent
 tool.gh.runs	1
-tool.gh.version_raw	gh version 2.66.1
+tool.gh.version_raw	gh version 2.96.0 (2026-07-02) https://github.com/cli/cli/releases/tag/v2.96.0
 tool.git.runs	1
-tool.git.version_raw	git version 2.47.1
-tool.mise.runs	1
-tool.mise.version_raw	2026.7.1 linux-arm64
+tool.git.version_raw	git version 2.54.0
 tool.node.runs	1
-tool.node.version_raw	v24.4.0
+tool.node.version_raw	v24.18.0
 tool.pnpm.runs	1
-tool.pnpm.version_raw	10.20.0
+tool.pnpm.version_raw	11.17.0
+tool.mise.runs	1
+tool.mise.version_raw	2026.7.15 linux-arm64 (2026-07-27)
 shell.kind	bash
+shell.supported	1
 shell.lic.claude	1
+shell.lic.codex	0
 shell.lic.gh	1
 shell.lic.git	1
-shell.lic.mise	1
 shell.lic.node	1
 shell.lic.pnpm	1
+shell.lic.mise	1
 shell.ic.claude	1
+shell.ic.codex	0
 shell.ic.gh	1
 shell.ic.git	1
-shell.ic.mise	1
 shell.ic.node	1
 shell.ic.pnpm	1
-shell.lc.claude	0
-shell.lc.gh	0
+shell.ic.mise	1
+shell.lc.claude	1
+shell.lc.codex	0
+shell.lc.gh	1
 shell.lc.git	1
-shell.lc.mise	0
-shell.lc.node	0
-shell.lc.pnpm	0
+shell.lc.node	1
+shell.lc.pnpm	1
+shell.lc.mise	1
 rc.file	$HOME/.bashrc
 rc.marker_count	1
 rc.block	export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
@@ -70,6 +114,19 @@ pnpm.minimumReleaseAge	5760
 pnpm.minimumReleaseAgeStrict	true
 instructions.canonical	$HOME/.agents/AGENTS.md
 instructions.canonical.nonempty	1
+instructions.canonical.sha256	dc5e3595dd0d5b91b3695813dc4fabebe1f45b9f02c86ce1f6c723e930ea1d3e
 instructions.link.claude	symlink:$HOME/.agents/AGENTS.md
+instructions.link.codex	absent
 instructions.section.git	1
 instructions.section.node	1
+path.rc	file:b4d28bd3f10a9f190305c9030d0a366877e7fd5240a9e52ef465035feac41603
+path.agents	file:dc5e3595dd0d5b91b3695813dc4fabebe1f45b9f02c86ce1f6c723e930ea1d3e
+path.claude-md	symlink:$HOME/.agents/AGENTS.md
+path.claude-json	file:de9142ac3da775ce73c2999625d248cbab9a6f434c4f2ed1ec186dbdae2e3734
+path.codex-agents	absent
+path.codex-config	absent
+path.npmrc	file:81e583d8a7447397169130b7fe36fcd11fa95461535c8127ad77a0b6d8777d04
+path.mise-config	file:e44e5451652e5384df08f26ca6307e408ba8e6fbbc16995e6698d414250d557f
+path.pnpm-config	file:899895358ae0a5b1c92c0e2038911a9150cc8e1ccc804676255ee7cde08de735
+path.starter	dir
+path.starter-git	dir

@@ -37,6 +37,10 @@ TAB="$(printf '\t')"
 # shellcheck disable=SC2016  # a literal, not an expansion: the probe normalises $HOME
 CANON='$HOME/.agents/AGENTS.md'
 
+# The manifest shape this judge understands. Bumped with the probes, in the same
+# commit, so a skew is loud.
+JUDGE_MANIFEST_VERSION=2
+
 usage() { printf 'usage: judge.sh <manifest> <block-id>...\n' >&2; }
 
 MANIFEST="${1:-}"
@@ -86,6 +90,16 @@ case "$OS" in
   mac|linux|win) : ;;
   *) printf 'judge: manifest has no usable os key (got [%s])\n' "$OS" >&2; exit 3 ;;
 esac
+
+# A manifest from a probe that predates the current key set would fail every delta
+# closed — a page of "nothing was measured", which reads as a vibe failure. The
+# version says "wrong shape", which is a harness bug.
+MANIFEST_VERSION="$(mget manifest_version)"
+if [ "$MANIFEST_VERSION" != "$JUDGE_MANIFEST_VERSION" ]; then
+  printf 'judge: manifest version [%s], expected %s — the probe and the judge disagree\n' \
+    "${MANIFEST_VERSION:-<none>}" "$JUDGE_MANIFEST_VERSION" >&2
+  exit 3
+fi
 
 AXIS="$(mget axis)"
 
@@ -232,6 +246,15 @@ case "$AXIS" in
   *no-git*) add_check eq precheck.git absent \
     "the no-git axis really has no git" ;;
 esac
+# The same rule spelled for a scrub rather than an install. The macOS drift lane's
+# de-brew step is best effort by design (`set +e … exit 0`), so if the uninstaller's
+# flags change the lane would silently test "brew was already installed" instead of
+# ensure_brew — an axis going vacuous, exactly like a base image that starts shipping
+# curl.
+case "$AXIS" in
+  *debrewed*) add_check eq precheck.brew absent \
+    "the de-brew scrub really removed Homebrew (else ensure_brew is untested)" ;;
+esac
 if [ "$OS" != win ]; then
   add_check eq env.root 0 \
     "the run was NOT root (root skips every sudo path, making them vacuous)"
@@ -258,20 +281,72 @@ for _t in "$@"; do
   add_check eq "tool.$_t.runs" 1 "$_t --version runs"
 done
 
-# 4. A FRESH shell finds them -------------------------------------------------
-# The single most valuable assertion in the harness: the installing shell is green
-# either way, because fixup_path put the dirs on PATH for the run.
+# 4. A FRESH shell finds them, BECAUSE OF VIBE --------------------------------
+#
+# The single most valuable assertion in the harness, and the one that was vacuous:
+# the installing shell is green either way (fixup_path put the dirs on PATH for the
+# run), and `env -i "$SHELL" -lc` is not an empty PATH either — bash substitutes a
+# compiled-in default containing /usr/bin — so a preinstalled git resolved whether or
+# not persist_path ever ran. On Windows the same shape: the runner images carry Git,
+# Node and gh on the Machine PATH, so the registry read was a fact about the image.
+#
+# So the assertion is a DELTA against precheck.sh's baseline, taken before the run
+# through the same lib/measure.sh. Four outcomes, all named, because "it resolves" is
+# three different findings depending on what was true before:
+#   installed     0 → 1  vibe did this. The claim the lane exists to make.
+#   preinstalled  1 → 1  already true. Asserted, but credited to the image.
+#   lost          1 → 0  a regression the end-state assertion could never see.
+#   absent        0 → 0  the install did not reach a new terminal.
+
+# _add_shell_delta <op> <key-prefix> <tool> <phrase>
+# Derives derived.<prefix>.<tool> from precheck.<prefix>.<tool> and <prefix>.<tool>,
+# and adds the check whose expectation the baseline decides.
+_add_shell_delta() {
+  _sd_op="$1"; _sd_key="$2.$3"; _sd_tool="$3"; _sd_what="$4"
+  if ! mhas "precheck.$_sd_key"; then
+    # Fail closed, and name the half that is missing: a run with no baseline cannot
+    # be credited with a delta, and silence would be the vacuity coming back.
+    add_check present "precheck.$_sd_key" - \
+      "the pre-run baseline for '$_sd_tool $_sd_what' was measured"
+    return 0
+  fi
+  if ! mhas "$_sd_key"; then
+    add_check present "$_sd_key" - "$_sd_tool $_sd_what"
+    return 0
+  fi
+  case "$(mget "precheck.$_sd_key"):$(mget "$_sd_key")" in
+    0:1) _sd_state=installed ;;
+    1:1) _sd_state=preinstalled ;;
+    1:0) _sd_state=lost ;;
+    *)   _sd_state=absent ;;
+  esac
+  mderive "derived.$_sd_key" "$_sd_state"
+  # `lost` is never an accepted gap: a tool that resolved before the run and does not
+  # now is a regression whatever the mode, so it must not hide inside a TODO.
+  [ "$_sd_state" = lost ] && _sd_op=eq
+  if [ "$(mget "precheck.$_sd_key")" = 1 ]; then
+    add_check "$_sd_op" "derived.$_sd_key" preinstalled \
+      "$_sd_tool $_sd_what (it did before the run too — the image's doing, not vibe's)"
+  else
+    add_check "$_sd_op" "derived.$_sd_key" installed \
+      "$_sd_tool $_sd_what, and did not before the run"
+  fi
+}
+
 if [ "$OS" = win ]; then
-  # The User-scope registry PATH, never $env:PATH — the harness's own $GITHUB_PATH
-  # additions would mask a missing entry and make this vacuous.
+  # The registry PATH, never $env:PATH — the harness's own $GITHUB_PATH additions are
+  # in the process environment, where they would mask a missing entry.
   for _t in "$@"; do
-    add_check eq "shell.regpath.$_t" 1 "$_t resolves from the User registry PATH"
+    _add_shell_delta eq shell.regpath "$_t" "resolves from the registry PATH"
   done
 else
   for _t in "$@"; do
-    add_check eq "shell.lic.$_t" 1 "$_t resolves in a fresh interactive login shell"
-    add_check eq "shell.ic.$_t" 1 "$_t resolves in a fresh interactive shell"
-    add_check eq_todo "shell.lc.$_t" 1 "$_t resolves in a non-interactive login shell"
+    _add_shell_delta eq shell.lic "$_t" "resolves in a fresh interactive login shell"
+    _add_shell_delta eq shell.ic "$_t" "resolves in a fresh interactive shell"
+    # A documented gap: Debian/Ubuntu's ~/.bashrc returns early for a non-interactive
+    # shell, so vibe's line is invisible to `bash -lc`. eq_todo in BOTH branches —
+    # including preinstalled, where the honest answer is still "vibe did not do this".
+    _add_shell_delta eq_todo shell.lc "$_t" "resolves in a non-interactive login shell"
   done
 fi
 

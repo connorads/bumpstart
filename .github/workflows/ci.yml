@@ -277,10 +277,16 @@ jobs:
             "run${tab}1"
             "blocks$tab$env:VIBE_BLOCKS"
           ) | Set-Content -LiteralPath (Join-Path $state 'lane.tsv')
-          # A fresh runner VM cannot carry a vibe marker, and this spine writes no rc
-          # line at all - recorded so the judge's pristine assertion is measured, not
-          # assumed.
-          "precheck.vibe_marker${tab}absent" | Set-Content -LiteralPath (Join-Path $state 'precheck.tsv')
+
+      - name: precheck (the baseline the judge measures vibe against)
+        # BEFORE the install, deliberately. These images ship Git, Node and gh on the
+        # Machine PATH, so vibe's SATISFIED_WIN cells find them and the INSTALL_WIN
+        # cells never run - while the probe reported `shell.regpath.git 1` and the
+        # judge counted that as a pass. The delta is what tells the two apart.
+        run: |
+          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          & powershell.exe -NoProfile -File tests\real\precheck.ps1 `
+            -Baseline (Join-Path $state 'precheck.tsv')
 
       - name: real install (Windows PowerShell 5.1)
         run: |

@@ -1,6 +1,13 @@
 # A windows-2025 CI run. No rc file and no persisted PATH at all on this spine, so
-# the fresh-shell check reads the User-scope registry PATH instead.
-manifest_version	1
+# the fresh-shell check reads the REGISTRY PATH instead, both scopes, kept apart.
+#
+# HAND-WRITTEN, not probe output - no Windows machine is reachable from the fast
+# suite, so this states what the runner image documents: Git, Node and gh arrive on
+# the MACHINE PATH, so vibe's SATISFIED_WIN cells find them and the INSTALL_WIN cells
+# never run. Only claude is really under test here, and the baseline is what says so
+# out loud instead of three vacuous passes. The first Windows CI run after this lands
+# is what confirms it.
+manifest_version	2
 lane	windows-2025
 adapter	runner
 guest	windows-2025
@@ -11,6 +18,28 @@ run	1
 blocks	claude-cli claude-desktop gh-auth git node welcome concise ask-first verify secrets
 env.root	0
 precheck.vibe_marker	absent
+precheck.shell.kind	registry
+precheck.shell.regpath.user.claude	0
+precheck.shell.regpath.machine.claude	0
+precheck.shell.regpath.claude	0
+precheck.shell.regpath.user.codex	0
+precheck.shell.regpath.machine.codex	0
+precheck.shell.regpath.codex	0
+precheck.shell.regpath.user.gh	0
+precheck.shell.regpath.machine.gh	1
+precheck.shell.regpath.gh	1
+precheck.shell.regpath.user.git	0
+precheck.shell.regpath.machine.git	1
+precheck.shell.regpath.git	1
+precheck.shell.regpath.user.node	0
+precheck.shell.regpath.machine.node	1
+precheck.shell.regpath.node	1
+precheck.shell.regpath.user.pnpm	0
+precheck.shell.regpath.machine.pnpm	0
+precheck.shell.regpath.pnpm	0
+precheck.shell.regpath.user.mise	0
+precheck.shell.regpath.machine.mise	0
+precheck.shell.regpath.mise	0
 transcript.exit	0
 transcript.verdict	clean
 transcript.warn_count	0
@@ -22,10 +51,27 @@ tool.git.runs	1
 tool.git.version_raw	git version 2.51.0.windows.1
 tool.node.runs	1
 tool.node.version_raw	v24.4.0
+shell.regpath.user.claude	1
+shell.regpath.machine.claude	0
 shell.regpath.claude	1
+shell.regpath.user.codex	0
+shell.regpath.machine.codex	0
+shell.regpath.codex	0
+shell.regpath.user.gh	0
+shell.regpath.machine.gh	1
 shell.regpath.gh	1
+shell.regpath.user.git	0
+shell.regpath.machine.git	1
 shell.regpath.git	1
+shell.regpath.user.node	0
+shell.regpath.machine.node	1
 shell.regpath.node	1
+shell.regpath.user.pnpm	0
+shell.regpath.machine.pnpm	0
+shell.regpath.pnpm	0
+shell.regpath.user.mise	0
+shell.regpath.machine.mise	0
+shell.regpath.mise	0
 app.claude	1
 instructions.canonical	$HOME/.agents/AGENTS.md
 instructions.canonical.nonempty	1

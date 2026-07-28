@@ -1,6 +1,13 @@
 # The Tart macOS lane: the only lane where casks run. Login shell is zsh, so the
 # fresh-shell legs are zsh's, and persist_path wrote ~/.zshrc.
-manifest_version	1
+#
+# HAND-WRITTEN, not probe output - the 23 GB vanilla image cannot be driven from the
+# fast suite, so this fixture states the image's documented properties (no brew, no
+# CLT, none of vibe's tools) rather than recording a run. The baseline is therefore
+# all-zero: every fresh-shell pass here is a real delta. The first macos-vanilla run
+# after this lands is what confirms it; until then the negative cases below it are
+# the assertions that cannot rot.
+manifest_version	2
 lane	macos-vanilla
 adapter	tart
 guest	macos-tahoe-vanilla
@@ -16,6 +23,28 @@ precheck.curl	present
 precheck.git	absent
 precheck.brew	absent
 precheck.vibe_marker	absent
+precheck.shell.kind	zsh
+precheck.shell.lic.claude	0
+precheck.shell.lic.codex	0
+precheck.shell.lic.gh	0
+precheck.shell.lic.git	0
+precheck.shell.lic.node	0
+precheck.shell.lic.pnpm	0
+precheck.shell.lic.mise	0
+precheck.shell.ic.claude	0
+precheck.shell.ic.codex	0
+precheck.shell.ic.gh	0
+precheck.shell.ic.git	0
+precheck.shell.ic.node	0
+precheck.shell.ic.pnpm	0
+precheck.shell.ic.mise	0
+precheck.shell.lc.claude	0
+precheck.shell.lc.codex	0
+precheck.shell.lc.gh	0
+precheck.shell.lc.git	0
+precheck.shell.lc.node	0
+precheck.shell.lc.pnpm	0
+precheck.shell.lc.mise	0
 transcript.exit	0
 transcript.verdict	clean
 transcript.warn_count	0

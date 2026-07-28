@@ -16,4 +16,4 @@ ubuntu-password	container	ubuntu:24.04	password-sudo,no-git	apply	claude-cli nod
 arch-base	container	archlinux:base	no-git	apply	claude-cli node git	printf 'DisableSandbox\n' >> /etc/pacman.conf && pacman -Sy --noconfirm --needed wget ca-certificates sudo gnupg curl git
 macos-vanilla	tart	macos-tahoe-vanilla	base	apply	claude starter github-desktop pnpm safer-installs	-
 macos-vanilla-paste	tart	macos-tahoe-vanilla	base	paste	claude starter github-desktop pnpm safer-installs	-
-macos-drift	runner	macos-latest	base	apply	claude starter github-desktop pnpm safer-installs	-
+macos-drift	runner	macos-latest	debrewed	apply	claude starter github-desktop pnpm safer-installs	-

@@ -39,6 +39,12 @@
 
 STATE="${VIBE_REAL_DIR:-/tmp/vibe-real}"
 
+HERE="$(cd "$(dirname "$0")" && pwd -P)"
+# The fresh-shell measurement is shared with precheck.sh, which takes it BEFORE the
+# run. The judge asserts the difference, so the two have to be one piece of code.
+# shellcheck source=tests/real/lib/measure.sh
+. "$HERE/lib/measure.sh"
+
 # ── Emitters ──────────────────────────────────────────────────────────────────
 
 # Home is normalised to the literal string $HOME. sed's replacement needs the
@@ -56,7 +62,10 @@ emit() { printf '%s\t%s\n' "$1" "$(_norm "$2")"; }
 # ── What only the runner knows ────────────────────────────────────────────────
 
 printf '# vibe real-install state manifest\n'
-emit manifest_version 1
+# 2 added the precheck's fresh-shell baseline, which the judge's delta assertions
+# require. A manifest from an older probe is refused as a harness bug rather than
+# failing every delta closed, which would read as a vibe failure.
+emit manifest_version 2
 
 for _pass in lane precheck; do
   if [ -f "$STATE/$_pass.tsv" ]; then
@@ -84,10 +93,7 @@ emit os "$OS"
 
 if [ "$(id -u)" -eq 0 ]; then emit env.root 1; else emit env.root 0; fi
 
-WHOAMI="$(id -un)"
-LOGIN_SHELL="${SHELL:-/bin/sh}"
-SHELL_KIND="$(basename "$LOGIN_SHELL")"
-emit env.login_shell "$SHELL_KIND"
+emit env.login_shell "$MEASURE_SHELL_KIND"
 
 for _pm in apt-get dnf pacman zypper; do
   _key="$(printf '%s' "$_pm" | sed 's/-get$//')"
@@ -177,7 +183,7 @@ PROBE_PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/shar
 [ -d /opt/homebrew/bin ] && PROBE_PATH="/opt/homebrew/bin:$PROBE_PATH"
 [ -d /usr/local/bin ] && PROBE_PATH="$PROBE_PATH:/usr/local/bin"
 
-for _t in claude codex gh git node pnpm mise; do
+for _t in $MEASURE_TOOLS; do
   if _out="$(PATH="$PROBE_PATH" "$_t" --version 2>&1)"; then
     emit "tool.$_t.runs" 1
     emit "tool.$_t.version_raw" "$_out"
@@ -189,40 +195,23 @@ done
 
 # ── A FRESH shell finds them ─────────────────────────────────────────────────
 #
-# The single most valuable measurement here: the installing shell is green either
-# way, because fixup_path put the dirs on PATH for the run. `env -i` so the guest's
-# own startup files are the ONLY source of PATH — inheriting ours would make this
-# vacuous.
-#
-# Three invocations, because they source three different things and one assertion
-# cannot see all three:
-#   -lic  login + interactive  → ~/.profile, which sources ~/.bashrc
-#   -ic   interactive          → ~/.bashrc
-#   -lc   login only           → ~/.profile, and Debian/Ubuntu's ~/.bashrc returns
-#                                early for a non-interactive shell, so vibe's line
-#                                is invisible here. Reported, not fixed.
+# The single most valuable measurement here — but only as a DELTA. The installing
+# shell is green either way, because fixup_path put the dirs on PATH for the run;
+# and `env -i "$SHELL" -lc` is not an empty PATH either, so a preinstalled git
+# resolves whether or not persist_path ran. precheck.sh takes the SAME measurement
+# before the run, through the same lib/measure.sh, and the judge asserts the
+# difference.
 
-emit shell.kind "$SHELL_KIND"
-case "$SHELL_KIND" in
+emit shell.kind "$MEASURE_SHELL_KIND"
+case "$MEASURE_SHELL_KIND" in
   bash|zsh) emit shell.supported 1 ;;
   *)        emit shell.supported 0 ;;
 esac
 
-_fresh() {
-  # _fresh <flags> <tool> — 1 when a shell started with <flags> resolves <tool>.
-  case "$SHELL_KIND" in bash|zsh) : ;; *) printf '0'; return 0 ;; esac
-  if env -i HOME="$HOME" USER="$WHOAMI" SHELL="$LOGIN_SHELL" TERM=dumb \
-      "$LOGIN_SHELL" "$1" "command -v $2 >/dev/null 2>&1" >/dev/null 2>&1; then
-    printf '1'
-  else
-    printf '0'
-  fi
-}
-
-for _t in claude codex gh git node pnpm mise; do
-  emit "shell.lic.$_t" "$(_fresh -lic "$_t")"
-  emit "shell.ic.$_t"  "$(_fresh -ic "$_t")"
-  emit "shell.lc.$_t"  "$(_fresh -lc "$_t")"
+for _m in $MEASURE_SHELL_MODES; do
+  for _t in $MEASURE_TOOLS; do
+    emit "shell.$_m.$_t" "$(measure_fresh "$_m" "$_t")"
+  done
 done
 
 # ── vibe is the only thing that wrote to PATH ────────────────────────────────
@@ -235,12 +224,7 @@ done
 # are NOT vendor edits and must not count — hence signature matching on the dirs
 # vibe's tools install into, not on the word PATH.
 
-case "$SHELL_KIND" in
-  zsh)  RC="${ZDOTDIR:-$HOME}/.zshrc" ;;
-  bash) RC="$HOME/.bashrc" ;;
-  fish) RC="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish" ;;
-  *)    RC="" ;;
-esac
+RC="$(measure_rc_file)"
 emit rc.file "${RC:-none}"
 
 if [ -n "$RC" ] && [ -f "$RC" ]; then
