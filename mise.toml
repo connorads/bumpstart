@@ -7,6 +7,21 @@ shellcheck = "0.11"
 # in lint-ps, not the test runtime (Pester 5 on 5.1 is painful).
 "aqua:PowerShell/PowerShell" = "7"
 
+# Declared here rather than inherited from a maintainer's global config: this is a
+# public repo, so `mise.lock` has to be maintained by whoever clones it. The
+# platform list is every host the tools are resolved on — the three CI lanes
+# (macos-latest is arm64, ubuntu-latest and windows-latest are x64) plus the two
+# contributor architectures CI doesn't cover.
+[settings]
+lockfile = true
+lockfile_platforms = [
+  "macos-arm64",
+  "macos-x64",
+  "linux-x64",
+  "linux-arm64",
+  "windows-x64",
+]
+
 [tasks.lint]
 description = "Shellcheck all scripts"
 run = "shellcheck -x lib/*.sh blocks/*/apply.sh install.sh vibe tests/helpers/*.sh"
