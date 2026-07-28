@@ -84,6 +84,18 @@ for _l in $LANES; do
     printf 'drive.sh: %s\n' "$LANE_ERROR" >&2
     exit 3
   fi
+  # The group filters exclude the runner adapter, and a NAMED lane bypassed them
+  # entirely - mise appends CLI args, so `mise run vm-test-linux macos-drift` arrives
+  # here as a positional lane and the group is never consulted. The adapter's own
+  # refusal was the only thing left, and it is the one that installs into the real
+  # $HOME of whatever machine it is on. CI asks for that lane by invoking
+  # lanes/run.sh directly, so nothing legitimate needs this path.
+  if [ "$LANE_ADAPTER" = runner ]; then
+    printf 'drive.sh: lane %s uses the runner adapter, which installs into %s for real.\n' "$_l" "$HOME" >&2
+    printf '          drive.sh never selects it, named or grouped. CI runs it by calling\n' >&2
+    printf '          tests/real/lanes/run.sh directly, on a machine that is the throwaway.\n' >&2
+    exit 3
+  fi
   [ "$LANE_ENTRY" = paste ] && NEEDS_REF=1
 done
 if [ "$NEEDS_REF" = 1 ]; then

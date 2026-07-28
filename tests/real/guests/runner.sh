@@ -26,8 +26,45 @@
 GUEST_KIND=runner
 GUEST_USER="$(id -un)"
 GUEST_SRC="${TMPDIR:-/tmp}/vibe-real-src"
+# Set by guest_start from the password database, never inherited.
+GUEST_SHELL=
+
+# The user's real login shell, from the password database rather than from $SHELL:
+# a CI step inherits whatever the runner happened to start it with, and $SHELL is
+# what persist_path keys on. guests/container.sh spends five lines forcing
+# `useradd -s /bin/bash` for the same reason.
+_runner_login_shell() {
+  if command -v dscl >/dev/null 2>&1; then
+    dscl . -read "/Users/$GUEST_USER" UserShell 2>/dev/null | awk '{print $2}'
+  elif command -v getent >/dev/null 2>&1; then
+    getent passwd "$GUEST_USER" 2>/dev/null | awk -F: '{print $7}'
+  fi
+}
 
 guest_start() {
+  # The host guard, BEFORE anything is written. It used to live in guest_provision,
+  # which runs after guest_start has already dropped a full copy of the repo into
+  # TMPDIR - so the refusal came after the side effect it exists to prevent.
+  if [ -z "${CI:-}" ] && [ "${VIBE_REAL_ALLOW_HOST:-}" != 1 ]; then
+    printf 'guest: the runner adapter really installs into %s.\n' "$HOME" >&2
+    printf '       Set VIBE_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
+    return 1
+  fi
+
+  # $SHELL is a GUARANTEE of this port, not an accident of the invoking process. An
+  # unset or `sh` $SHELL makes persist_path print the PATH line instead of writing it
+  # - correct behaviour - and the probe then reports `rc.file none` while every rc
+  # assertion fails for a harness reason.
+  GUEST_SHELL="$(_runner_login_shell)"
+  [ -n "$GUEST_SHELL" ] || GUEST_SHELL="${SHELL:-}"
+  case "$(basename "${GUEST_SHELL:-none}")" in
+    bash|zsh) : ;;
+    *)
+      printf 'guest: the login shell here is [%s], and vibe persists PATH only into\n' "${GUEST_SHELL:-unset}" >&2
+      printf '       bash or zsh - so this lane would assert nothing about persistence.\n' >&2
+      return 1 ;;
+  esac
+
   if [ ! -d "$GUEST_REPO" ]; then
     printf 'guest: no repo at %s\n' "$GUEST_REPO" >&2
     return 1
@@ -41,6 +78,8 @@ guest_start() {
 }
 
 guest_provision() {
+  # Belt to guest_start's braces: the guard is repeated because provisioning is the
+  # step that grants privilege, and a future caller might reach it another way.
   if [ -z "${CI:-}" ] && [ "${VIBE_REAL_ALLOW_HOST:-}" != 1 ]; then
     printf 'guest: the runner adapter really installs into %s.\n' "$HOME" >&2
     printf '       Set VIBE_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
@@ -56,15 +95,22 @@ guest_provision() {
   chmod 1777 "$GUEST_STATE" 2>/dev/null || true
 }
 
+# `< /dev/null` is not tidiness. docker exec and ssh hand the run no stdin at all,
+# so every `[ -t 0 ]`-gated prompt in the product is false; a bare `/bin/sh -c`
+# inherits the CALLER's, so running the drift lane from a terminal would take every
+# one of those prompts live and hang - the exact outcome guests/container.sh says
+# this port exists to prevent. The existing contract case passed only because bats
+# happened to supply /dev/null.
 guest_exec() {
-  /bin/sh -c "$1"
+  SHELL="$GUEST_SHELL" HOME="$HOME" /bin/sh -c "$1" < /dev/null
 }
 
 guest_exec_root() {
-  sudo -n /bin/sh -c "$1"
+  sudo -n /bin/sh -c "$1" < /dev/null
 }
 
 guest_fetch() {
+  [ -f "$1" ] || return 1
   cp "$1" "$2" >/dev/null 2>&1
 }
 

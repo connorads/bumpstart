@@ -60,6 +60,24 @@ setup() {
   printf '%s\n' "$output" | grep -q 'STUB RAN: macos-vanilla-paste' || { echo "$output"; false; }
 }
 
+@test "a runner lane named on the command line is refused" {
+  # mise APPENDS CLI args, so `mise run vm-test-linux macos-drift` arrives here as a
+  # positional lane and the group filter - the thing that excludes the runner adapter
+  # - is never consulted. The adapter's own $HOME guard was the only thing left
+  # between that typo and a real install into a developer's home directory.
+  run bash "$DRIVE" macos-drift
+  [ "$status" -eq 3 ] || { echo "status $status: $output"; false; }
+  printf '%s\n' "$output" | grep -q 'runner' || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q 'STUB RAN' && { echo "the runner lane ran"; false; }
+  true
+}
+
+@test "a runner lane cannot arrive through a group either" {
+  run bash "$DRIVE" --group all
+  printf '%s\n' "$output" | grep -q 'STUB RAN: macos-drift' && { echo "the all group selected it"; false; }
+  true
+}
+
 @test "a lane that does not paste is unaffected by a dirty tree" {
   # apply and install run from the mounted tree, so uncommitted changes are exactly
   # what they are meant to be testing. Refusing them would make the local loop

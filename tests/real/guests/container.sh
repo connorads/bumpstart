@@ -10,7 +10,9 @@
 #   guest_exec <cmd>   run <cmd> as that user, stdout/stderr through, exit status back
 #   guest_exec_root    the same, privileged — a container starts with root and no
 #                      other user, so this cannot be folded into guest_exec
-#   guest_fetch <r> <l>  copy a file out (the manifest, the transcript)
+#   guest_fetch <r> <l>  copy a file out (the manifest, the transcript); FAILS when
+#                        the remote file is not there, because run.sh reads that
+#                        status to tell "the probe crashed" from "the probe ran"
 #   guest_destroy      tear it down
 #   guest_keep         leave it up and print how to get back in
 #
@@ -22,6 +24,13 @@
 # NEVER `-t`: every interactive prompt in the product is `[ -t 0 ]`-gated
 # (gh auth login's Y/n, the blank-name question, sudo -v, press_enter), so a TTY
 # would hang the run rather than test it. No stdin either, so `[ -t 0 ]` is false.
+#
+# Lane strings are POSIX sh. The interpreting shell differs by adapter - bash here
+# (the test user's login shell), zsh on tart (macOS), sh on the runner - and pinning
+# one everywhere would mean either losing $SHELL, which persist_path keys on, or
+# forcing a shell the guest does not have. So the RULE is the contract instead, and
+# tests/real_guest_contract.bats runs the constructs the lane runner actually uses
+# on every adapter, so a bashism cannot pass on one and fail on two.
 #
 # bash-3.2-clean. Sourced, not executed.
 

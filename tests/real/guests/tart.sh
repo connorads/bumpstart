@@ -67,7 +67,14 @@ guest_start() {
   fi
 
   # One clone at a time per VM, never two of the same source concurrently.
-  tart delete "$GUEST_NAME" >/dev/null 2>&1 || true
+  #
+  # STOP first, then delete. A class-1 failure keeps the guest and exits without
+  # cleanup - by design, so the corpse can be looked at - so the next run finds it
+  # RUNNING, and `tart delete` refuses while it is. The clone then fails and the lane
+  # reports class 2, "not a vibe failure", permanently: one real assertion failure
+  # silently demoting itself to not-red is the exact shape these three classes exist
+  # to prevent.
+  _tart_stop_and_delete "$GUEST_NAME" || return 1
   tart clone "$GUEST_IMAGE" "$GUEST_NAME" >/dev/null 2>&1 || return 1
   # 6 GB: Apple's floor is 4 and Tart hard-codes it because guests freeze below it.
   # The image itself was built at 4 CPU / 8 GB, so this is in range.
@@ -120,8 +127,13 @@ guest_provision() {
   guest_exec_root "mkdir -p $GUEST_STATE && chmod 1777 $GUEST_STATE" || return 1
 }
 
+# `-n`, and it is not tidiness: ssh FORWARDS the caller's stdin to the remote
+# command, so a lane driven from a terminal would hand every `[ -t 0 ]`-gated prompt
+# in the product a live keyboard - the exact outcome this port exists to prevent.
+# guest_exec_root cannot use it, because that one passes the command ON stdin.
 guest_exec() {
-  _tart_ssh "$1"
+  # shellcheck disable=SC2086  # TART_SSH_OPTS is a deliberate word-split option list
+  sshpass -p admin ssh -n $TART_SSH_OPTS "$GUEST_USER@$TART_IP" "$1"
 }
 
 # The command arrives on stdin rather than as an argument, so it needs no second
@@ -135,17 +147,29 @@ guest_fetch() {
   sshpass -p admin scp $TART_SSH_OPTS "$GUEST_USER@$TART_IP:$1" "$2" >/dev/null 2>&1
 }
 
-guest_destroy() {
-  tart stop "$GUEST_NAME" >/dev/null 2>&1 || true
+# _tart_stop_and_delete <name> — stop, then delete, then wait for it to take.
+#
+# One owner, called by guest_destroy at the end of a lane AND by guest_start at the
+# beginning of the next: a kept guest is still running, and a delete issued without
+# a stop is refused. A VM that was never there deletes trivially, so this is also the
+# no-op path.
+_tart_stop_and_delete() {
+  _tsd_name="$1"
+  tart list 2>/dev/null | grep -q -- "$_tsd_name" || return 0
+  tart stop "$_tsd_name" >/dev/null 2>&1 || true
   # tart stop is asynchronous; delete refuses while the VM is still running.
-  _gd_i=0
-  while [ "$_gd_i" -lt 30 ]; do
-    if tart delete "$GUEST_NAME" >/dev/null 2>&1; then return 0; fi
+  _tsd_i=0
+  while [ "$_tsd_i" -lt 30 ]; do
+    if tart delete "$_tsd_name" >/dev/null 2>&1; then return 0; fi
     sleep 2
-    _gd_i=$((_gd_i + 1))
+    _tsd_i=$((_tsd_i + 1))
   done
-  printf 'guest: could not delete %s - run "tart delete %s" by hand\n' "$GUEST_NAME" "$GUEST_NAME" >&2
+  printf 'guest: could not delete %s - run "tart delete %s" by hand\n' "$_tsd_name" "$_tsd_name" >&2
   return 1
+}
+
+guest_destroy() {
+  _tart_stop_and_delete "$GUEST_NAME"
 }
 
 guest_keep() {
