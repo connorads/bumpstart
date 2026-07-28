@@ -443,7 +443,13 @@ if [ "$RUN_CLASS" = "$CLASS_ASSERT" ]; then
     printf 'paste\t%s\n' "$IDS"
     printf 'blocks\t%s\n' "$BLOCKS"
   } > "$OUT/lane.tsv"
-  guest_exec "env" > "$OUT/guest.env" 2>/dev/null
+  # The environment the RUN saw, allow-listed — never a raw `env`. On the runner
+  # adapter the guest IS the CI job, and .github/workflows/ci.yml uploads this bundle
+  # as an artifact on failure: a public repo's artifacts are downloadable by anyone,
+  # so a raw dump publishes the job's whole environment, runner-injected tokens
+  # included. The allow-list is what a lane failure is actually diagnosed from.
+  guest_exec 'env | grep -E "^(VIBE_[A-Z_]*|PATH|HOME|SHELL|USER|LOGNAME|LANG|LC_ALL|TERM|NO_COLOR|SUDO_ASKPASS|CI)=" | sort' \
+    > "$OUT/guest.env" 2>/dev/null
   guest_fetch "$S/askpass.log" "$OUT/askpass.log" 2>/dev/null
   printf '  log bundle: %s\n' "$OUT" >&2
   guest_keep
