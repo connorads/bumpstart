@@ -345,8 +345,24 @@ RUN_CLASS=0
 do_run() {
   _dr_n="$1"
 
-  # lane.tsv: what only the runner knows. Rewritten per run so `run` is honest.
-  guest_exec_root "rm -f $S/lane.tsv $S/transcript.log $S/exit $S/manifest"
+  # lane.tsv: what only the runner knows. Written in ONE truncating printf, so
+  # accumulation is unrepresentable rather than merely unlikely.
+  #
+  # It used to be an unchecked `rm -f` followed by seven unchecked `>>` appends. If
+  # the rm no-opped - reachable without exotic failure on the runner adapter, where
+  # `sudo -n` follows `sudo -k` - run 2's lane.tsv held BOTH runs' rows, judge.sh
+  # takes the first match, so `mget run` returned 1 during run 2 and the run-1
+  # askpass branch ran against a correctly-truncated log. Class 1 on a correct
+  # install, which is the one outcome this harness must never produce.
+  _dr_rows=""
+  for _kv in "lane:$LANE" "adapter:$ADAPTER" "guest:$IMAGE" "axis:$AXIS" \
+             "mode:$ENTRY" "run:$_dr_n" "blocks:$BLOCKS"; do
+    _dr_rows="$_dr_rows '${_kv%%:*}$TAB${_kv#*:}'"
+  done
+  if ! guest_exec_root "rm -f $S/transcript.log $S/exit $S/manifest && printf '%s\\n'$_dr_rows > $S/lane.tsv"; then
+    fail_harness "could not write lane.tsv for run $_dr_n"
+    return "$CLASS_HARNESS"
+  fi
 
   # askpass.log is TRUNCATED, not removed, and by the user rather than root: the
   # helper appends as the invoking (unprivileged) user, and the judge reads the
@@ -359,11 +375,6 @@ do_run() {
       return "$CLASS_HARNESS"
     }
   fi
-  for _kv in "lane:$LANE" "adapter:$ADAPTER" "guest:$IMAGE" "axis:$AXIS" \
-             "mode:$ENTRY" "run:$_dr_n" "blocks:$BLOCKS"; do
-    guest_exec_root "printf '%s\\t%s\\n' '${_kv%%:*}' '${_kv#*:}' >> $S/lane.tsv"
-  done
-
   # sudo -k first: a cached credential would make the askpass count lie.
   # NO_COLOR so the UI glyphs the probe parses are plain, and 2>&1 because warn()
   # writes to stderr ONLY and lib/apply.sh exits 0 even when steps warned — so the

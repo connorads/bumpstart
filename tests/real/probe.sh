@@ -67,8 +67,12 @@ printf '# vibe real-install state manifest\n'
 # failing every delta closed, which would read as a vibe failure.
 emit manifest_version 2
 
+# `-s`, not `-f`: run.sh truncates before it fills, so a precheck that died part-way
+# left an EMPTY file — no marker, no keys, and a harness failure reported as a page
+# of "nothing was measured", which reads as class 1. An empty measurement is a
+# missing one.
 for _pass in lane precheck; do
-  if [ -f "$STATE/$_pass.tsv" ]; then
+  if [ -s "$STATE/$_pass.tsv" ]; then
     while IFS= read -r _line; do
       [ -n "$_line" ] || continue
       case "$_line" in \#*) continue ;; esac
@@ -78,6 +82,16 @@ for _pass in lane precheck; do
     emit "probe.missing.$_pass" 1
   fi
 done
+
+# ── The PATH everything below looks on ───────────────────────────────────────
+#
+# vibe's own install dirs ahead of the login PATH, because the question these
+# measurements ask is "did acquisition work" — a different question from "does a new
+# terminal find it", which the fresh-shell delta answers.
+
+PROBE_PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+[ -d /opt/homebrew/bin ] && PROBE_PATH="/opt/homebrew/bin:$PROBE_PATH"
+[ -d /usr/local/bin ] && PROBE_PATH="$PROBE_PATH:/usr/local/bin"
 
 # ── The machine ───────────────────────────────────────────────────────────────
 #
@@ -111,8 +125,12 @@ if [ "$OS" = linux ]; then
     USERNS=apparmor
   elif [ -r "$_clone" ] && [ "$(cat "$_clone" 2>/dev/null)" = 0 ]; then
     USERNS=clone
-  elif command -v bwrap >/dev/null 2>&1 &&
-       ! bwrap --dev-bind / / --unshare-net true >/dev/null 2>&1; then
+  # On the PROBE's PATH, the way blocks/codex-cli/apply.sh sees it: that block probes
+  # bwrap AFTER fixup_path, so a bwrap that lives only in $HOME/.local/bin made the
+  # block warn legitimately, the probe report `none`, and the judge count the warning
+  # as unexpected. Class 1 on a correct install.
+  elif PATH="$PROBE_PATH" command -v bwrap >/dev/null 2>&1 &&
+       ! PATH="$PROBE_PATH" bwrap --dev-bind / / --unshare-net true >/dev/null 2>&1; then
     USERNS=other
   fi
 fi
@@ -178,10 +196,6 @@ fi
 # is a different question from "does a new terminal find it" below. `--version`
 # rather than `command -v`, because the faked suite's `claude` IS a stub — a binary
 # that executes is the whole point here, and it catches a wrong-arch install too.
-
-PROBE_PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
-[ -d /opt/homebrew/bin ] && PROBE_PATH="/opt/homebrew/bin:$PROBE_PATH"
-[ -d /usr/local/bin ] && PROBE_PATH="$PROBE_PATH:/usr/local/bin"
 
 for _t in $MEASURE_TOOLS; do
   if _out="$(PATH="$PROBE_PATH" "$_t" --version 2>&1)"; then

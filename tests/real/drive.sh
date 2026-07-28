@@ -4,7 +4,8 @@ set -uo pipefail
 # drive.sh: run the real-install lanes, aggregate their TAP, run the cross-lane
 # differentials, and return ONE exit class.
 #
-#   tests/real/drive.sh [--group linux|macos|all] [--keep] [--ref SHA] [lane...]
+#   tests/real/drive.sh [--group linux|macos|all] [--keep] [--ref SHA]
+#                       [--allow-dirty] [lane...]
 #
 # Serially, always. One macOS guest at 6 GB plus colima's own VM does not fit twice
 # on 16 GB, and a lane that swaps is a lane that times out for a reason unrelated to
@@ -31,12 +32,14 @@ GROUP=all
 KEEP=""
 REF=""
 LANES=""
+ALLOW_DIRTY=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --group) GROUP="${2:-all}"; shift ;;
     --keep)  KEEP="--keep" ;;
     --ref)   REF="${2:-}"; shift ;;
+    --allow-dirty) ALLOW_DIRTY=1 ;;
     -*)      printf 'drive.sh: unknown option %s\n' "$1" >&2; exit 3 ;;
     *)       LANES="$LANES $1" ;;
   esac
@@ -83,6 +86,21 @@ if [ "$NEEDS_REF" = 1 ]; then
   if ! git -C "$REPO" branch -r --contains "$REF" 2>/dev/null | grep -q .; then
     printf '\n  NOTE: %s is not on any remote yet, so the paste lane cannot fetch it.\n' "${REF:0:12}" >&2
     printf '        Push first, or run --group linux.\n' >&2
+  fi
+  # A pushed ref is not enough: the TREE has to match it too. macos-vanilla mounts
+  # the working tree and macos-vanilla-paste fetches a tarball of HEAD, so any
+  # uncommitted change to what the blocks assemble makes
+  # instructions.canonical.sha256 differ - and the apply-vs-paste differential goes
+  # class 1, "vibe is wrong", on the most expensive lane pair in the matrix after
+  # forty minutes. Refused rather than warned, because that is a false RED, and the
+  # remedy is one commit.
+  if [ "$ALLOW_DIRTY" != 1 ] && [ -n "$(git -C "$REPO" status --porcelain 2>/dev/null)" ]; then
+    printf '\ndrive.sh: the working tree is dirty, and a paste lane fetches %s from GitHub.\n' "${REF:0:12}" >&2
+    printf '          apply.sh would see your uncommitted changes and the paste would not,\n' >&2
+    printf '          so the entry-point differential would disagree about them and report\n' >&2
+    printf '          a vibe failure that is not one. Commit and push, run --group linux,\n' >&2
+    printf '          or pass --allow-dirty if you know why this run is worth it.\n' >&2
+    exit 3
   fi
 fi
 
