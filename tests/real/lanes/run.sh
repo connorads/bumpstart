@@ -67,6 +67,16 @@ fi
 [ -n "$OUT" ] || OUT="$REPO/.vibe-real/$LANE"
 mkdir -p "$OUT" || exit "$CLASS_HARNESS"
 
+# Cleared, not merely created. do_run writes run$n.manifest only on success, and the
+# differentials below and in drive.sh key on the files being there — so a lane that
+# now dies during run 2 would otherwise diff this run's run1 against LAST week's
+# run2, from a different guest, and report the disagreement as a vibe failure.
+# Named artefacts rather than `rm -rf "$OUT"`, because --out points wherever the
+# caller says.
+rm -f "$OUT"/run[0-9]*.transcript "$OUT"/run[0-9]*.manifest "$OUT"/run[0-9]*.tap \
+      "$OUT"/run[0-9]*.probe.err "$OUT/lane.tsv" "$OUT/askpass.log" "$OUT/guest.env" \
+      2>/dev/null
+
 note()  { printf '  %s\n' "$1"; }
 fail_infra()   { printf '\n  INFRASTRUCTURE: %s\n' "$1" >&2; }
 fail_harness() { printf '\n  HARNESS BUG: %s\n' "$1" >&2; }

@@ -140,7 +140,12 @@ done
 # 2. The entry-point differential: lib/apply.sh from a clone and the real paste must
 #    leave the same machine. Same lane, same expected manifest — which is why the
 #    macOS rows exist twice.
-if [ -f "$OUT/macos-vanilla/run1.manifest" ] && [ -f "$OUT/macos-vanilla-paste/run1.manifest" ]; then
+#    Gated on RAN, not on the files existing: `--group linux` leaves last week's
+#    macOS manifests on disk, and diffing those would report a disagreement between
+#    two runs nobody made today.
+ran_lane() { case " $RAN " in *" $1 "*) return 0 ;; esac; return 1; }
+
+if ran_lane macos-vanilla && ran_lane macos-vanilla-paste; then
   if manifest_diff "apply.sh" "$OUT/macos-vanilla/run1.manifest" \
                    "the paste" "$OUT/macos-vanilla-paste/run1.manifest" manifest_state_subset; then
     printf '  apply.sh vs the real paste: identical state\n'
