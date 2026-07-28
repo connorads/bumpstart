@@ -361,7 +361,15 @@ jobs:
           # when steps warned, so the verdict has to come from the text.
           $out = & powershell.exe -NoProfile -File lib\apply.ps1 -Yes -NoLaunch claude starter *>&1
           $rc = $LASTEXITCODE
-          $out | Out-File -FilePath (Join-Path $state 'transcript.log') -Encoding utf8
+          # Out-String -Width, then .NET: `Out-File` renders through the host's
+          # formatter and WRAPS at the console buffer width, so a UI line longer than
+          # that loses its glyph prefix on the continuation - and the prefix is the
+          # channel marker the probe globs on. UTF-8 without a BOM for the same
+          # reason the probe reads it that way: 5.1's default encodings do not
+          # round-trip the U+203A and U+2717 prefixes.
+          $text = ($out | Out-String -Width 4096)
+          $enc = New-Object System.Text.UTF8Encoding($false)
+          [System.IO.File]::WriteAllText((Join-Path $state 'transcript.log'), $text, $enc)
           $out | ForEach-Object { Write-Host $_ }
           Set-Content -LiteralPath (Join-Path $state 'exit') -Value $rc
           # The JUDGE decides, and it asserts transcript.exit is 0. Exiting non-zero here

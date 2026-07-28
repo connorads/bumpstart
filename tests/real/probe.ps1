@@ -90,10 +90,14 @@ $null = $lines.Add('# vibe real-install state manifest')
 # 2 added the precheck's baseline, which the judge's delta assertions require.
 Emit 'manifest_version' 2
 
+# Non-empty, not merely present: the runner truncates before it fills, so a precheck
+# that died part-way leaves an EMPTY file - no marker, no keys, and a harness failure
+# reported as a page of "nothing was measured", which reads as a vibe failure. An
+# empty measurement is a missing one.
 foreach ($pass in @('lane', 'precheck')) {
   $f = Join-Path $StateDir "$pass.tsv"
-  if (Test-Path -LiteralPath $f) {
-    foreach ($l in (Get-Content -LiteralPath $f)) {
+  if ((Test-Path -LiteralPath $f) -and ((Get-Item -LiteralPath $f).Length -gt 0)) {
+    foreach ($l in (Get-Content -Encoding UTF8 -LiteralPath $f)) {
       if ([string]::IsNullOrWhiteSpace($l)) { continue }
       if ($l.StartsWith('#')) { continue }
       $null = $lines.Add(($l -replace "`r", ''))
@@ -113,7 +117,7 @@ Emit 'env.userns.restricted' 'none'
 
 $exitFile = Join-Path $StateDir 'exit'
 if (Test-Path -LiteralPath $exitFile) {
-  Emit 'transcript.exit' ((Get-Content -LiteralPath $exitFile -TotalCount 1) -replace '\s', '')
+  Emit 'transcript.exit' ((Get-Content -Encoding UTF8 -LiteralPath $exitFile -TotalCount 1) -replace '\s', '')
 } else {
   Emit 'probe.missing.exit' 1
 }
@@ -124,9 +128,15 @@ if (Test-Path -LiteralPath $exitFile) {
 # the runner captures every stream and the verdict comes from the TEXT. The finish
 # strings are byte-identical to the bash spine's, so one parser serves both.
 
+# -Encoding UTF8 on every read below, and it is load-bearing, not tidiness. Windows
+# PowerShell 5.1 defaults Get-Content to the ANSI code page, so a BOM-less UTF-8
+# transcript decodes with the non-ASCII glyphs mangled - the info() and error()
+# prefixes are U+203A and U+2717, so info.* and error.* were SILENTLY never emitted,
+# and derived.userns_fix_printed reads info.*. The runner writes the transcript as
+# UTF-8 without a BOM through .NET for the same reason.
 $log = Join-Path $StateDir 'transcript.log'
 if (Test-Path -LiteralPath $log) {
-  $text = Get-Content -LiteralPath $log -Raw
+  $text = Get-Content -Encoding UTF8 -LiteralPath $log -Raw
   if ($null -eq $text) { $text = '' }
   if ($text.Contains('Setup complete.')) {
     Emit 'transcript.verdict' 'clean'
@@ -144,7 +154,7 @@ if (Test-Path -LiteralPath $log) {
   )
   foreach ($g in $glyphs) {
     $n = 0
-    foreach ($l in (Get-Content -LiteralPath $log)) {
+    foreach ($l in (Get-Content -Encoding UTF8 -LiteralPath $log)) {
       $line = $l -replace "`r", ''
       if (-not $line.StartsWith($g.Prefix)) { continue }
       $body = $line.Substring($g.Prefix.Length)
@@ -185,6 +195,12 @@ foreach ($t in $tools) {
   $ver = 'absent'
   $cmd = Get-Command $t -ErrorAction SilentlyContinue
   if ($cmd) {
+    # Reset FIRST. Get-Command is a cmdlet and does not touch $LASTEXITCODE, so on
+    # the first iteration this compared $null to 0 - and on every later one it
+    # compared the PREVIOUS tool's status, which is how tool.<t>.runs could read 0
+    # for a working tool and 1 for a broken one. lib/common.ps1's Invoke-Spin resets
+    # it for exactly this reason.
+    $global:LASTEXITCODE = 0
     $out = (& $t --version 2>&1 | Out-String)
     if ($LASTEXITCODE -eq 0) {
       $ran = $true
@@ -227,21 +243,38 @@ Emit 'rc.persists_path' 0
 
 # -- Desktop apps, by the exact ids the CHECK_WIN cells use ------------------
 
+# Test-WingetPackage <id> [-Exact] - is this package installed?
+#
+# The EXIT STATUS decides, not a substring of the output. `winget list --id <id>`
+# already exits non-zero when nothing matches ("No installed package found matching
+# input criteria"), and matching text instead was wrong twice over: winget's list
+# output is a human-facing TABLE that wraps at the console width, so a long id is
+# split across lines and `.Contains()` misses it; and app.chatgpt was matched on a
+# DISPLAY NAME, so any package whose name contained "ChatGPT" counted.
+#
+# -Exact mirrors each block's own CHECK_WIN cell rather than being chosen here: the
+# probe's job is to measure what the product checks, and the codex-desktop block
+# deliberately queries its msstore product id without -e.
+#
+# --accept-source-agreements because a first winget call on a fresh machine
+# otherwise stops to ask, and this one has no terminal to ask on.
 function Test-WingetPackage {
-  param([string]$Id, [string]$Match, [bool]$Exact)
+  param([string]$Id, [switch]$Exact)
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { return $false }
+  $global:LASTEXITCODE = 0
   if ($Exact) {
-    $out = (winget list --id $Id -e 2>$null | Out-String)
+    $null = (winget list --id $Id -e --accept-source-agreements 2>&1 | Out-String)
   } else {
-    $out = (winget list --id $Id 2>$null | Out-String)
+    $null = (winget list --id $Id --accept-source-agreements 2>&1 | Out-String)
   }
-  if ($null -eq $out) { return $false }
-  return $out.Contains($Match)
+  return ($LASTEXITCODE -eq 0)
 }
 
-Emit-Bool 'app.claude' (Test-WingetPackage 'Anthropic.Claude' 'Anthropic.Claude' $true)
-Emit-Bool 'app.github-desktop' (Test-WingetPackage 'GitHub.GitHubDesktop' 'GitHub.GitHubDesktop' $true)
-Emit-Bool 'app.chatgpt' (Test-WingetPackage '9PLM9XGG6VKS' 'ChatGPT' $false)
+Emit-Bool 'app.claude' (Test-WingetPackage 'Anthropic.Claude' -Exact)
+Emit-Bool 'app.github-desktop' (Test-WingetPackage 'GitHub.GitHubDesktop' -Exact)
+# The Microsoft Store product id, exactly as blocks/codex-desktop/meta's CHECK_WIN
+# and INSTALL_WIN cells spell it.
+Emit-Bool 'app.chatgpt' (Test-WingetPackage '9PLM9XGG6VKS')
 
 # -- safer-installs, at the paths the tools themselves read ------------------
 #
@@ -252,7 +285,7 @@ Emit-Bool 'app.chatgpt' (Test-WingetPackage '9PLM9XGG6VKS' 'ChatGPT' $false)
 function Get-KvValue {
   param([string]$File, [string]$Separator, [string]$Key)
   if (-not (Test-Path -LiteralPath $File)) { return 'absent' }
-  foreach ($l in (Get-Content -LiteralPath $File)) {
+  foreach ($l in (Get-Content -Encoding UTF8 -LiteralPath $File)) {
     $i = $l.IndexOf($Separator)
     if ($i -lt 1) { continue }
     $k = $l.Substring(0, $i).Trim()
@@ -284,7 +317,7 @@ $canon = Join-Path (Join-Path $HOME '.agents') 'AGENTS.md'
 Emit-Path 'instructions.canonical' $canon
 $canonText = ''
 if (Test-Path -LiteralPath $canon) {
-  $canonText = (Get-Content -LiteralPath $canon -Raw)
+  $canonText = (Get-Content -Encoding UTF8 -LiteralPath $canon -Raw)
   if ($null -eq $canonText) { $canonText = '' }
 }
 Emit-Bool 'instructions.canonical.nonempty' (-not [string]::IsNullOrWhiteSpace($canonText))
@@ -301,7 +334,7 @@ Emit 'instructions.canonical.sha256' (Get-VibeHash $canon)
 $claudeTarget = Join-Path (Join-Path $HOME '.claude') 'CLAUDE.md'
 $claudeState = 'absent'
 if (Test-Path -LiteralPath $claudeTarget) {
-  $t = (Get-Content -LiteralPath $claudeTarget -Raw)
+  $t = (Get-Content -Encoding UTF8 -LiteralPath $claudeTarget -Raw)
   if ($null -eq $t) { $t = '' }
   if ($t.Trim() -eq "@$canon") {
     $claudeState = 'import:' + (Format-VibePath $canon)
@@ -316,7 +349,7 @@ Emit 'instructions.link.claude' $claudeState
 $codexTarget = Join-Path (Join-Path $HOME '.codex') 'AGENTS.md'
 $codexState = 'absent'
 if (Test-Path -LiteralPath $codexTarget) {
-  $t = (Get-Content -LiteralPath $codexTarget -Raw)
+  $t = (Get-Content -Encoding UTF8 -LiteralPath $codexTarget -Raw)
   if ($null -eq $t) { $t = '' }
   if ($t -eq $canonText) { $codexState = 'copy:current' } else { $codexState = 'copy:stale' }
 }
