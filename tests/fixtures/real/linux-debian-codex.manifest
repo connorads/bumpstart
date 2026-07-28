@@ -1,0 +1,63 @@
+# debian:12, codex starter. Non-root with apparmor_restrict_unprivileged_userns=1,
+# so the sandbox warning is legitimate AND the printed fix must name that knob.
+manifest_version	1
+lane	debian-codex
+adapter	container
+guest	debian:12
+os	linux
+axis	base
+mode	apply
+run	1
+blocks	codex-cli codex-desktop gh-auth git mise node welcome concise ask-first verify secrets
+env.root	0
+env.login_shell	bash
+env.pkg.apt	1
+env.pkg.dnf	0
+env.pkg.pacman	0
+env.userns.restricted	apparmor
+precheck.curl	present
+precheck.git	present
+precheck.gpg	present
+precheck.vibe_marker	absent
+transcript.exit	0
+transcript.verdict	clean
+transcript.warn_count	1
+warn.0001	Codex's sandbox can't start here, so it may not be able to edit your files.
+info.0001	To allow it, run these two lines, then open a new terminal:
+info.0002	  echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/99-userns.conf
+info.0003	  sudo sysctl --system
+tool.codex.runs	1
+tool.codex.version_raw	codex-cli 0.55.0
+tool.gh.runs	1
+tool.gh.version_raw	gh version 2.66.1
+tool.git.runs	1
+tool.git.version_raw	git version 2.39.5
+tool.mise.runs	1
+tool.mise.version_raw	2026.7.1 linux-arm64
+tool.node.runs	1
+tool.node.version_raw	v24.4.0
+shell.kind	bash
+shell.lic.codex	1
+shell.lic.gh	1
+shell.lic.git	1
+shell.lic.mise	1
+shell.lic.node	1
+shell.ic.codex	1
+shell.ic.gh	1
+shell.ic.git	1
+shell.ic.mise	1
+shell.ic.node	1
+shell.lc.codex	0
+shell.lc.gh	0
+shell.lc.git	1
+shell.lc.mise	0
+shell.lc.node	0
+rc.file	$HOME/.bashrc
+rc.marker_count	1
+rc.block	export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+rc.vendor_path_lines	0
+instructions.canonical	$HOME/.agents/AGENTS.md
+instructions.canonical.nonempty	1
+instructions.link.codex	symlink:$HOME/.agents/AGENTS.md
+instructions.section.git	1
+instructions.section.node	1

@@ -1,0 +1,70 @@
+# The Tart macOS lane: the only lane where casks run. Login shell is zsh, so the
+# fresh-shell legs are zsh's, and persist_path wrote ~/.zshrc.
+manifest_version	1
+lane	macos-vanilla
+adapter	tart
+guest	macos-tahoe-vanilla
+os	mac
+axis	base
+mode	apply
+run	1
+blocks	claude-cli claude-desktop github-desktop gh-auth git mise node pnpm safer-installs welcome concise ask-first verify secrets
+env.root	0
+env.login_shell	zsh
+env.userns.restricted	none
+precheck.curl	present
+precheck.git	absent
+precheck.brew	absent
+precheck.vibe_marker	absent
+transcript.exit	0
+transcript.verdict	clean
+transcript.warn_count	0
+tool.claude.runs	1
+tool.claude.version_raw	2.1.0 (Claude Code)
+tool.gh.runs	1
+tool.gh.version_raw	gh version 2.66.1
+tool.git.runs	1
+tool.git.version_raw	git version 2.51.0
+tool.mise.runs	1
+tool.mise.version_raw	2026.7.1 macos-arm64
+tool.node.runs	1
+tool.node.version_raw	v24.4.0
+tool.pnpm.runs	1
+tool.pnpm.version_raw	10.20.0
+shell.kind	zsh
+shell.lic.claude	1
+shell.lic.gh	1
+shell.lic.git	1
+shell.lic.mise	1
+shell.lic.node	1
+shell.lic.pnpm	1
+shell.ic.claude	1
+shell.ic.gh	1
+shell.ic.git	1
+shell.ic.mise	1
+shell.ic.node	1
+shell.ic.pnpm	1
+shell.lc.claude	0
+shell.lc.gh	1
+shell.lc.git	1
+shell.lc.mise	0
+shell.lc.node	0
+shell.lc.pnpm	0
+rc.file	$HOME/.zshrc
+rc.marker_count	1
+rc.block	export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+rc.vendor_path_lines	0
+app.claude	1
+app.github-desktop	1
+npmrc.min-release-age	4
+npmrc.allow-git	none
+npmrc.allow-remote	none
+mise.minimum_release_age	4d
+pnpm.config	$HOME/Library/Preferences/pnpm/config.yaml
+pnpm.minimumReleaseAge	5760
+pnpm.minimumReleaseAgeStrict	true
+instructions.canonical	$HOME/.agents/AGENTS.md
+instructions.canonical.nonempty	1
+instructions.link.claude	symlink:$HOME/.agents/AGENTS.md
+instructions.section.git	1
+instructions.section.node	1

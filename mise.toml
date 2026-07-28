@@ -24,7 +24,9 @@ lockfile_platforms = [
 
 [tasks.lint]
 description = "Shellcheck all scripts"
-run = "shellcheck -x lib/*.sh blocks/*/apply.sh install.sh vibe tests/helpers/*.sh"
+# The path list is explicit, so a new directory of scripts cannot join the repo and
+# silently escape the gate — which is exactly what tests/real/ would have done.
+run = "shellcheck -x lib/*.sh blocks/*/apply.sh install.sh vibe tests/helpers/*.sh tests/real/*.sh tests/real/lib/*.sh"
 
 [tasks.test]
 description = "Run the bats suite (product code runs under /bin/bash via the isolated PATH)"

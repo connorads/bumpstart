@@ -1,0 +1,75 @@
+# fedora:42 — no apt-get, so claude-desktop legitimately warns and skips, and the
+# run's own verdict is STILL a green "Setup complete." (its skip paths exit 0).
+# That combination is the blind spot the unexpected-warning assertion closes.
+manifest_version	1
+lane	fedora-base
+adapter	container
+guest	fedora:42
+os	linux
+axis	base
+mode	apply
+run	1
+blocks	claude-cli claude-desktop gh-auth git mise node pnpm safer-installs welcome concise ask-first verify secrets
+env.root	0
+env.login_shell	bash
+env.pkg.apt	0
+env.pkg.dnf	1
+env.pkg.pacman	0
+env.userns.restricted	none
+precheck.curl	present
+precheck.git	present
+precheck.gpg	present
+precheck.vibe_marker	absent
+transcript.exit	0
+transcript.verdict	clean
+transcript.warn_count	1
+warn.0001	the Claude desktop app only ships for Debian/Ubuntu so far - skipping it.
+info.0001	Claude Code (the terminal one) is installed and is what this setup launches.
+tool.claude.runs	1
+tool.claude.version_raw	2.1.0 (Claude Code)
+tool.gh.runs	1
+tool.gh.version_raw	gh version 2.66.1
+tool.git.runs	1
+tool.git.version_raw	git version 2.47.1
+tool.mise.runs	1
+tool.mise.version_raw	2026.7.1 linux-arm64
+tool.node.runs	1
+tool.node.version_raw	v24.4.0
+tool.pnpm.runs	1
+tool.pnpm.version_raw	10.20.0
+shell.kind	bash
+shell.lic.claude	1
+shell.lic.gh	1
+shell.lic.git	1
+shell.lic.mise	1
+shell.lic.node	1
+shell.lic.pnpm	1
+shell.ic.claude	1
+shell.ic.gh	1
+shell.ic.git	1
+shell.ic.mise	1
+shell.ic.node	1
+shell.ic.pnpm	1
+shell.lc.claude	0
+shell.lc.gh	0
+shell.lc.git	1
+shell.lc.mise	0
+shell.lc.node	0
+shell.lc.pnpm	0
+rc.file	$HOME/.bashrc
+rc.marker_count	1
+rc.block	export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+rc.vendor_path_lines	0
+app.claude-desktop	0
+npmrc.min-release-age	4
+npmrc.allow-git	none
+npmrc.allow-remote	none
+mise.minimum_release_age	4d
+pnpm.config	$HOME/.config/pnpm/config.yaml
+pnpm.minimumReleaseAge	5760
+pnpm.minimumReleaseAgeStrict	true
+instructions.canonical	$HOME/.agents/AGENTS.md
+instructions.canonical.nonempty	1
+instructions.link.claude	symlink:$HOME/.agents/AGENTS.md
+instructions.section.git	1
+instructions.section.node	1

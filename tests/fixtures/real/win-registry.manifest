@@ -1,0 +1,34 @@
+# A windows-2025 CI run. No rc file and no persisted PATH at all on this spine, so
+# the fresh-shell check reads the User-scope registry PATH instead.
+manifest_version	1
+lane	windows-2025
+adapter	runner
+guest	windows-2025
+os	win
+axis	base
+mode	apply
+run	1
+blocks	claude-cli claude-desktop gh-auth git node welcome concise ask-first verify secrets
+env.root	0
+precheck.vibe_marker	absent
+transcript.exit	0
+transcript.verdict	clean
+transcript.warn_count	0
+tool.claude.runs	1
+tool.claude.version_raw	2.1.0 (Claude Code)
+tool.gh.runs	1
+tool.gh.version_raw	gh version 2.66.1
+tool.git.runs	1
+tool.git.version_raw	git version 2.51.0.windows.1
+tool.node.runs	1
+tool.node.version_raw	v24.4.0
+shell.regpath.claude	1
+shell.regpath.gh	1
+shell.regpath.git	1
+shell.regpath.node	1
+app.claude	1
+instructions.canonical	$HOME/.agents/AGENTS.md
+instructions.canonical.nonempty	1
+instructions.link.claude	import:$HOME/.agents/AGENTS.md
+instructions.section.git	1
+instructions.section.node	1

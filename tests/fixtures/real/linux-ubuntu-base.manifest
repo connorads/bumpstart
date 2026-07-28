@@ -1,0 +1,70 @@
+# vibe real-install state manifest — a clean ubuntu:24.04 base lane, run 1.
+# Hand-written: this is the judge's fixture, not probe output. Keep it realistic
+# (the probe's normalisation is what makes $HOME literal here).
+manifest_version	1
+lane	ubuntu-base
+adapter	container
+guest	ubuntu:24.04
+os	linux
+axis	base
+mode	apply
+run	1
+blocks	claude-cli claude-desktop gh-auth git mise node welcome concise ask-first verify secrets
+env.root	0
+env.login_shell	bash
+env.pkg.apt	1
+env.pkg.dnf	0
+env.pkg.pacman	0
+env.userns.restricted	apparmor
+precheck.curl	present
+precheck.git	present
+precheck.gpg	present
+precheck.vibe_marker	absent
+transcript.exit	0
+transcript.verdict	clean
+transcript.warn_count	0
+info.0001	Not signed into GitHub yet - sign in (gh auth login), then re-run to set your git name/email.
+tool.claude.runs	1
+tool.claude.version_raw	2.1.0 (Claude Code)
+tool.gh.runs	1
+tool.gh.version_raw	gh version 2.66.1
+tool.git.runs	1
+tool.git.version_raw	git version 2.43.0
+tool.mise.runs	1
+tool.mise.version_raw	2026.7.1 linux-arm64
+tool.node.runs	1
+tool.node.version_raw	v24.4.0
+shell.kind	bash
+shell.lic.claude	1
+shell.lic.gh	1
+shell.lic.git	1
+shell.lic.mise	1
+shell.lic.node	1
+shell.ic.claude	1
+shell.ic.gh	1
+shell.ic.git	1
+shell.ic.mise	1
+shell.ic.node	1
+shell.lc.claude	0
+shell.lc.gh	0
+shell.lc.git	1
+shell.lc.mise	0
+shell.lc.node	0
+rc.file	$HOME/.bashrc
+rc.marker_count	1
+rc.block	export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
+rc.vendor_path_lines	0
+app.claude-desktop	1
+instructions.canonical	$HOME/.agents/AGENTS.md
+instructions.canonical.nonempty	1
+instructions.canonical.sha256	3f2a1cd6e0b4c8a97d5e1f0b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5
+instructions.link.claude	symlink:$HOME/.agents/AGENTS.md
+instructions.section.git	1
+instructions.section.node	1
+path.rc	file:aa11bb22cc33dd44ee55ff6600112233445566778899aabbccddeeff00112233
+path.agents	file:3f2a1cd6e0b4c8a97d5e1f0b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5
+path.claude-md	symlink:$HOME/.agents/AGENTS.md
+path.codex-agents	absent
+path.npmrc	absent
+path.starter	dir
+path.starter-git	dir
