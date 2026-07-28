@@ -111,8 +111,13 @@ has_block gh-auth    && _want_tool gh
 has_block git        && _want_tool git
 has_block node       && _want_tool node
 has_block pnpm       && _want_tool pnpm
-has_block mise       && _want_tool mise
-[ "$OS" = linux ] && _want_tool mise
+# mise has no *_WIN cells, so it is a silent no-op on Windows however it got into the
+# plan (node and pnpm both INCLUDE it). Unconditional on Linux, where ensure_mise runs
+# pre-loop, ahead of the block whose INCLUDE would otherwise pull it in.
+if [ "$OS" != win ]; then
+  has_block mise && _want_tool mise
+  [ "$OS" = linux ] && _want_tool mise
+fi
 
 # ── Derived: which warnings are LEGITIMATE on this machine ────────────────────
 #
@@ -309,7 +314,10 @@ fi
 # 7. safer-installs is configured where the tools read it --------------------
 # Configured, note — NOT that it protected this run: the gate lands after the tools
 # it should gate (ADR 0002).
-if has_block safer-installs; then
+# Windows excluded: the block ships no apply.ps1, so Test-BlockRuns drops it from the
+# plan there and nothing is configured. Asserting the keys would be asserting a
+# feature that does not exist yet on that spine.
+if has_block safer-installs && [ "$OS" != win ]; then
   add_check eq npmrc.min-release-age 4 "npm waits 4 days on a new release"
   add_check eq npmrc.allow-git none "npm refuses a git dependency"
   add_check eq npmrc.allow-remote none "npm refuses a bare-tarball dependency"

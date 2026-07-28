@@ -98,33 +98,229 @@ jobs:
               exec /bats/bin/bats tests/
             '
 
+  real-lanes:
+    # The lane matrix is DATA (tests/real/lanes.tsv), read by `mise run vm-test`
+    # locally AND by CI here, so "local and CI run the same thing" is true rather than
+    # aspirational. A new lane row joins CI with no workflow change.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      linux: ${{ steps.matrix.outputs.linux }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: matrix
+        run: |
+          lanes="$(awk -F'\t' 'NR > 1 && $2 == "container" { print $1 }' tests/real/lanes.tsv \
+            | jq -R . | jq -sc .)"
+          echo "linux=$lanes" >> "$GITHUB_OUTPUT"
+
   linux-real-install:
     # Not on pull_request: this really installs from vendor URLs, so it is slow and
     # depends on third parties being up. Weekly + on demand instead.
     #
-    # The assertion that matters is a FRESH LOGIN SHELL. Success in the installing
-    # shell proves nothing: fixup_path puts the install dirs on PATH for the run, so
-    # the run is green whether or not anything was persisted. This is the only check
-    # that fails when the rc line is wrong.
+    # Every lane runs twice and is decided by the same probe + judge the local lanes
+    # use. The assertion that matters most is a FRESH LOGIN SHELL: success in the
+    # installing shell proves nothing, because fixup_path puts the install dirs on PATH
+    # for the run, so the run is green whether or not anything was persisted.
     if: github.event_name != 'pull_request'
+    needs: real-lanes
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: ${{ fromJson(needs.real-lanes.outputs.linux) }}
     steps:
       - uses: actions/checkout@v5
-      - name: real install in ubuntu:24.04
+      - name: real install lane
+        env:
+          LANE: ${{ matrix.lane }}
         run: |
-          docker run --rm -v "$PWD:/src:ro" -w /src ubuntu:24.04 /bin/bash -c '
-            set -eux
-            # Deliberately bare: Ubuntu Desktop ships wget but NOT curl and NOT git,
-            # so only wget + CA certs are added. If the run needs curl, that is a bug.
-            apt-get update -qq
-            apt-get install -y -qq wget ca-certificates sudo >/dev/null
-            # -s /bin/bash: useradd defaults to /bin/sh, and persist_path keys on the
-            # login shell. A sh user gets told the PATH line instead of having it
-            # written, which is correct behaviour and would make this check vacuous.
-            useradd -m -s /bin/bash tester
-            su tester -c "cd /src && bash lib/apply.sh claude-cli node --yes --no-launch"
-            # An INTERACTIVE login shell, because Ubuntu ~/.bashrc returns early for
-            # non-interactive shells - and an interactive terminal is the case the
-            # user actually meets.
-            su - tester -c "bash -lic \"command -v claude && command -v node\""
-          '
+          set +e
+          bash tests/real/lanes/run.sh "$LANE"
+          rc=$?
+          # Three exit classes, honoured here rather than collapsed to pass/fail: a
+          # class 2 (the guest, an image, or a vendor URL) is reported without going
+          # red, and a class 1 never can be. This is the structural answer to "the lane
+          # will get muted".
+          case "$rc" in
+            0) ;;
+            2) echo "::warning title=$LANE::infrastructure, not a vibe failure (class 2)" ;;
+            *) exit "$rc" ;;
+          esac
+      - name: log bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-linux-${{ matrix.lane }}
+          path: .vibe-real/
+          retention-days: 7
+
+  macos-real-install:
+    # DRIFT DETECTION, NOT A PRISTINE MAC. There is no clean hosted macOS and GitHub
+    # says there never will be (runner-images#222): Homebrew, Node and git are
+    # preinstalled. Scrubbing a runner is best effort, so this lane catches a vendor
+    # installer changing under us; the genuine first-time-Mac path is the LOCAL tart
+    # lane (`mise run vm-test-macos`). Describing this one as pristine is exactly how
+    # that lane quietly stops being run.
+    if: github.event_name != 'pull_request'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: disk before
+        run: df -h /
+      - name: de-brew
+        run: |
+          set +e
+          # Homebrew's own uninstaller first, then the leftovers it declines to touch.
+          NONINTERACTIVE=1 /bin/bash -c \
+            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" -- --force
+          sudo rm -rf /opt/homebrew /usr/local/Homebrew /usr/local/Caskroom
+          # The Xcode CLT too, so ensure_brew has to install it. If this lane turns
+          # flaky, suspect this step first: brew reinstalls the CLT via softwareupdate,
+          # which is the slowest and least predictable thing here.
+          sudo rm -rf /Library/Developer/CommandLineTools
+          command -v brew && echo "::warning::brew survived the scrub"
+          exit 0
+      - name: real install lane
+        env:
+          CI: "true"
+        run: |
+          # HOMEBREW_* is preset on the runner and would steer a "fresh" install.
+          for v in $(env | sed -n 's/^\(HOMEBREW_[A-Z_]*\)=.*/\1/p'); do unset "$v"; done
+          set +e
+          bash tests/real/lanes/run.sh macos-drift
+          rc=$?
+          case "$rc" in
+            0) ;;
+            2) echo "::warning title=macos-drift::infrastructure, not a vibe failure (class 2)" ;;
+            *) exit "$rc" ;;
+          esac
+      - name: disk after
+        if: always()
+        run: df -h /
+      - name: log bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-macos-drift
+          path: .vibe-real/
+          retention-days: 7
+
+  windows-real-install:
+    # The only real Windows install anywhere, and the only place the PowerShell spine's
+    # acquisition is tested at all. Two legs because neither covers the other:
+    # windows-11-arm is the only Windows 11 CLIENT image any CI vendor hosts (public
+    # preview - pin nothing to it that windows-2025 cannot cover), and windows-2025 is
+    # Server on x64.
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    # winget currently HANGS rather than failing, so the timeout is the guard.
+    timeout-minutes: 20
+    defaults:
+      run:
+        # Windows PowerShell 5.1, NOT the runner's default pwsh 7 - which would
+        # silently defeat the 5.1 floor these tests exist to protect.
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: is winget in the box?
+        # Asserted BEFORE bootstrapping, so the day the ARM image ships winget
+        # (actions/runner-images#14083 is still open) we find out instead of quietly
+        # continuing to install it ourselves.
+        run: |
+          $wg = Get-Command winget -ErrorAction SilentlyContinue
+          if ($wg) {
+            winget --version
+            Write-Host "winget is in the box on $env:RUNNER_OS/$env:PROCESSOR_ARCHITECTURE"
+          } else {
+            Write-Host "::warning::winget is absent on this image - bootstrapping it"
+          }
+
+      - name: bootstrap winget when absent
+        run: |
+          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            Install-Module Microsoft.WinGet.Client -Force -Scope CurrentUser -AllowClobber
+            Repair-WinGetPackageManager -Force -Latest
+            # $LOCALAPPDATA\Microsoft\WinGet\Links goes on PATH ONLY so the HARNESS
+            # can invoke winget. The fresh-shell check reads the registry, never
+            # $env:PATH, so this cannot make that assertion vacuous.
+            Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links')
+          }
+
+      - name: resolve the expected block list
+        shell: bash
+        run: |
+          blocks="$(bash tests/helpers/resolve_driver.sh lib . claude starter | awk -F'\t' '{print $1}')"
+          [ -n "$blocks" ] || { echo "the resolver produced nothing"; exit 3; }
+          echo "VIBE_BLOCKS=$blocks" >> "$GITHUB_ENV"
+
+      - name: lane state
+        env:
+          LANE: ${{ matrix.os }}
+        run: |
+          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          New-Item -ItemType Directory -Path $state -Force | Out-Null
+          $tab = [char]9
+          @(
+            "lane$tab$env:LANE"
+            "adapter${tab}runner"
+            "guest$tab$env:LANE"
+            "axis${tab}base"
+            "mode${tab}apply"
+            "run${tab}1"
+            "blocks$tab$env:VIBE_BLOCKS"
+          ) | Set-Content -LiteralPath (Join-Path $state 'lane.tsv')
+          # A fresh runner VM cannot carry a vibe marker, and this spine writes no rc
+          # line at all - recorded so the judge's pristine assertion is measured, not
+          # assumed.
+          "precheck.vibe_marker${tab}absent" | Set-Content -LiteralPath (Join-Path $state 'precheck.tsv')
+
+      - name: real install (Windows PowerShell 5.1)
+        run: |
+          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          # Every stream captured: the UI goes to Write-Host and apply.ps1 exits 0 even
+          # when steps warned, so the verdict has to come from the text.
+          $out = & powershell.exe -NoProfile -File lib\apply.ps1 -Yes -NoLaunch claude starter *>&1
+          $rc = $LASTEXITCODE
+          $out | Out-File -FilePath (Join-Path $state 'transcript.log') -Encoding utf8
+          $out | ForEach-Object { Write-Host $_ }
+          Set-Content -LiteralPath (Join-Path $state 'exit') -Value $rc
+
+      - name: probe
+        run: |
+          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          & powershell.exe -NoProfile -File tests\real\probe.ps1 `
+            -StateDir $state -Manifest (Join-Path $state 'manifest')
+
+      - name: judge
+        shell: bash
+        run: |
+          state="$(cygpath -u "$RUNNER_TEMP")/vibe-real"
+          set +e
+          # shellcheck disable=SC2086  # the block list is deliberately word-split
+          bash tests/real/judge.sh "$state/manifest" $VIBE_BLOCKS
+          rc=$?
+          case "$rc" in
+            0) ;;
+            2) echo "::warning::infrastructure, not a vibe failure (class 2)" ;;
+            *) exit "$rc" ;;
+          esac
+
+      - name: log bundle
+        if: failure()
+        shell: bash
+        run: cp -r "$(cygpath -u "$RUNNER_TEMP")/vibe-real" ./vibe-real-bundle || true
+      - name: upload log bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-windows-${{ matrix.os }}
+          path: vibe-real-bundle/
+          retention-days: 7
