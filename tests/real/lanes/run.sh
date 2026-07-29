@@ -51,6 +51,11 @@ OUT=""
 REF=""
 RUNS=2
 
+# Set here rather than beside the runs it measures, because write_verdict reads it from
+# an EXIT trap installed long before the first one - and under `set -u` an unset
+# variable there would abort the one report every other job aggregates.
+APPLY_SECONDS=""
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --keep)  KEEP=true ;;
@@ -163,6 +168,17 @@ write_verdict() {
     printf 'passed\t%s\n'      "$_wv_ok"
     printf 'failed\t%s\n'      "$_wv_bad"
     printf 'todo\t%s\n'        "$_wv_todo"
+    # How long it took, in the one file that is written on every exit path. Nothing in
+    # the harness measured time, and the run that made that a problem - ubuntu-no-curl,
+    # 19m37s for its first apply against roughly 30s for its sibling lanes - could only
+    # be read from a transcript that was never uploaded.
+    #
+    # HERE and not in the manifest, deliberately: manifest_state_subset compares two
+    # runs key for key, so a duration in there would fail the idempotence differential
+    # every single time. verdicts.sh reports these and flags an outlier; nothing
+    # asserts them, because a timing assertion in CI is a flake generator.
+    printf 'duration_apply_s\t%s\n' "$APPLY_SECONDS"
+    printf 'duration_lane_s\t%s\n'  "$SECONDS"
   } > "$OUT/lane.verdict"
 }
 trap 'write_verdict "$?"' EXIT
@@ -399,7 +415,14 @@ do_run() {
 
   note "run $_dr_n: $ENTRY"
   guest_exec "sudo -k >/dev/null 2>&1 || true"
+  # $SECONDS around the apply itself, not around the whole run: the probe and the judge
+  # are the harness's own time, and folding them in would blur the one number that says
+  # what a person waits for.
+  _dr_t0="$SECONDS"
   guest_exec "{ $_dr_env $ENTRY_CMD ; } > $S/transcript.log 2>&1; printf '%s\\n' \$? > $S/exit"
+  _dr_secs=$((SECONDS - _dr_t0))
+  APPLY_SECONDS="${APPLY_SECONDS:+$APPLY_SECONDS }$_dr_secs"
+  note "run $_dr_n: the apply took ${_dr_secs}s"
 
   if ! guest_fetch "$S/transcript.log" "$OUT/run$_dr_n.transcript"; then
     fail_harness "could not fetch the transcript for run $_dr_n"

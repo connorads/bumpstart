@@ -500,6 +500,11 @@ job aggregates them: a matrix where **no** lane reached a judgement fails, and s
 one where a declared lane never reported. It is the same rule the judge applies to a
 single lane ("a lane that asserts nothing cannot pass"), one level up.
 
+The verdict also records how long each apply took, and the summary names a lane whose
+slowest apply is far outside the median. Reported, never asserted - a timing assertion
+in CI is a flake generator, and what this is for is pointing at a transcript worth
+reading.
+
 Two caveats worth stating plainly. The vanilla macOS image has **Gatekeeper disabled**
 and passwordless sudo baked in, so it is pristine with respect to Homebrew but *more
 permissive* than a real Mac - a cask install cannot hit a "developer cannot be
