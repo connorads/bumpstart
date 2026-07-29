@@ -107,6 +107,60 @@ manifest_invariant_subset() {
   ' "$1" | sort | _manifest_subset_guard "$1" invariant "$MANIFEST_INVARIANT_MIN"
 }
 
+# _manifest_compare <label-a> <file-a> <label-b> <file-b> — compare two subsets and
+# print one indented line per difference. 0 when they agree, 1 when they do not.
+#
+# awk, NOT `diff`. `diff` is not in archlinux:base (the `base` metapackage carries no
+# diffutils), and its absence arrived here as a NON-ZERO STATUS - which manifest_diff
+# read as "the manifests disagree", while the `sed -n '3,$p'` that stripped diff's
+# header deleted the only line in the file. Eleven cases reported "vibe is wrong" and
+# named no key. A missing tool is a harness bug; the way to stop misclassifying it is
+# to stop depending on it, and this was the only `diff` in the test tree.
+#
+# It also reports better than a unified diff: keys that DIFFER, keys only in A and
+# keys only in B, which is what this function's callers say they name. Both sides are
+# already sorted `key<TAB>value`, so a hash join is all it takes.
+#
+# FNR == NR is safe here because manifest_diff is the only caller and it passes two
+# distinct files that the subset guard has already refused to leave empty. A key
+# appearing twice on one side folds into one entry carrying both values, so a
+# duplicate still differs from a single. POSIX awk, bash-3.2-clean.
+_manifest_compare() {
+  awk -v la="$1" -v lb="$3" '
+    {
+      p = index($0, "\t")
+      if (p < 2) next
+      k = substr($0, 1, p - 1)
+      v = substr($0, p + 1)
+      if (FNR == NR) {
+        if (k in a) { a[k] = a[k] " | " v } else { a[k] = v; ka[++na] = k }
+      } else {
+        if (k in b) { b[k] = b[k] " | " v } else { b[k] = v; kb[++nb] = k }
+      }
+    }
+    END {
+      for (i = 1; i <= na; i++) {
+        k = ka[i]
+        if (!(k in b)) {
+          printf "    %s: only in %s [%s]\n", k, la, a[k]
+          d++
+        } else if (a[k] != b[k]) {
+          printf "    %s: %s [%s] vs %s [%s]\n", k, la, a[k], lb, b[k]
+          d++
+        }
+      }
+      for (i = 1; i <= nb; i++) {
+        k = kb[i]
+        if (!(k in a)) {
+          printf "    %s: only in %s [%s]\n", k, lb, b[k]
+          d++
+        }
+      }
+      if (d > 0) { exit 1 }
+    }
+  ' "$2" "$4"
+}
+
 # manifest_diff <label-a> <file-a> <label-b> <file-b> <subset-fn> — 0 when the two
 # subsets agree. On disagreement it NAMES the differing keys, because "the
 # differential failed" is not a finding a reader can act on.
@@ -114,21 +168,21 @@ manifest_diff() {
   _md_a_label="$1"; _md_a="$2"; _md_b_label="$3"; _md_b="$4"; _md_fn="$5"
   _md_tmp="${TMPDIR:-/tmp}/vibe-mdiff.$$"
   mkdir -p "$_md_tmp" || return 1
-  # The subset's own status decides, before diff gets a look in: comparing two
-  # things neither of which could be read is not a comparison, and `diff` calls it
-  # a match.
+  # The subset's own status decides, before the comparison gets a look in: comparing
+  # two things neither of which could be read is not a comparison, and a hash join
+  # over two empty files calls it a match.
   if ! "$_md_fn" "$_md_a" > "$_md_tmp/a" || ! "$_md_fn" "$_md_b" > "$_md_tmp/b"; then
     printf '  differential %s vs %s could not be taken — one side yielded no usable subset\n' \
       "$_md_a_label" "$_md_b_label"
     rm -rf "$_md_tmp"
     return 1
   fi
-  if diff -u "$_md_tmp/a" "$_md_tmp/b" > "$_md_tmp/d" 2>&1; then
+  if _manifest_compare "$_md_a_label" "$_md_tmp/a" "$_md_b_label" "$_md_tmp/b" > "$_md_tmp/d"; then
     rm -rf "$_md_tmp"
     return 0
   fi
   printf '  differential %s vs %s disagrees:\n' "$_md_a_label" "$_md_b_label"
-  sed -n '3,$p' "$_md_tmp/d" | sed 's/^/    /'
+  cat "$_md_tmp/d"
   rm -rf "$_md_tmp"
   return 1
 }

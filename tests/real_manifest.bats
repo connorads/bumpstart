@@ -81,6 +81,49 @@ mset() {
   printf '%s\n' "$output" | grep -q 'path.npmrc' || { echo "$output"; false; }
 }
 
+@test "a key present on one side only is named as such, not reported as a value change" {
+  # The two shapes a unified diff conflated: run 2 emitting a key run 1 did not (a
+  # vendor PATH line appearing on the second install) is a different finding from a
+  # value that moved, and the reader needs to be told which. Both directions, because
+  # a comparison that only looks one way misses the key that VANISHED.
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/run1"
+  mset rc.vendor.0001 'export PATH="$HOME/.codex/bin:$PATH"'
+  run manifest_diff 'run 1' "$BATS_TEST_TMPDIR/run1" 'run 2' "$M" manifest_state_subset
+  [ "$status" -eq 1 ] || { echo "an extra key passed idempotence"; false; }
+  printf '%s\n' "$output" | grep -q 'rc.vendor.0001: only in run 2' || { echo "$output"; false; }
+
+  run manifest_diff 'run 1' "$M" 'run 2' "$BATS_TEST_TMPDIR/run1" manifest_state_subset
+  [ "$status" -eq 1 ] || { echo "a vanished key passed idempotence"; false; }
+  printf '%s\n' "$output" | grep -q 'rc.vendor.0001: only in run 1' || { echo "$output"; false; }
+}
+
+@test "the differential needs no tool beyond awk, which the subsets already need" {
+  # archlinux:base carries no diffutils, and `diff` reporting "command not found" as
+  # a non-zero status made eleven cases claim "vibe is wrong" while naming no key -
+  # the empty finding body was the header-stripping sed deleting the only line there
+  # was. A harness bug must not be able to arrive as a differential finding, so the
+  # dependency is gone rather than managed.
+  # A `diff` that behaves exactly as the arch lane's did: one line on stderr, status
+  # 127. Ahead of the real one on PATH, so this case is the regression itself.
+  local bin="$BATS_TEST_TMPDIR/nodiff"
+  mkdir -p "$bin"
+  printf '#!/bin/sh\necho "diff: command not found" >&2\nexit 127\n' > "$bin/diff"
+  chmod +x "$bin/diff"
+  mani linux-ubuntu-base.manifest
+  cp "$M" "$BATS_TEST_TMPDIR/run1"
+
+  local saved="$PATH"
+  PATH="$bin:$PATH"
+  run manifest_diff 'run 1' "$BATS_TEST_TMPDIR/run1" 'run 2' "$M" manifest_state_subset
+  [ "$status" -eq 0 ] || { echo "identical manifests disagreed: $output"; false; }
+  mset path.npmrc 'file:deadbeef'
+  run manifest_diff 'run 1' "$BATS_TEST_TMPDIR/run1" 'run 2' "$M" manifest_state_subset
+  PATH="$saved"
+  [ "$status" -eq 1 ] || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q 'path.npmrc' || { echo "$output"; false; }
+}
+
 @test "the invariant subset holds across every POSIX lane, whatever the paste" {
   local base="$FIX/linux-ubuntu-base.manifest"
   for other in linux-debian-codex linux-fedora-nodesktop linux-ubuntu-password mac-casks; do

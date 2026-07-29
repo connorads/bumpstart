@@ -97,10 +97,13 @@ jobs:
             -w /src \
             "${{ matrix.image }}" \
             /bin/bash -c '
+              set -e
               # gnupg for the signing-key cases, git for the repo-init cases: both
-              # assert real tool behaviour, so faking them would assert nothing.
-              ${{ matrix.deps }} >/dev/null 2>&1 \
-                || echo "note: dependency install failed; some cases will skip"
+              # assert real tool behaviour, so faking them would assert nothing - so a
+              # failed install FAILS the step. It used to be swallowed whole
+              # (`>/dev/null 2>&1 || echo note`), which turned "the mirror moved" into a
+              # quietly reduced suite with the reason discarded.
+              ${{ matrix.deps }}
               # -s /bin/bash and plain `su` (not `su -`), for the two reasons
               # guests/container.sh spells out: useradd defaults to /bin/sh, and `su`
               # resets HOME/SHELL/USER from /etc/passwd while keeping the rest of the
