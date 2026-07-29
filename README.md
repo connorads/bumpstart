@@ -235,8 +235,10 @@ skill or MCP block ships yet - better none than a redundant one.
    (`~/.agents/AGENTS.md`), then symlink each installed agent's own path to it
    (`~/.claude/CLAUDE.md` for Claude, `~/.codex/AGENTS.md` for Codex) so both
    agents read the single source.
-6. Add **one marked line** to your shell's startup file, so a new terminal window
-   still finds what was installed (see [Removing it](#removing-it)).
+6. Make sure a new terminal window still finds what was installed: on macOS and
+   Linux that is **one marked line** in your shell's startup file; on Windows it is
+   your **account's PATH** in the registry, which has nowhere to put a marker (see
+   [Removing it](#removing-it)).
 7. Create a starter project (`~/git/first-project`, a git repo when the `git`
    block is in the plan), pre-trust it, copy a
    friendly first message to the clipboard (survives the sign-in - paste it with
@@ -256,15 +258,25 @@ only ever printed when nothing warned.
 
 ### Removing it
 
-The PATH line is the only edit vibe makes to a file outside its own config paths.
-It is wrapped in markers, so removing it is mechanical - delete these three lines
-from `~/.bashrc`, `~/.zshrc` or `~/.config/fish/config.fish`:
+The PATH edit is the only change vibe makes outside its own config paths.
+
+On **macOS and Linux** it is a line in a file you own, wrapped in markers, so
+removing it is mechanical - delete these three lines from `~/.bashrc`, `~/.zshrc` or
+`~/.config/fish/config.fish`:
 
 ```text
 # >>> vibe-setup >>>
 export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
 # <<< vibe-setup <<<
 ```
+
+On **Windows** it is your account's PATH (the per-user environment, `HKCU\Environment`),
+because the CLI agents install into your home folder and their installers persist
+nothing. A registry value has nowhere to put a comment marker, so removal means
+deleting the two folders vibe added, by name: `%USERPROFILE%\.local\bin` and
+`%USERPROFILE%\.codex\bin`. Search for "Edit environment variables for your account",
+select each one under **Path**, and delete it. Anything else on that PATH was put
+there by an installer, not by vibe.
 
 Everything else lives under `~/.agents/`, `~/.claude*`, `~/.codex/`, `~/.local/`
 and `~/git/first-project`.
@@ -285,7 +297,10 @@ On **Windows** the shape is identical too; the OS-specific bits differ: installs
 through winget + the CLIs' own PowerShell installers (no Homebrew), and instead
 of a symlink each agent is linked to the canonical file its own way - Claude via
 an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
-`~/.codex/AGENTS.md` (Codex has no import). The clipboard paste is Ctrl+V.
+`~/.codex/AGENTS.md` (Codex has no import). PATH is persisted to your account's
+environment rather than to a startup file: everything winget installs is put on PATH
+by its own installer, but the CLI agents install into your home folder and persist
+nothing, so vibe adds those two folders itself. The clipboard paste is Ctrl+V.
 
 ## Flags
 
@@ -362,6 +377,10 @@ install the latest.
 - How Linux is supported without a distro table anywhere, and what was rejected -
   distro-family cells, Homebrew on Linux, Nix, machine profiles:
   [docs/adr/0002](docs/adr/0002-linux-support.md).
+- Why the Windows PATH edit is a registry value rather than a startup-file line, what
+  that costs at removal time, and what was rejected - `setx`, the PowerShell
+  `$PROFILE`, machine scope:
+  [docs/adr/0005](docs/adr/0005-windows-persists-path-too.md).
 
 ## Development
 

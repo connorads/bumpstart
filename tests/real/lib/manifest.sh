@@ -89,9 +89,12 @@ manifest_entry_subset() {
 # everywhere, and one canonical instructions path — which is exactly the thing a
 # distro-specific regression would break.
 #
-# POSIX-only, and refused rather than left to the caller: the PowerShell spine
-# persists no PATH at all, so a Windows manifest carries none of the rc keys and
-# would otherwise trip the minimum below with a puzzling message.
+# POSIX-only, and refused rather than left to the caller: the Windows spine persists
+# into a registry value, not an rc file, so a Windows manifest carries no rc.block and
+# no marker count - there is nowhere in a registry value to put a marker - and it would
+# otherwise trip the minimum below with a puzzling message. The refusal is about the
+# SHAPE of the claim, not about whether Windows persists anything: since
+# lib/shellpath.ps1 it does, and rc.persists_path is where that is recorded.
 manifest_invariant_subset() {
   [ -r "$1" ] || { printf 'manifest: cannot read %s\n' "$1" >&2; return 1; }
   case "$(awk -F'\t' '$1 == "os" { print $2; exit }' "$1")" in

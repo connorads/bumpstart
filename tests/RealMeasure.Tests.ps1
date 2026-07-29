@@ -61,6 +61,16 @@ Describe 'Test-VibeRegPathResolves' {
   }
 }
 
+Describe 'Get-VibeUserRegPathRaw' {
+  It 'returns empty rather than throwing where there is no registry' {
+    # This suite runs on macOS in the `check` job. The probe and precheck call it
+    # inside a Windows guest; what is asserted here is that the off-Windows path is a
+    # quiet empty string, so a harness that grows a Mac-side caller cannot crash on it.
+    { Get-VibeUserRegPathRaw } | Should -Not -Throw
+    Get-VibeUserRegPathRaw | Should -BeOfType [string]
+  }
+}
+
 Describe 'the measured set' {
   It 'is the same tools the POSIX side measures' {
     # One list per spine, and they have to agree: the judge reads tool names off the

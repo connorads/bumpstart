@@ -182,10 +182,11 @@ mset() {
 }
 
 @test "the invariant subset refuses a Windows manifest rather than under-measuring it" {
-  # The PowerShell spine persists no PATH, so a Windows manifest carries none of the
-  # rc keys this subset exists to compare. drive.sh skips them; the function says so
-  # itself, because a caller that forgets would get "they agree" over two near-empty
-  # sets.
+  # The Windows spine persists into a registry value, so a Windows manifest carries no
+  # rc.block and no marker count - a registry value has nowhere to put a marker - and
+  # those are the keys this subset exists to compare. drive.sh skips them; the function
+  # says so itself, because a caller that forgets would get "they agree" over two
+  # near-empty sets.
   run manifest_invariant_subset "$FIX/win-registry.manifest"
   [ "$status" -ne 0 ] || { echo "a Windows manifest yielded a POSIX invariant subset"; false; }
   printf '%s\n' "$output" | grep -q 'POSIX' || { echo "$output"; false; }

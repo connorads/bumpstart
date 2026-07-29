@@ -12,8 +12,8 @@
 # exist to protect. No ternary, no ??, no && / ||, no OS automatic variables.
 #
 # Two Windows differences the manifest has to carry, both real:
-#   - The PowerShell spine persists NO PATH of its own (there is no shellpath.ps1);
-#     Windows relies entirely on each installer's own registry edit. So the
+#   - Persistence is a REGISTRY value here, not an rc line: each installer's own edit,
+#     plus vibe's two install dirs (lib/shellpath.ps1). So the
 #     fresh-shell measurement reads the registry PATH, NEVER $env:PATH - the
 #     harness's own $GITHUB_PATH additions live in the process environment, where
 #     they would mask a missing entry. BOTH scopes, kept apart as well as combined:
@@ -243,11 +243,53 @@ foreach ($t in $tools) {
   Emit-Bool "shell.regpath.$t" (Test-VibeRegPathResolves $t $regDirs)
 }
 
-# No rc file on this spine, and no persisted PATH line, so the marker keys the
-# POSIX lanes assert do not exist here. Recorded explicitly rather than omitted, so
-# a reader of the manifest sees the difference is deliberate.
-Emit 'rc.file' 'none'
-Emit 'rc.persists_path' 0
+# -- The one PATH edit vibe makes here, and whether anything duplicated it ----
+#
+# There is no rc file on this spine: lib/shellpath.ps1 persists into the per-user
+# registry environment instead, so `rc.file` names that value and `rc.persists_path`
+# asks whether BOTH dirs vibe owns are on it. Measured, not hardcoded - these two keys
+# used to be literal `none` / `0`, which is how a spine that persisted nothing and a
+# spine whose persistence broke read identically.
+#
+# The dirs are spelled out HERE rather than read from lib/shellpath.ps1, the same rule
+# probe.sh follows for the marker text: a probe that imports the product's own idea of
+# what to look for cannot catch the product changing it.
+#
+# rc.vendor_path_lines is the POSIX key's analogue - there, a vendor-authored PATH edit
+# sitting beside vibe's; here, a DUPLICATE entry, which is what it would look like if a
+# vendor installer started persisting these dirs itself, or if a second run appended
+# again. Zero on a correct machine either way.
+$ownedDirs = @(
+  (Join-Path $HOME '.local\bin')
+  (Join-Path $HOME '.codex\bin')
+)
+
+# A constant, unlike the POSIX rc.file: there is no per-shell choice to make here, so
+# there is no `none` case - the User environment key is where this spine always
+# persists. What varies, and is measured below, is whether it did.
+Emit 'rc.file' 'registry:HKCU\Environment\Path'
+
+$userRawPath = Get-VibeUserRegPathRaw
+$userPathKeys = @()
+foreach ($e in ($userRawPath -split ';')) {
+  if ([string]::IsNullOrWhiteSpace($e)) { continue }
+  $expanded = [Environment]::ExpandEnvironmentVariables($e.Trim())
+  $userPathKeys += ($expanded.TrimEnd('\', '/')).ToLowerInvariant()
+}
+
+$ownedPresent = 0
+$ownedDupes = 0
+foreach ($d in $ownedDirs) {
+  $want = ($d.TrimEnd('\', '/')).ToLowerInvariant()
+  $seen = 0
+  foreach ($k in $userPathKeys) {
+    if ($k -eq $want) { $seen++ }
+  }
+  if ($seen -gt 0) { $ownedPresent++ }
+  if ($seen -gt 1) { $ownedDupes += ($seen - 1) }
+}
+Emit-Bool 'rc.persists_path' ($ownedPresent -eq $ownedDirs.Count)
+Emit 'rc.vendor_path_lines' $ownedDupes
 
 # -- Desktop apps, by the exact ids the CHECK_WIN cells use ------------------
 

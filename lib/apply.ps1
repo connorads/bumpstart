@@ -35,6 +35,7 @@ param(
 . "$PSScriptRoot/trust.ps1"
 . "$PSScriptRoot/catalogue.ps1"
 . "$PSScriptRoot/build.ps1"
+. "$PSScriptRoot/shellpath.ps1"
 
 # Ensure-Winget: a soft check + narration, NOT a hard installer. winget ships on
 # Windows 10 1809+/11; when absent the CLI agents' own per-user installers still
@@ -172,6 +173,12 @@ function Invoke-VibeSetup {
     if (-not $method) { $method = 'copy' }
     Link-Harness -TargetLiteral $target -Method $method -Force:$Force
   }
+
+  # The other central persistent effect, beside the instructions file: make the dirs
+  # we installed into outlive this terminal. A block cannot own it - every block would
+  # want it, and the edit is one claim about vibe's own install dirs. Mirrors
+  # apply.sh:276, which calls persist_path in the same place for the same reason.
+  Set-VibePersistedPath
 
   $canon = Get-CanonicalPath
   if ($script:InstructionsWrote) {

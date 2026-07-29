@@ -113,6 +113,21 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Not -Match 'instead\?'
   }
 
+  It 'discloses the PATH edit at the gate, because it is the one thing outside vibe own paths' {
+    # The deal the project holds itself to: vibe writes its own config paths, plus ONE
+    # thing outside them, and that one thing is NAMED before it happens. On Windows it
+    # is the account PATH (lib/shellpath.ps1) rather than an rc line, and the promise
+    # does not get to be OS-dependent. Asserted at the gate, where Ctrl-C is still
+    # cheap - not after the write.
+    $out = Invoke-VibeSetup -Plan -Ids @('claude', 'starter') 6>&1 | Out-String
+    $out | Should -Match "account's PATH"
+    $out | Should -Match 'NEW terminal window'
+    # The dirs by name, because "adds some folders to PATH" is not a removal
+    # instruction. Slash-normalised: Join-Path builds these with the host separator.
+    ($out -replace '\\', '/') | Should -Match '\.local/bin'
+    ($out -replace '\\', '/') | Should -Match '\.codex/bin'
+  }
+
   It 'codex copies instructions (no import) and writes the trust TOML' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>&1 | Out-Null
 

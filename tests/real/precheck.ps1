@@ -56,9 +56,10 @@ foreach ($t in @('curl', 'wget', 'git', 'gpg', 'brew')) {
   }
 }
 
-# No sudo here, and no rc file: this spine persists no PATH of its own. Recorded
-# explicitly rather than omitted, because the judge fails closed on an absent key and
-# "there is no such thing on Windows" is a different fact from "nobody measured it".
+# No sudo here, and no rc file: persistence on this spine is a registry value, so
+# there is no marker to find. Recorded explicitly rather than omitted, because the
+# judge fails closed on an absent key and "there is no such thing on Windows" is a
+# different fact from "nobody measured it".
 Emit-Precheck 'nopasswd' 'absent'
 Emit-Precheck 'vibe_marker' 'absent'
 Emit-Precheck 'shell.kind' 'registry'
@@ -78,6 +79,12 @@ foreach ($t in (Get-VibeMeasureTool)) {
   }
   Emit-PrecheckBool "shell.regpath.$t" (Test-VibeRegPathResolves $t $allDirs)
 }
+
+# The User PATH itself, raw, beside those booleans. They say whether a lookup now
+# succeeds; this says what the value WAS, so a delta can name what changed rather than
+# only that something did - and it is the User scope because that is the one vibe
+# writes. Tabs out, because the value lands in a TSV manifest verbatim.
+Emit-Precheck 'regpath.user.raw' ((Get-VibeUserRegPathRaw) -replace "`t", ' ')
 
 # -- Write it out --------------------------------------------------------------
 

@@ -1,5 +1,5 @@
-# A windows-2025 CI run. No rc file and no persisted PATH at all on this spine, so
-# the fresh-shell check reads the REGISTRY PATH instead, both scopes, kept apart.
+# A windows-2025 CI run. Persistence here is a REGISTRY value rather than an rc line,
+# so the fresh-shell check reads the registry PATH instead, both scopes, kept apart.
 #
 # HAND-WRITTEN, not probe output - no Windows machine is reachable from the fast
 # suite, so this states what the runner image documents: Git, Node and gh arrive on
@@ -40,6 +40,7 @@ precheck.shell.regpath.pnpm	0
 precheck.shell.regpath.user.mise	0
 precheck.shell.regpath.machine.mise	0
 precheck.shell.regpath.mise	0
+precheck.regpath.user.raw	C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps
 transcript.exit	0
 transcript.verdict	clean
 transcript.warn_count	0
@@ -72,6 +73,9 @@ shell.regpath.pnpm	0
 shell.regpath.user.mise	0
 shell.regpath.machine.mise	0
 shell.regpath.mise	0
+rc.file	registry:HKCU\Environment\Path
+rc.persists_path	1
+rc.vendor_path_lines	0
 app.claude	1
 instructions.canonical	$HOME/.agents/AGENTS.md
 instructions.canonical.nonempty	1

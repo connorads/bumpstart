@@ -184,6 +184,17 @@ function Show-Expectations {
     }
   }
 
+  # The one edit vibe makes outside its own config paths, named here rather than
+  # discovered later - the same deal plan.sh strikes for the rc line. State-aware for
+  # the same reason too: an account PATH that already carries the dirs is left alone,
+  # and "adds" there would promise a change that will not happen.
+  if (Test-VibePersistedPath) {
+    Add-Expectation "Your account's PATH already has vibe's install folders - it is left as-is."
+  } else {
+    $dirs = (Get-VibeOwnedPathDir) -join ' and '
+    Add-Expectation "Adds $dirs to your account's PATH so a NEW terminal window still finds the tools it installs."
+  }
+
   if ($Plan.DefaultHarness -eq 'claude' -and (Test-Path -LiteralPath (Join-Path $HOME '.claude.json'))) {
     Add-Expectation "You already have a Claude config, so vibe won't change its trust settings - you may see a one-time 'trust this folder?' prompt."
   } else {
