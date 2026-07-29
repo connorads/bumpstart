@@ -17,9 +17,9 @@ setup() {
   setup_isolated_env
   PROC="$BATS_TEST_TMPDIR/proc"
   mkdir -p "$PROC"
-  # Non-root, explicitly: root needs no namespace grant, so the probe exits early —
-  # and a container (which CI runs the suite in) is root. Inherited, that would make
-  # every case below silently vacuous. The root case overrides this.
+  # Non-root, explicitly: root needs no namespace grant, so the probe exits early,
+  # and inheriting the invoking identity would make every case below silently vacuous
+  # wherever the suite happened to be run as root. The root case overrides this.
   make_fake id 'printf "1000\n"'
 }
 

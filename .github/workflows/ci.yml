@@ -83,6 +83,12 @@ jobs:
             | tar -xz -C "$RUNNER_TEMP/bats" --strip-components=1
       # The repo is mounted read-only: the suite writes only to an isolated HOME and
       # to TMPDIR, and this proves it.
+      #
+      # As an UNPRIVILEGED user, not root. A container starts as root, and root
+      # bypasses the permission bits the runner guest adapter uses to make the repo
+      # read-only - so the guest-port contract failed here for a reason that is not
+      # about the code, on the one leg where its "runs as an unprivileged user"
+      # property could not fail either. Nothing in tests/ needs root.
       - name: bats suite on ${{ matrix.image }}
         run: |
           docker run --rm \
@@ -95,7 +101,12 @@ jobs:
               # assert real tool behaviour, so faking them would assert nothing.
               ${{ matrix.deps }} >/dev/null 2>&1 \
                 || echo "note: dependency install failed; some cases will skip"
-              exec /bats/bin/bats tests/
+              # -s /bin/bash and plain `su` (not `su -`), for the two reasons
+              # guests/container.sh spells out: useradd defaults to /bin/sh, and `su`
+              # resets HOME/SHELL/USER from /etc/passwd while keeping the rest of the
+              # environment.
+              id -u vibe >/dev/null 2>&1 || useradd -m -s /bin/bash vibe
+              exec su vibe -c "cd /src && exec /bats/bin/bats tests/"
             '
 
   real-lanes:

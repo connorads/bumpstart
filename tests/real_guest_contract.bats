@@ -14,7 +14,11 @@
 #
 # The properties, and what each would break:
 #
-#   guest_exec runs as an UNPRIVILEGED user      root skips every sudo path
+#   guest_exec runs as an UNPRIVILEGED user      root skips every sudo path, and
+#                                                bypasses the read-only repo below -
+#                                                so the runner adapter, whose lane
+#                                                user IS the caller, refuses root
+#                                                rather than asserting less
 #   ...with the target user's HOME               everything vibe writes lands there
 #   ...with a bash or zsh $SHELL                 persist_path keys on it; an `sh`
 #                                                $SHELL makes the probe report
@@ -267,7 +271,7 @@ assert_guest_port() {
 
 # ── The runner adapter (no virtualisation: the machine IS the throwaway) ───────
 
-@test "the runner adapter satisfies the same guest port" {
+@test "the runner adapter satisfies the same guest port, or refuses when it cannot" {
   # No docker and no VM needed, so this leg runs everywhere - which is what stops the
   # port contract being vacuous on a machine with no container daemon.
   # VIBE_REAL_ALLOW_HOST is the adapter's own safety catch; nothing here runs an entry
@@ -277,6 +281,19 @@ assert_guest_port() {
   export GUEST_STATE="$BATS_TEST_TMPDIR/state"
   # shellcheck source=tests/real/guests/runner.sh
   . "$REAL/guests/runner.sh"
+
+  # Root asserts the REFUSAL, not a skip. This adapter runs the lane as the invoking
+  # user and enforces the read-only repo with permission bits, so under root the port
+  # cannot hold - `touch` in a directory stripped by `chmod -R a-w` succeeds. Two
+  # branches, both asserting: a skip here would quietly stop testing the adapter in
+  # every root container, which is where it ran.
+  if [ "$(id -u)" = 0 ]; then
+    run guest_start
+    [ "$status" -ne 0 ] || { echo "the runner adapter started as root"; false; }
+    printf '%s\n' "$output" | grep -q 'root' || { echo "$output"; false; }
+    [ ! -d "$GUEST_SRC" ] || { echo "it copied the repo before refusing"; false; }
+    return 0
+  fi
 
   start_guest
   provision_guest
@@ -316,7 +333,10 @@ assert_guest_port() {
   export GUEST_SUDO=password
   # shellcheck source=tests/real/guests/runner.sh
   . "$REAL/guests/runner.sh"
-  start_guest
+  # guest_provision directly, with no guest_start: this refusal lives in provision,
+  # and guest_start refuses a root caller before reaching it - so going through it
+  # would make the case depend on the identity running the suite rather than on the
+  # axis.
   run guest_provision
   [ "$status" -ne 0 ] || { echo "the password axis was accepted on a NOPASSWD runner"; false; }
   printf '%s\n' "$output" | grep -q 'NOPASSWD' || { echo "$output"; false; }
@@ -328,6 +348,19 @@ assert_guest_port() {
   export GUEST_STATE="$BATS_TEST_TMPDIR/state"
   # shellcheck source=tests/real/guests/runner.sh
   . "$REAL/guests/runner.sh"
+
+  # Root never gets a copy to destroy, because guest_start refuses first. What is
+  # left worth asserting is that teardown is still safe to call after a refusal -
+  # lanes/run.sh's cleanup() runs on every exit path, that one included.
+  if [ "$(id -u)" = 0 ]; then
+    run guest_start
+    [ "$status" -ne 0 ] || { echo "the runner adapter started as root"; false; }
+    run guest_destroy
+    [ "$status" -eq 0 ] || { echo "guest_destroy after a refusal: $output"; false; }
+    [ ! -d "$GUEST_SRC" ] || { echo "$GUEST_SRC exists after a refusal"; false; }
+    return 0
+  fi
+
   start_guest
   [ -d "$GUEST_SRC" ] || { echo "no copy at $GUEST_SRC"; false; }
   run guest_destroy

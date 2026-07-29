@@ -14,8 +14,9 @@ load helpers/common
 
 setup() {
   setup_isolated_env
-  # Non-root, explicitly: the sudo branch only exists for a non-root user, and CI
-  # runs this suite inside a container as root. The root case overrides this.
+  # Non-root, explicitly: the sudo branch only exists for a non-root user, so
+  # inheriting the invoking identity would make these cases vacuous wherever the
+  # suite happened to be run as root. The root case overrides this.
   make_fake id 'printf "1000\n"'
 }
 

@@ -15,7 +15,9 @@
 # DANGEROUS BY NATURE, so it fails closed: a real install into $HOME is exactly what
 # it does, and on a developer's laptop that is their actual home directory. It refuses
 # to provision unless $CI is set or VIBE_REAL_ALLOW_HOST=1 is explicit. drive.sh's
-# lane groups never select it either.
+# lane groups never select it either. It refuses a root run for the same reason it
+# refuses the password axis: root cannot fail the properties the lane is there to
+# check, so the lane would pass while asserting nothing.
 #
 # The repo is still mounted read-only, like every other adapter: it is copied to a
 # scratch path and stripped of write permission, so a lane cannot dirty the checkout
@@ -48,6 +50,22 @@ guest_start() {
   if [ -z "${CI:-}" ] && [ "${VIBE_REAL_ALLOW_HOST:-}" != 1 ]; then
     printf 'guest: the runner adapter really installs into %s.\n' "$HOME" >&2
     printf '       Set VIBE_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
+    return 1
+  fi
+
+  # Root is REFUSED, not worked around, and for the same reason the guard above
+  # exists: this adapter runs the lane as the invoking user, so the invoking user's
+  # privilege is the lane's. Two properties die under root, both silently:
+  #   - "the repo is read-only to the run" is enforced here with `chmod -R a-w`,
+  #     which root bypasses - so the port contract fails for a reason that is not
+  #     about vibe, on the one leg where the assertion is also vacuous.
+  #   - every sudo path in the product becomes a no-op, which is exactly what
+  #     judge.sh's "the run was NOT root" check exists to catch. On the macOS drift
+  #     lane that would leave `git`'s password step asserting nothing at all.
+  if [ "$(id -u)" = 0 ]; then
+    printf 'guest: this adapter runs the lane as the INVOKING user, and that user is root.\n' >&2
+    printf '       Root bypasses the read-only repo copy and makes every sudo path in the\n' >&2
+    printf '       product vacuous, so the lane would assert nothing. Run it unprivileged.\n' >&2
     return 1
   fi
 
