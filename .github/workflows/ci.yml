@@ -168,6 +168,18 @@ jobs:
       # ALWAYS, and small: this is what the summary job aggregates. A lane that
       # cannot report is indistinguishable from a lane that was never scheduled, and
       # the whole point of the summary is to tell those apart.
+      #
+      # include-hidden-files, on every upload step here: the lane writes to
+      # `.vibe-real/<lane>/`, and upload-artifact treats anything under a dot
+      # directory as hidden and silently skips it. Without it all ten lanes uploaded
+      # ZERO files, and the two jobs added to prove the suite proved something both
+      # exited 3 with nothing to read.
+      #
+      # error, not warn: write_verdict runs from an EXIT trap, so every exit after it
+      # is installed writes lane.verdict. Its absence means the lane produced nothing,
+      # which should say so here rather than two jobs later. The one path that
+      # legitimately writes none is an exit BEFORE the trap - an unknown lane name or
+      # bad arguments - and that has already failed the step above.
       - name: verdict
         if: always()
         uses: actions/upload-artifact@v4
@@ -176,14 +188,19 @@ jobs:
           path: |
             .vibe-real/*/lane.verdict
             .vibe-real/*/run*.manifest
-          if-no-files-found: warn
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 7
+      # warn here, deliberately: a lane that died before writing anything is a
+      # legitimate class 2, and a second red would say nothing the step above didn't.
       - name: log bundle
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: real-linux-${{ matrix.lane }}
           path: .vibe-real/
+          include-hidden-files: true
+          if-no-files-found: warn
           retention-days: 7
 
   real-differentials:
@@ -293,6 +310,7 @@ jobs:
       - name: disk after
         if: always()
         run: df -h /
+      # include-hidden-files + error: see the Linux lane's verdict step for both.
       - name: verdict
         if: always()
         uses: actions/upload-artifact@v4
@@ -301,7 +319,8 @@ jobs:
           path: |
             .vibe-real/*/lane.verdict
             .vibe-real/*/run*.manifest
-          if-no-files-found: warn
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 7
       - name: log bundle
         if: failure()
@@ -309,6 +328,8 @@ jobs:
         with:
           name: real-macos-drift
           path: .vibe-real/
+          include-hidden-files: true
+          if-no-files-found: warn
           retention-days: 7
 
   windows-real-install:
