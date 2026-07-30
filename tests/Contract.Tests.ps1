@@ -16,6 +16,14 @@ BeforeAll {
 }
 
 Describe 'shared resolve contract' {
+  # -ForEach expands at DISCOVERY, so an empty, moved or mis-delimited TSV yields zero
+  # It blocks and a green run that asserted nothing at all. This case is built from the
+  # same discovery-time read but exists whatever the data does, so it shows up in the
+  # count and names itself when the file goes away. The pwsh mirror of contract.bats:34.
+  It 'reads its cases from the shared TSV' -ForEach @(@{ RowCount = @($ContractCases).Count }) {
+    $RowCount | Should -BeGreaterThan 0
+  }
+
   It 'resolves [<input>] identically to the bash spine' -ForEach $ContractCases {
     $ids = if ($_.input) { @($_.input -split '\s+') } else { @() }
     $plan = Resolve-Plan $script:fix $ids
