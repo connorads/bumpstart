@@ -132,8 +132,10 @@ echo "clean"
 # PSScriptAnalyzer. `check` stays bash-only so a Mac without pwsh keeps working.
 
 [tasks.test-ps]
-description = "Run the Pester suite (pure core + shared contract)"
-run = "pwsh -Command \"Invoke-Pester tests -CI\""
+description = "Run the Pester suite (pure core + shared contract); a skipped test fails it"
+# Via a script, not Invoke-Pester directly, because the suite has nothing legitimate
+# to skip and a skip is how a host difference gets papered over — see the header.
+run = "pwsh -File scripts/check-ps-suite.ps1"
 
 [tasks.lint-ps]
 description = "PSScriptAnalyzer (5.1-floor compat gate) + the OS-automatic-var grep"
