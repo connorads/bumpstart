@@ -33,6 +33,11 @@ jobs:
     # windows-latest so the PowerShell spine is validated on real Windows: the
     # PSScriptAnalyzer 5.1-floor gate (lint-ps), the Pester suite with faked
     # install dispatch (test-ps), and a dynamic 5.1 smoke under powershell.exe.
+    #
+    # test-ps here is the SAME suite the `check` job runs on macOS, on a host that has a
+    # per-user registry and a desktop. So the suite states no fact about its host - both
+    # worlds go behind the seam and its fake (tests/helpers/FakeEnvKey.ps1) - and this
+    # job proves that by running the identical file where the environment is real.
     # aqua pwsh under mise-action on windows is plausible but unverified end to
     # end; if it can't resolve, swap test-ps to the runner's built-in pwsh 7.
     runs-on: windows-latest

@@ -1,10 +1,21 @@
 # lib/shellpath.ps1: the Windows half of "a new terminal still finds your tools".
 #
-# The effect half writes HKCU:\Environment and broadcasts WM_SETTINGCHANGE, so no
-# hosted runner outside the Windows lane can exercise it. The DECISION half - which
-# dirs go on the PATH, and whether any of them is already there - is pure, and this
-# suite runs on macOS in the `check` job, so the logic that decides whether to write
-# at all is covered without a Windows runner.
+# The DECISION half - which dirs go on the PATH, and whether any of them is already
+# there - is pure, so it runs anywhere. The EFFECT half writes HKCU\Environment and
+# broadcasts WM_SETTINGCHANGE, and it reaches that registry through exactly one
+# function: Get-VibeUserEnvKey. That single door is the seam. Faking it asserts BOTH
+# worlds - a host with a per-user registry and a host without one - on every host, so
+# no case here is gated on the machine it happens to run on.
+#
+# Which is the point, because this file runs in both check jobs: `check` on macOS and
+# `check-windows` on real Windows. A test stating "there is no user registry" is a
+# claim about the host, true in one job and false in the other; a test that WRITES
+# unfaked aims a $TestDrive path at the account PATH of whoever ran the suite. The
+# seam removes both problems at once, and proving the no-op everywhere is strictly
+# stronger than proving it where the host happens to lack a registry.
+#
+# Left to the windows-real-install lane: only the real registry value and the real
+# broadcast, which need a logon session no hosted runner gives us.
 #
 # What each case is about: the failure being fixed is claude-cli installing into
 # %USERPROFILE%\.local\bin from a vendor script that persists nothing, so
@@ -16,6 +27,7 @@ BeforeAll {
   $env:NO_COLOR = '1'
   . "$PSScriptRoot/../lib/common.ps1"
   . "$PSScriptRoot/../lib/shellpath.ps1"
+  . "$PSScriptRoot/helpers/FakeEnvKey.ps1"
 }
 
 Describe 'Get-VibePathUpdate' {
@@ -109,8 +121,17 @@ Describe 'Get-VibeOwnedPathDir' {
   }
 }
 
-Describe 'the effect half, off Windows' {
-  It 'is a no-op where there is no user registry, rather than a crash' {
+Describe 'the effect half, where there is no user registry' {
+  # A Mac, and equally a Windows account whose Environment key will not open. Faked
+  # rather than left to the host: asserted here it holds on every machine the suite
+  # runs on, and it cannot go red for the reason it once did - by stating a fact about
+  # the host in a suite that runs on two of them.
+  BeforeEach {
+    Mock Get-VibeUserEnvKey { $null }
+    Mock Send-VibeEnvironmentChange { }
+  }
+
+  It 'is a no-op rather than a crash' {
     # apply.ps1 guards non-Windows before any of this runs, but the Pester suite
     # drives the whole applier with VIBE_OS=win on a Mac - so this path is real and
     # has to stay quiet.
@@ -118,5 +139,98 @@ Describe 'the effect half, off Windows' {
     Get-VibeUserPathRaw | Should -Be ''
     Test-VibePersistedPath | Should -BeFalse
     { Set-VibePersistedPath } | Should -Not -Throw
+    # Quiet all the way out: nothing to write means nothing to announce either.
+    Should -Invoke Send-VibeEnvironmentChange -Times 0 -Exactly
+  }
+}
+
+Describe 'the effect half, where there is a user registry' {
+  # The same effect against a fake key rather than the account of whoever ran the
+  # suite. What this buys over the real-install lane: the lane is Windows-only,
+  # weekly, and cannot fail a PR - so the value written, its KIND and the second-run
+  # no-op were asserted nowhere a change to this file gets reviewed.
+  BeforeEach {
+    $script:reg = New-FakeEnvState -Value 'C:\Windows'
+    $script:key = New-FakeEnvKey $script:reg
+    Mock Get-VibeUserEnvKey { $script:key }
+    # The broadcast needs a desktop to hear it and a user32.dll to make it. Its absence
+    # is already non-fatal in the code; faking it keeps this suite from shouting at the
+    # window manager of whoever is running.
+    Mock Send-VibeEnvironmentChange { }
+  }
+
+  It 'reads the account PATH back before it has anything of vibe own in it' {
+    Test-VibeUserEnvironment | Should -BeTrue
+    Get-VibeUserPathRaw | Should -Be 'C:\Windows'
+    # The confirm gate is state-aware, so "already there" has to be false here or the
+    # gate promises a PATH edit it will not make.
+    Test-VibePersistedPath | Should -BeFalse
+  }
+
+  It 'appends the owned dirs and writes the value as an ExpandString' {
+    Set-VibePersistedPath 6>$null
+    $script:reg.Writes | Should -Be 1
+    ($script:reg.Value -replace '\\', '/') | Should -BeLike 'C:/Windows;*/.local/bin;*/.codex/bin'
+    # Not a plain String: a REG_SZ value would kill every %VAR% already in the PATH.
+    $script:reg.Kind | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
+    # Without the broadcast the registry is right and a new terminal is still wrong
+    # until the next sign-in, so it is part of the promise, not a flourish.
+    Should -Invoke Send-VibeEnvironmentChange -Times 1 -Exactly
+  }
+
+  It 'writes nothing on a second run' {
+    # The pure core already refuses to duplicate; this is the same promise through the
+    # effect, which is where a beginner's second paste actually lands.
+    Set-VibePersistedPath 6>$null
+    Set-VibePersistedPath 6>$null
+    $script:reg.Writes | Should -Be 1
+    # ...and the gate for a third run now says so, rather than promising the edit again.
+    Test-VibePersistedPath | Should -BeTrue
+  }
+
+  It 'leaves an entry it did not author unexpanded in what it writes' {
+    # The reason the raw value is read rather than the expanding accessor: writing back
+    # today's expansion of somebody else's %VAR% is a permanent change to a PATH vibe
+    # was not asked to touch. Asserted end to end here, not only on the pure core.
+    $script:reg.Value = '%VIBE_TEST_PROFILE%\bin'
+    $env:VIBE_TEST_PROFILE = 'C:\Users\me'
+    try {
+      Set-VibePersistedPath 6>$null
+      $script:reg.Value | Should -BeLike '%VIBE_TEST_PROFILE%\bin;*'
+    } finally {
+      Remove-Item Env:VIBE_TEST_PROFILE -ErrorAction SilentlyContinue
+    }
+  }
+
+  It 'warns rather than throwing when the key cannot be opened for writing' {
+    Mock Get-VibeUserEnvKey { if ($Writable) { return $null } return $script:key }
+    { Set-VibePersistedPath 3>$null 6>$null } | Should -Not -Throw
+    $script:reg.Writes | Should -Be 0
+  }
+
+  It 'warns rather than throwing when the write itself is refused' {
+    # A managed or locked-down account. The setup has already done everything else it
+    # promised, so this ends in a warning, not a failure.
+    $script:reg.Writable = $false
+    { Set-VibePersistedPath 3>$null 6>$null } | Should -Not -Throw
+  }
+}
+
+Describe 'the seam itself, unmocked' {
+  # The one thing a fake cannot cover: Get-VibeUserEnvKey's own try/catch, which is
+  # what makes "no registry" a value rather than an exception. Off Windows the .NET
+  # registry API raises PlatformNotSupportedException; on Windows it returns a key.
+  # Either answer is fine here - the point is that it ANSWERS, on whichever host you
+  # are on, because every caller above treats the result as data.
+  #
+  # Nothing in this block writes. Set-VibePersistedPath is deliberately absent: unfaked
+  # it edits the account PATH of whoever ran the suite.
+  It 'answers with a key or with nothing, and never throws' {
+    { $script:probe = Get-VibeUserEnvKey } | Should -Not -Throw
+    if ($script:probe) { $script:probe.Close() }
+
+    Test-VibeUserEnvironment | Should -BeOfType [bool]
+    Get-VibeUserPathRaw     | Should -BeOfType [string]
+    Test-VibePersistedPath  | Should -BeOfType [bool]
   }
 }

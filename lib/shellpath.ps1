@@ -17,8 +17,11 @@
 # marker, so removal is not "delete the marked block" but "delete these two dirs" -
 # which is what the README says.
 #
-# The pure core (Get-VibePathUpdate) is split from the effect so the logic is tested
-# on macOS, where there is no user registry to write. Windows PowerShell 5.1-clean.
+# Two things make this file testable anywhere. The pure core (Get-VibePathUpdate)
+# holds all the logic, and the effect reaches the registry through exactly one
+# function - Get-VibeUserEnvKey - which is the seam the suite fakes. So both worlds,
+# a host with a per-user registry and a host without one, are asserted on every host,
+# and no test writes the account PATH of whoever ran it. Windows PowerShell 5.1-clean.
 
 # The user registry key that holds the per-account environment. Named once: three
 # functions below open it, and a typo in one of them would be a silent no-op.

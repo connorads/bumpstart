@@ -71,8 +71,14 @@ The mechanics, each chosen against a plausible wrong answer:
 - **The decision is pure, the effect is not.** `Get-VibePathUpdate` takes the current
   PATH plus the dirs and returns the new value and whether anything changed, comparing
   entries case-insensitively, ignoring a trailing separator, and expanding `%VAR%`
-  references *for the comparison only*. It is tested on macOS in the `check` job, which
-  is the only place the logic can be tested at all.
+  references *for the comparison only*. It is tested in both `check` jobs, on macOS and
+  on Windows, because it needs no registry at all.
+- **The effect half reaches the registry through one function**, `Get-VibeUserEnvKey`,
+  and that single door is the seam the Pester suite fakes. Both worlds are therefore
+  asserted on every host - the no-op where no per-user registry exists, and the value
+  written, its kind and the second-run no-op where one does - so the suite is
+  host-neutral by construction: no case is gated on the machine it runs on, and none
+  aims a write at the account PATH of whoever ran it.
 
 ## Considered Options
 
