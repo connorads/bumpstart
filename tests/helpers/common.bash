@@ -11,6 +11,14 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd -P)"
 # claude/codex/gh/curl/mise/node reachable are the fakes we opt into.
 setup_isolated_env() {
   export HOME="$BATS_TEST_TMPDIR/home"
+  # An isolated HOME is not enough: _shell_rc (lib/shellpath.sh) reads ZDOTDIR and
+  # XDG_CONFIG_HOME in PREFERENCE to $HOME, so a contributor who exports either gets
+  # vibe's marker block appended to their own rc file by `mise run test` — once, and
+  # then "already knows" forever, so it leaks silently and never says so again.
+  # Pinned rather than unset, per this suite's own convention, and pinned to exactly
+  # the value each falls back to when unset, so nothing about today's behaviour moves.
+  export ZDOTDIR="$HOME"
+  export XDG_CONFIG_HOME="$HOME/.config"
   export FAKES="$BATS_TEST_TMPDIR/bin"
   export VIBE_FAKE_LOG="$BATS_TEST_TMPDIR/fake.log"
   mkdir -p "$HOME" "$FAKES"

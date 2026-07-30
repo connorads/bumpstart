@@ -35,6 +35,30 @@ persist() { run env SHELL="$1" bash "$DRIVER" "$REPO_ROOT/lib"; }
   [ ! -e "$HOME/.zshrc" ]
 }
 
+@test "an rc file outside the isolated home is never written, whatever is inherited" {
+  # The suite's own safety, asserted rather than assumed: _shell_rc prefers ZDOTDIR
+  # and XDG_CONFIG_HOME to $HOME, so an inherited one would send this file's writes
+  # into the rc file of whoever ran `mise run test`. That leaks exactly once — the
+  # marker check then reports "already knows" forever — which is why it needs a test
+  # rather than a reader noticing.
+  #
+  # Asserts the property (nothing outside $HOME is touched), not the mechanism, so a
+  # third variable growing into _shell_rc fails here too.
+  canary="$BATS_TEST_TMPDIR/not-the-test-home"
+  mkdir -p "$canary"
+  printf 'alias ll="ls -l"\n' > "$canary/.zshrc"
+  export ZDOTDIR="$canary"
+  export XDG_CONFIG_HOME="$canary/.config"
+
+  setup_isolated_env
+  persist /bin/zsh
+  [ "$status" -eq 0 ]
+
+  [ "$(cat "$canary/.zshrc")" = 'alias ll="ls -l"' ]
+  [ ! -e "$canary/.config" ]
+  grep -Fxq '# >>> vibe-setup >>>' "$HOME/.zshrc"
+}
+
 @test "bash: writes to ~/.bashrc" {
   persist /bin/bash
   [ "$status" -eq 0 ]
