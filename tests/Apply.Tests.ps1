@@ -10,6 +10,7 @@
 BeforeAll {
   $env:NO_COLOR = '1'   # before apply.ps1 (-> common.ps1) loads, so UI is plain
   . "$PSScriptRoot/../lib/apply.ps1"
+  . "$PSScriptRoot/helpers/FakeEnvKey.ps1"
 
   $script:repoRoot = (Resolve-Path "$PSScriptRoot/..").Path
   $script:origPath = $env:PATH
@@ -62,6 +63,17 @@ Describe 'apply.ps1 (Windows spine)' {
     $emptyBin = Join-Path $script:testHome 'bin'
     New-Item -ItemType Directory -Path $emptyBin -Force | Out-Null
     $env:PATH = $emptyBin
+
+    # The account PATH is faked for the same reason the installers are: an applied run
+    # calls Set-VibePersistedPath, which on a Windows host appends THIS TEST'S $TestDrive
+    # dirs to the registry PATH of whoever ran the suite, and broadcasts
+    # WM_SETTINGCHANGE - once per applied case. Get-VibeUserEnvKey is the only door to
+    # that registry (see helpers/FakeEnvKey.ps1), so mocking it runs every line of the
+    # persist step against a value the test can read back instead.
+    $script:regPath = New-FakeEnvState -Value 'C:\Windows;C:\Windows\System32'
+    $script:regKey = New-FakeEnvKey $script:regPath
+    Mock Get-VibeUserEnvKey { $script:regKey }
+    Mock Send-VibeEnvironmentChange { }
   }
   AfterEach {
     foreach ($v in 'VIBE_OS', 'VIBE_ROOT', 'VIBE_FAKE_LOG', 'VIBE_LIB', 'VIBE_BLOCK_DIR', 'VIBE_BLOCK_ID') {
@@ -126,6 +138,17 @@ Describe 'apply.ps1 (Windows spine)' {
     # instruction. Slash-normalised: Join-Path builds these with the host separator.
     ($out -replace '\\', '/') | Should -Match '\.local/bin'
     ($out -replace '\\', '/') | Should -Match '\.codex/bin'
+  }
+
+  It 'persists the install dirs on the account PATH, not only promises them at the gate' {
+    # The other half of the case above: the gate's wording was asserted and the EFFECT
+    # was not, so the applier could stop calling Set-VibePersistedPath and only the
+    # weekly Windows lane would notice. Appended to what was already there, never
+    # replacing it.
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-Null
+    $script:regPath.Writes | Should -Be 1
+    ($script:regPath.Value -replace '\\', '/') | Should -BeLike 'C:/Windows;C:/Windows/System32;*/.local/bin;*/.codex/bin'
+    $script:regPath.Kind | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
   }
 
   It 'codex copies instructions (no import) and writes the trust TOML' {
