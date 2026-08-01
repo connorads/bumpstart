@@ -211,7 +211,13 @@ Describe 'apply.ps1 (Windows spine)' {
     # winget fails, so every winget-backed cell in the plan warns. The verdict has
     # to follow: an unqualified success line over a broken machine is the one
     # message that costs trust. Mirrors the bats case in e2e.bats.
-    function global:winget { $global:LASTEXITCODE = 1 }
+    #
+    # It PRINTS before it fails, because a real winget does - and the silent fake
+    # this replaced made the case pass for the wrong reason: it only ever
+    # exercised the path where the cell produced nothing. The text carries no
+    # package id, so the `winget list | Select-String <id>` CHECK cells still
+    # read "not satisfied".
+    function global:winget { Write-Output 'installer output'; $global:LASTEXITCODE = 1 }
     try {
       $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
       $out | Should -Not -Match 'Setup complete'

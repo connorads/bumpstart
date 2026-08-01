@@ -44,8 +44,11 @@ run_cell() {
   # pipefail, because most install cells are `fetch <url> | sh`: without it the
   # pipeline's status is the SHELL's, and a shell handed an empty stdin (a failed
   # download, an offline machine, a 404) exits 0 — so the cell would report success
-  # having installed nothing. Verified offline in a container. No pwsh mirror is
-  # needed: a failing Invoke-RestMethod throws, which Invoke-Spin already catches.
+  # having installed nothing. Verified offline in a container. The pwsh spine has no
+  # pipeline to make fail-safe: a failing Invoke-RestMethod throws, which Invoke-Spin
+  # catches. What carries the verdict there is Invoke-Spin's single boolean — which
+  # is why it pushes the cell's own output to Write-Host rather than letting it ride
+  # back on the success stream beside the flag.
   if spin "Installing $_rc_label" bash -c "set -o pipefail; $_rc_install"; then
     success "$_rc_label installed"
   else

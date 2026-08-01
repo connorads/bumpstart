@@ -22,6 +22,12 @@ BeforeAll {
   # by the runner's Invoke-Expression at run time) and the cell's own single
   # quotes are the doubled ''. An INSTALL cell that records itself to the log:
   $script:logInstall = "INSTALL_$script:osKey='Add-Content -LiteralPath `$env:VIBE_FAKE_LOG -Value `"brew install thing`"'"
+
+  # Cells that PRINT and then fail - the normal shape of a real WIN cell, since
+  # winget, irm|iex and npm all narrate. Nothing else in this suite writes to
+  # stdout, so without these the failure paths only ever exercised a silent block.
+  $script:printThenThrow = "INSTALL_$script:osKey='Write-Output `"vendor chatter`"; throw `"vendor exploded`"'"
+  $script:printThenRc    = "INSTALL_$script:osKey='Write-Output `"vendor chatter`"; `$global:LASTEXITCODE = 1'"
 }
 
 Describe 'run.ps1' {
@@ -71,6 +77,36 @@ Describe 'run.ps1' {
     New-Block boom @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", "INSTALL_$script:osKey='throw `"fail`"'")
     $out = Invoke-Cell $script:root 'boom' 6>&1 | Out-String
     $out | Should -Match "Couldn't install"
+  }
+
+  It 'Invoke-Cell warns when the install PRINTED and then threw' {
+    # The case the silent fakes never reached: the cell's chatter used to ride
+    # back on the success stream beside Invoke-Spin's flag, making the result a
+    # truthy array - so this printed "installed" over a machine where nothing
+    # landed, and never reached the ledger.
+    New-Block noisy @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $printThenThrow)
+    $script:VibeWarnCount = 0
+    $script:VibeWarnItems = @()
+    $out = Invoke-Cell $script:root 'noisy' 6>&1 | Out-String
+    $out | Should -Match "Couldn't install thing"
+    $out | Should -Not -Match 'thing installed'
+    $script:VibeWarnItems | Should -Contain 'thing'
+  }
+
+  It 'Invoke-Cell warns when the install PRINTED and then left a non-zero exit code' {
+    New-Block noisyrc @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $printThenRc)
+    $script:VibeWarnCount = 0
+    $script:VibeWarnItems = @()
+    $out = Invoke-Cell $script:root 'noisyrc' 6>&1 | Out-String
+    $out | Should -Match "Couldn't install thing"
+    $out | Should -Not -Match 'thing installed'
+    $script:VibeWarnItems | Should -Contain 'thing'
+  }
+
+  It "Invoke-Cell shows the vendor's own output" {
+    New-Block chatty @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $printThenRc)
+    $out = Invoke-Cell $script:root 'chatty' 6>&1 | Out-String
+    $out | Should -Match 'vendor chatter'
   }
 
   It 'Invoke-Cell falls back to DESC for the label when LABEL is unset' {

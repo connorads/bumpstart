@@ -60,24 +60,40 @@ function Hrule {
 }
 
 # Invoke-Spin <label> <scriptblock>: run a block while showing (in fancy mode) a
-# calm working indicator. Plain mode (redirected/CI/tests) is a transparent
-# passthrough - the block runs with its output intact. Returns $true on success,
-# $false when the block throws or leaves a non-zero native exit code. Non-fatal by
-# contract: callers warn-and-continue on $false.
+# calm working indicator. Returns ONE boolean - $true on success, $false when the
+# block throws or leaves a non-zero native exit code. Non-fatal by contract:
+# callers warn-and-continue on $false.
+#
+# The block's output goes to Write-Host, the Information stream this module
+# declares for all UI, and NOT back on the success stream: left there it rides
+# out alongside the flag, so `$ok = Invoke-Spin ...` binds an ARRAY - and every
+# multi-element array is truthy, so a failed install that printed first read as a
+# success. Every real WIN cell prints (winget, irm|iex, npm), so that was the
+# normal case. Write-Host rather than Out-Null because the vendor's error text is
+# the only clue the user gets, and rather than Out-Host because the latter is
+# invisible to 6>&1 - which would make this contract untestable.
+#
+# Fancy mode diverges from common.sh's spin, deliberately: bash captures the
+# output and reveals it only on failure, which needs a background job. The 5.1
+# floor has no Start-ThreadJob, and Start-Job's separate runspace cannot see this
+# dot-sourced spine, so here the label sits on its own line and the block's
+# output streams below it.
 function Invoke-Spin {
   param([string]$Label, [scriptblock]$Script)
   if ($script:UiFancy) {
-    Write-Host "  $($script:Cyan)*$($script:Reset) $Label" -NoNewline
+    Write-Host "  $($script:Cyan)*$($script:Reset) $Label"
   }
   $global:LASTEXITCODE = 0
   $ok = $true
   try {
-    & $Script
+    & $Script | Write-Host
     if ($LASTEXITCODE -ne 0) { $ok = $false }
   } catch {
+    # The vendor's own message is the only thing that says WHY; the caller's
+    # "Couldn't install X" alone leaves nothing to act on.
+    Warn $_.Exception.Message
     $ok = $false
   }
-  if ($script:UiFancy) { Write-Host "`r" -NoNewline }
   return $ok
 }
 

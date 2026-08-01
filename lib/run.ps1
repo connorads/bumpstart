@@ -53,7 +53,11 @@ function Invoke-Cell {
     return
   }
   $ok = Invoke-Spin "Installing $label" { Invoke-Expression $install }
-  if ($ok) {
+  # -eq $true, not truthiness: Invoke-Spin's contract is one boolean, and if it
+  # ever regresses to returning more than that, this reads the regression as a
+  # failure rather than as a success. For a non-fatal step that is the safe
+  # direction - a false warning costs a line, a false 'installed' costs trust.
+  if ($ok -eq $true) {
     Success "$label installed"
   } else {
     Warn "Couldn't install $label - continuing"
