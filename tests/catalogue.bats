@@ -11,7 +11,7 @@ setup() {
   FIX="$REPO_ROOT/tests/fixtures"
 }
 
-vibe() { run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" "$@"; }
+vibe() { run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 # index of the first output line containing $1 (or empty if absent)
 line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1; }
@@ -119,7 +119,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 @test "--show: a block whose only content is per-OS still reports its guidance" {
   # os-guidance ships content.mac.md and no neutral content.md — the case a
   # plain content.md test misses, and the case --plan and the resolver both count.
-  run env VIBE_ROOT="$FIX" VIBE_OS=mac bash "$REPO_ROOT/lib/apply.sh" --show os-guidance
+  run env BUMP_ROOT="$FIX" BUMP_OS=mac bash "$REPO_ROOT/lib/apply.sh" --show os-guidance
   [ "$status" -eq 0 ]
   [[ "$output" == *"adds agent guidance"* ]]
 }

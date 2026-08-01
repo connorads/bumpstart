@@ -8,7 +8,7 @@ LABEL="Codex CLI"
 CHECK_MAC='command -v codex >/dev/null 2>&1'
 INSTALL_MAC='curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh'
 CHECK_LINUX='command -v codex >/dev/null 2>&1'
-INSTALL_LINUX='vibe_fetch https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh'
+INSTALL_LINUX='bump_fetch https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh'
 TARGET_WIN='$HOME/.codex/AGENTS.md'
 LINK_WIN=copy
 CHECK_WIN='Get-Command codex -ErrorAction SilentlyContinue'

@@ -18,18 +18,18 @@ setup() {
   make_fake mise
   make_fake node
   # Log what gets copied instead of touching the real clipboard.
-  make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'
+  make_fake pbcopy 'cat >> "$BUMP_FAKE_LOG"'
   # Point the *-desktop app checks at an empty dir so the cask install path is
   # reachable regardless of what is installed on the machine running the tests.
-  export VIBE_APPS_DIR="$BATS_TEST_TMPDIR/apps"
-  mkdir -p "$VIBE_APPS_DIR"
+  export BUMP_APPS_DIR="$BATS_TEST_TMPDIR/apps"
+  mkdir -p "$BUMP_APPS_DIR"
 }
 
 # The mac lane by default, pinned rather than inherited from the host — otherwise
 # every cask assertion below reads the LINUX cells when the suite runs on Linux and
-# quietly asserts nothing. A test that exports VIBE_OS itself wins, which is how the
+# quietly asserts nothing. A test that exports BUMP_OS itself wins, which is how the
 # Linux cases below select their own lane.
-apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@"; }
+apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
 @test "vibe claude codex: installs both, launches the last (codex)" {
   apply claude codex --yes --no-launch
@@ -54,7 +54,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   [ "$status" -eq 0 ]
   fake_logged "brew install --cask claude"
   # CLI-only: no app block, so the cask is never touched
-  : > "$VIBE_FAKE_LOG"
+  : > "$BUMP_FAKE_LOG"
   apply claude-cli --yes --no-launch
   [ "$status" -eq 0 ]
   refute_fake_logged "brew install --cask claude"
@@ -89,7 +89,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   #
   # `! -e` alone passes on a dangling symlink, because -e follows the link. `! -L`
   # is the assertion that bites.
-  run env VIBE_OS=mac VIBE_ROOT="$REPO_ROOT/tests/fixtures" \
+  run env BUMP_OS=mac BUMP_ROOT="$REPO_ROOT/tests/fixtures" \
     bash "$REPO_ROOT/lib/apply.sh" claude-cli os-guidance --yes --no-launch
   [ "$status" -eq 0 ]
   [ ! -e "$HOME/.agents/AGENTS.md" ]
@@ -234,7 +234,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
 @test "native Windows exits 0 with an honest redirect, before any effect" {
   # Through the seam, not a faked uname: os.bats owns the uname mapping, and this
   # case is about what the guard DOES with the answer.
-  export VIBE_OS=win
+  export BUMP_OS=win
   apply claude --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"On Windows, open PowerShell"* ]]
@@ -246,7 +246,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
 @test "a Linux run installs the agent, the tools and the instructions file" {
   # The Linux happy path with every vendor faked: mise supplies gh/node, the agent
   # comes from its own one-liner, and no Homebrew is involved anywhere.
-  export VIBE_OS=linux
+  export BUMP_OS=linux
   # persist_path keys on the LOGIN shell, so name it rather than inherit whatever
   # shell the test host happens to use — the rc file asserted below depends on it.
   export SHELL=/bin/bash
@@ -255,7 +255,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi'
   make_fake git 'if [ "$1" = "config" ] && [ "$2" = "--global" ] && [ "$3" = "--get" ]; then exit 1; fi' \
     'if [ "$1" = "init" ] || [ "$2" = "init" ]; then mkdir -p "$HOME/git/first-project/.git"; fi'
-  make_fake wl-copy 'cat >> "$VIBE_FAKE_LOG"'
+  make_fake wl-copy 'cat >> "$BUMP_FAKE_LOG"'
   apply claude starter --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Setup complete"* ]]
@@ -275,7 +275,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
 }
 
 @test "a Linux run tells you the Linux things and none of the Mac ones" {
-  export VIBE_OS=linux
+  export BUMP_OS=linux
   apply claude starter --plan
   [ "$status" -eq 0 ]
   # no Homebrew anywhere in the copy: it is never installed on this lane
@@ -296,8 +296,8 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   # binaries at all — so the refusal has to live in the spine, ahead of the OS
   # guard, and carry the fix.
   make_fake uname 'printf "Linux\n"'
-  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
-  printf '4.4.0-19041-Microsoft\n' > "$VIBE_OSRELEASE_FILE"
+  export BUMP_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '4.4.0-19041-Microsoft\n' > "$BUMP_OSRELEASE_FILE"
   WSL_DISTRO_NAME=Ubuntu apply claude --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"WSL 1"* ]]
@@ -326,7 +326,7 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   # cell, mirroring Homebrew on macOS. Listed twice, the ending reads as a bug in
   # vibe rather than as one thing that didn't work. (Seen for real in an offline
   # container before the ledger deduped.)
-  export VIBE_OS=linux
+  export BUMP_OS=linux
   export SHELL=/bin/bash
   rm -f "$FAKES/mise" "$FAKES/node"
   make_fake curl 'exit 1'           # every vendor fetch fails

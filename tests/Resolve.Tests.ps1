@@ -37,9 +37,9 @@ Describe 'Resolve-Plan targets' {
 
 Describe 'Resolve-Plan target methods (win)' {
   # The applier needs a linking method (import vs copy) per target and reads the
-  # plan for it. Pinned on VIBE_OS=win because LINK_<OS> only exists there today.
-  BeforeEach { $env:VIBE_OS = 'win' }
-  AfterEach  { Remove-Item Env:VIBE_OS -ErrorAction SilentlyContinue }
+  # plan for it. Pinned on BUMP_OS=win because LINK_<OS> only exists there today.
+  BeforeEach { $env:BUMP_OS = 'win' }
+  AfterEach  { Remove-Item Env:BUMP_OS -ErrorAction SilentlyContinue }
 
   It 'a method rides with its target, index-aligned, across a two-harness plan' {
     $plan = Resolve-Plan $script:fix @('claude-cli', 'codex-cli', 'concise')

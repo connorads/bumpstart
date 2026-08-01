@@ -338,17 +338,17 @@ nested rather than as separate ticks. Answering "starter" then "claude" emits
 `claude starter` - the same string the Quick start hands out. It previews the
 resolved plan, then **prints the one-paste command** to hand out (and copies it
 to the clipboard where `pbcopy` exists), and offers to
-run the setup now. The emitted command inherits the run's `VIBE_REF`: pin the
-run (`VIBE_REF=<sha> … --build`) and the paste carries the same `VIBE_REF=<sha>`
+run the setup now. The emitted command inherits the run's `BUMP_REF`: pin the
+run (`BUMP_REF=<sha> … --build`) and the paste carries the same `BUMP_REF=<sha>`
 prefix, so a workshop stays reproducible.
 
 ## Pinning (workshops)
 
 An unpinned run uses `main`. For a reproducible workshop, pin the whole repo to a
-commit SHA with `VIBE_REF` - vetted source is the audit layer:
+commit SHA with `BUMP_REF` - vetted source is the audit layer:
 
 ```bash
-VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
+BUMP_REF=<sha> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
 ```
 
 Vendor CLI versions (Claude, Codex, mise, ...) sit outside the pin - they always
@@ -421,9 +421,9 @@ mise run check-ps          # lint-ps + test-ps
 Tests are black-box with fakes (no network, no real installs): PATH-shadow fakes
 on bash, shadow functions on PowerShell. The two resolvers are locked to one
 `tests/fixtures/contract/resolve-cases.tsv` (driven by `contract.bats` and
-`Contract.Tests.ps1`). `VIBE_OS` is the seam that lets one host exercise every
+`Contract.Tests.ps1`). `BUMP_OS` is the seam that lets one host exercise every
 lane: the Windows e2e (`Apply.Tests.ps1`) drives the applier in-process with
-`VIBE_OS=win`, and the Linux cells and script tails are asserted the same way from
+`BUMP_OS=win`, and the Linux cells and script tails are asserted the same way from
 a Mac.
 
 **Support contracts (mechanically enforced):** bash stays 3.2-clean (no
@@ -468,7 +468,7 @@ local driver **and** by CI, so both run the same thing:
 | `ubuntu-base` | `ubuntu:24.04` | the Claude desktop app from Anthropic's apt repository, signing key and all |
 | `ubuntu-no-curl` | `ubuntu:24.04` minus curl | the wget fallback the Linux paste is shaped around |
 | `ubuntu-no-git` | `ubuntu:24.04` minus git | installing git through the system package manager |
-| `ubuntu-paste` | `ubuntu:24.04` | the **real paste** on Linux: the `vibe` bootstrap, the tarball fetch, and the `VIBE_REF` pin - and the apply-vs-paste differential against `ubuntu-base` |
+| `ubuntu-paste` | `ubuntu:24.04` | the **real paste** on Linux: the `vibe` bootstrap, the tarball fetch, and the `BUMP_REF` pin - and the apply-vs-paste differential against `ubuntu-base` |
 | `debian-codex` | `debian:12` | Codex, and its sandbox diagnostic on a restricted-userns kernel |
 | `debian-install-sh` | `debian:12` | the legacy `install.sh` entry point with no ids |
 | `fedora-safer` | `fedora:42` | a non-apt distro, pnpm, and the `safer-installs` config |

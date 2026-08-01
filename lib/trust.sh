@@ -5,7 +5,7 @@
 #
 # We only ever pre-trust STARTER_DIR (a dir we create), never an arbitrary or
 # cloned repo. Browser login is framed, not hidden: it is the one prompt that
-# stays. Also depends on os.sh (vibe_os, vibe_wsl) for the clipboard tool and the
+# stays. Also depends on os.sh (bump_os, bump_wsl) for the clipboard tool and the
 # paste keystroke. bash-3.2-clean.
 
 # The dedicated starter dir, under the user's ~/git repo convention. Never
@@ -100,7 +100,7 @@ preseed_trust() {
 # wrong key is worse than naming none: the novice presses it, nothing happens, and
 # they conclude the message was never copied.
 paste_key() {
-  case "$(vibe_os)" in
+  case "$(bump_os)" in
     mac) printf 'Cmd+V' ;;
     *)   printf 'Ctrl+Shift+V' ;;
   esac
@@ -132,7 +132,7 @@ copy_starter_prompt() {
     command -v "$_sp_tool" >/dev/null 2>&1 || continue
     # clip.exe is only meaningful under WSL 2; a stray one elsewhere would write to a
     # clipboard nothing on this side can read.
-    if [ "$_sp_tool" = clip.exe ] && [ "$(vibe_wsl)" != 2 ]; then continue; fi
+    if [ "$_sp_tool" = clip.exe ] && [ "$(bump_wsl)" != 2 ]; then continue; fi
     if [ "$_sp_tool" = xclip ]; then
       printf '%s' "$_sp_text" | xclip -selection clipboard && STARTER_PROMPT_COPIED=true
     else

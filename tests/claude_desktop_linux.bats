@@ -43,9 +43,9 @@ make_key() {
 # apply_desktop — run the tail with a faked apt/sudo/install/tee and a key served
 # from a file:// URL, so nothing touches the network or the real system.
 apply_desktop() {
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS=linux \
-    VIBE_CLAUDE_KEY_URL="$1" GNUPGHOME="${GNUPGHOME:-}" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" VIBE_BLOCK_ID=claude-desktop \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS=linux \
+    BUMP_CLAUDE_KEY_URL="$1" GNUPGHOME="${GNUPGHOME:-}" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" BUMP_BLOCK_ID=claude-desktop \
     bash "$REPO_ROOT/blocks/claude-desktop/apply.sh"
 }
 
@@ -66,9 +66,9 @@ fake_system() {
   # the happy path is exercised without shipping Anthropic's private key.
   sed "s/^KEY_FPR=.*/KEY_FPR=\"$fpr\"/" "$REPO_ROOT/blocks/claude-desktop/apply.sh" \
     > "$BATS_TEST_TMPDIR/apply.sh"
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS=linux \
-    VIBE_CLAUDE_KEY_URL="file://$KEYDIR/good.asc" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" VIBE_BLOCK_ID=claude-desktop \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS=linux \
+    BUMP_CLAUDE_KEY_URL="file://$KEYDIR/good.asc" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" BUMP_BLOCK_ID=claude-desktop \
     bash "$BATS_TEST_TMPDIR/apply.sh"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Checked the Claude app's signing key"* ]]
@@ -108,9 +108,9 @@ fake_system() {
     [ -e "$FAKES/$_b" ] || ln -sf "$(command -v "$_b")" "$FAKES/$_b"
   done
   _wide_path="$PATH"
-  PATH="$FAKES" run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS=linux \
-    VIBE_CLAUDE_KEY_URL="file://$KEYDIR/none.asc" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" VIBE_BLOCK_ID=claude-desktop \
+  PATH="$FAKES" run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS=linux \
+    BUMP_CLAUDE_KEY_URL="file://$KEYDIR/none.asc" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" BUMP_BLOCK_ID=claude-desktop \
     bash "$REPO_ROOT/blocks/claude-desktop/apply.sh"
   export PATH="$_wide_path"
   [ "$status" -eq 0 ]
@@ -130,8 +130,8 @@ fake_system() {
 
 @test "on a Mac the Linux installer does not run" {
   fake_system
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS=mac \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" VIBE_BLOCK_ID=claude-desktop \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS=mac \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/claude-desktop" BUMP_BLOCK_ID=claude-desktop \
     bash "$REPO_ROOT/blocks/claude-desktop/apply.sh"
   [ "$status" -eq 0 ]
   [ -z "$output" ]

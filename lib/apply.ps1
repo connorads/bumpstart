@@ -6,7 +6,7 @@
 #   pwsh -File lib/apply.ps1 [-Plan] [-Yes] [-NoLaunch] [-List] [-Show <id>]
 #                            [-Build] [-Force] <id>...
 #
-# $env:VIBE_ROOT overrides the repo root (the test seam). Windows-only at run
+# $env:BUMP_ROOT overrides the repo root (the test seam). Windows-only at run
 # time (guarded below); the pure core above ran cross-platform. Structured as a
 # function + a run-only-when-executed guard so the tests can dot-source it and
 # drive Invoke-VibeSetup in-process with shadowed installers. 5.1-safe.
@@ -56,10 +56,10 @@ function Invoke-BlockTail {
   $dir = Get-BlockDir $Root $Id
   $tail = Join-Path $dir 'apply.ps1'
   if (-not (Test-Path -LiteralPath $tail)) { return }
-  $env:VIBE_LIB = $PSScriptRoot
-  $env:VIBE_ROOT = $Root
-  $env:VIBE_BLOCK_DIR = $dir
-  $env:VIBE_BLOCK_ID = $Id
+  $env:BUMP_LIB = $PSScriptRoot
+  $env:BUMP_ROOT = $Root
+  $env:BUMP_BLOCK_DIR = $dir
+  $env:BUMP_BLOCK_ID = $Id
   try { & $tail } catch {
     Warn "block '$Id' failed - continuing"
     Add-VibeWarning (Get-BlockLabel $Root $Id)
@@ -89,7 +89,7 @@ function Invoke-VibeSetup {
   # Pester does not change the suite's own preference.
   $ErrorActionPreference = 'Continue'
 
-  $root = if ($env:VIBE_ROOT) { $env:VIBE_ROOT } else { (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
+  $root = if ($env:BUMP_ROOT) { $env:BUMP_ROOT } else { (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
   if (-not $Ids) { $Ids = @() }
 
   # Author-facing discovery (read-only; before resolve, which errors on empty).

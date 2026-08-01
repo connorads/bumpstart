@@ -10,10 +10,10 @@ set -uo pipefail
 # The lane matrix is DATA (tests/real/lanes.tsv), read by this runner and by CI, so
 # "local and CI run the same thing" is true rather than aspirational.
 #
-# The rule that keeps a real lane real: it sets NO `VIBE_*` test seam except
-# VIBE_REF. The codebase is generously seamed for the faked suite — VIBE_ROOT,
-# VIBE_OS, VIBE_APPS_DIR, VIBE_PROC_DIR, VIBE_MISE_BIN, VIBE_OSRELEASE_FILE,
-# VIBE_CLAUDE_KEY_URL — and any one of them used here would quietly turn a real
+# The rule that keeps a real lane real: it sets NO `BUMP_*` test seam except
+# BUMP_REF. The codebase is generously seamed for the faked suite — BUMP_ROOT,
+# BUMP_OS, BUMP_APPS_DIR, BUMP_PROC_DIR, BUMP_MISE_BIN, BUMP_OSRELEASE_FILE,
+# BUMP_CLAUDE_KEY_URL — and any one of them used here would quietly turn a real
 # install back into a simulated one. XDG_CONFIG_HOME counts too: it moves where
 # safer-installs writes pnpm's config. The read-only repo mount is the one exception,
 # and only for the entry points that are meant to run from a clone.
@@ -272,7 +272,7 @@ esac
 # measurement.
 
 note "precheck..."
-if ! guest_exec "cd \"\$HOME\" && VIBE_REAL_DIR=$S bash $GUEST_SRC/tests/real/precheck.sh > $S/precheck.part && mv $S/precheck.part $S/precheck.tsv"; then
+if ! guest_exec "cd \"\$HOME\" && BUMP_REAL_DIR=$S bash $GUEST_SRC/tests/real/precheck.sh > $S/precheck.part && mv $S/precheck.part $S/precheck.tsv"; then
   fail_harness "the precheck script failed in the guest"
   cleanup
   exit "$CLASS_HARNESS"
@@ -305,7 +305,7 @@ fi
 # Four exist across the project (vibe, install.sh, vibe.ps1, install.ps1). `apply`
 # and `install` run from the read-only clone; `paste` is the thing people actually
 # paste, and it fetches `vibe` itself from the COMMIT UNDER TEST — the README's paste
-# and install.sh:47 both hardcode `main` for the bootstrap and let VIBE_REF pin only
+# and install.sh:47 both hardcode `main` for the bootstrap and let BUMP_REF pin only
 # the tarball, so pinning alone would test main's `vibe` and hand back a false green
 # on any change to it.
 
@@ -322,7 +322,7 @@ entry_command() {
     install) printf 'cd "$HOME" && bash %s/install.sh --yes --no-launch' "$GUEST_SRC" ;;
     paste)
       if [ -z "$REF" ]; then return 1; fi
-      printf 'cd "$HOME" && VIBE_REF=%s /bin/bash -c "$(curl -fsSL %s || wget -qO- %s)" _ %s --yes --no-launch' \
+      printf 'cd "$HOME" && BUMP_REF=%s /bin/bash -c "$(curl -fsSL %s || wget -qO- %s)" _ %s --yes --no-launch' \
         "$REF" \
         "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
         "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
@@ -410,7 +410,7 @@ do_run() {
     # \$PATH stays unexpanded: it is the GUEST's PATH the shim goes in front of.
     _dr_env="$_dr_env export PATH=$S/bin:\$PATH;"
     _dr_env="$_dr_env export SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass;"
-    _dr_env="$_dr_env export VIBE_REAL_DIR=$S;"
+    _dr_env="$_dr_env export BUMP_REAL_DIR=$S;"
   fi
 
   note "run $_dr_n: $ENTRY"
@@ -444,7 +444,7 @@ do_run() {
   fi
 
   note "run $_dr_n: probing"
-  if ! guest_exec "cd \"\$HOME\" && VIBE_REAL_DIR=$S bash $GUEST_SRC/tests/real/probe.sh > $S/manifest 2> $S/probe.err"; then
+  if ! guest_exec "cd \"\$HOME\" && BUMP_REAL_DIR=$S bash $GUEST_SRC/tests/real/probe.sh > $S/manifest 2> $S/probe.err"; then
     guest_fetch "$S/probe.err" "$OUT/run$_dr_n.probe.err"
     fail_harness "the probe failed in the guest (see run$_dr_n.probe.err)"
     return "$CLASS_HARNESS"
@@ -503,7 +503,7 @@ if [ "$RUN_CLASS" != 0 ]; then
   # as an artifact on failure: a public repo's artifacts are downloadable by anyone,
   # so a raw dump publishes the job's whole environment, runner-injected tokens
   # included. The allow-list is what a lane failure is actually diagnosed from.
-  guest_exec 'env | grep -E "^(VIBE_[A-Z_]*|PATH|HOME|SHELL|USER|LOGNAME|LANG|LC_ALL|TERM|NO_COLOR|SUDO_ASKPASS|CI)=" | sort' \
+  guest_exec 'env | grep -E "^(BUMP_[A-Z_]*|PATH|HOME|SHELL|USER|LOGNAME|LANG|LC_ALL|TERM|NO_COLOR|SUDO_ASKPASS|CI)=" | sort' \
     > "$OUT/guest.env" 2>/dev/null
   guest_fetch "$S/askpass.log" "$OUT/askpass.log" 2>/dev/null
   printf '  log bundle: %s\n' "$OUT" >&2

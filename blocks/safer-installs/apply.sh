@@ -22,11 +22,11 @@ set -euo pipefail
 # warns and the setup continues.
 
 # shellcheck source=lib/common.sh
-. "$VIBE_LIB/common.sh"
-# os.sh for vibe_os: pnpm's global config dir is platform-dependent, and reading
+. "$BUMP_LIB/common.sh"
+# os.sh for bump_os: pnpm's global config dir is platform-dependent, and reading
 # the OS through the seam (rather than uname) is what makes that branch testable.
 # shellcheck source=lib/os.sh
-. "$VIBE_LIB/os.sh"
+. "$BUMP_LIB/os.sh"
 
 # The one wait, spelled once per tool in each tool's own unit. Kept adjacent so a
 # drift test can normalise them (tests/safer_installs.bats).
@@ -89,8 +89,8 @@ elif grep -qs '^[[:space:]]*\[settings\]' "$MISE_CFG"; then
     /^[[:space:]]*\[settings\][[:space:]]*$/ && !seen {
       printf "minimum_release_age = \"%s\"\n", val
       seen = 1
-    }' "$MISE_CFG" > "$MISE_CFG.vibe-new"
-  mv "$MISE_CFG.vibe-new" "$MISE_CFG"
+    }' "$MISE_CFG" > "$MISE_CFG.bumpstart-new"
+  mv "$MISE_CFG.bumpstart-new" "$MISE_CFG"
   success "mise waits $DAYS days before installing a brand-new tool release"
 else
   _append_line "$MISE_CFG" '[settings]'
@@ -114,7 +114,7 @@ if command -v pnpm >/dev/null 2>&1 ||
    { command -v mise >/dev/null 2>&1 && mise which pnpm >/dev/null 2>&1; }; then
   if [ -n "${XDG_CONFIG_HOME:-}" ]; then
     PNPM_CFG="$XDG_CONFIG_HOME/pnpm/config.yaml"
-  elif [ "$(vibe_os)" = mac ]; then
+  elif [ "$(bump_os)" = mac ]; then
     PNPM_CFG="$HOME/Library/Preferences/pnpm/config.yaml"
   else
     PNPM_CFG="$HOME/.config/pnpm/config.yaml"

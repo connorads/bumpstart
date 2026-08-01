@@ -32,8 +32,8 @@ error()   { printf "  %s✗%s %s\n" "$RED" "$RESET" "$1" >&2; }
 # a machine where an install warned 40 lines ago and scrolled away. Kept separate
 # from warn() itself: not every warning is a failed step (a deliberate back-off is
 # a warning too), and only failures should change the verdict.
-VIBE_WARN_COUNT=0
-VIBE_WARN_ITEMS=""
+BUMP_WARN_COUNT=0
+BUMP_WARN_ITEMS=""
 
 # record_warning <label>: count one failed step and remember its human label, once.
 # Deduped by label because a tool can be attempted twice in one run by design —
@@ -42,13 +42,13 @@ VIBE_WARN_ITEMS=""
 # thing that didn't work. Verified offline in a container, where it listed mise twice.
 record_warning() {
   case "
-$VIBE_WARN_ITEMS" in
+$BUMP_WARN_ITEMS" in
     *"
 $1
 "*) return 0 ;;
   esac
-  VIBE_WARN_COUNT=$((VIBE_WARN_COUNT + 1))
-  VIBE_WARN_ITEMS="${VIBE_WARN_ITEMS}$1
+  BUMP_WARN_COUNT=$((BUMP_WARN_COUNT + 1))
+  BUMP_WARN_ITEMS="${BUMP_WARN_ITEMS}$1
 "
 }
 
@@ -118,7 +118,7 @@ press_enter() {
   read -r _pe_reply
 }
 
-# vibe_fetch <url>: print a URL's body on stdout using whatever fetcher the
+# bump_fetch <url>: print a URL's body on stdout using whatever fetcher the
 # machine has. curl first (macOS always has it, and it is what every vendor
 # one-liner documents), else wget — Ubuntu Desktop 24.04 and 26.04 ship wget but
 # NOT curl, so a curl-only install cell is a silent no-op there. Neither present
@@ -128,7 +128,7 @@ press_enter() {
 # Exported with `export -f` by apply.sh before the block loop, so an INSTALL cell
 # (run via `bash -c`) can call it — verified through a `bash -c` child on real
 # /bin/bash 3.2.57.
-vibe_fetch() {
+bump_fetch() {
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "$1"
   elif command -v wget >/dev/null 2>&1; then

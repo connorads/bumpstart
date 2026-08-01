@@ -1,18 +1,18 @@
 # lib/os.ps1: current-OS token detection, the pwsh mirror of tests/os.bats. The
 # {mac,win,linux} token set (uppercased to MAC|WIN|LINUX) is the cross-spine
 # contract. pwsh detection can't be faked the way uname is, so the deterministic
-# assertions drive the $env:VIBE_OS seam (also the mac-hosted Windows e2e's lever)
+# assertions drive the $env:BUMP_OS seam (also the mac-hosted Windows e2e's lever)
 # and the host truth is asserted loosely.
 
 BeforeAll { . "$PSScriptRoot/../lib/os.ps1" }
 
 Describe 'Get-VibeOs' {
-  AfterEach { Remove-Item Env:VIBE_OS -ErrorAction SilentlyContinue }
+  AfterEach { Remove-Item Env:BUMP_OS -ErrorAction SilentlyContinue }
 
-  It 'honours the VIBE_OS override: <token>' -ForEach @(
+  It 'honours the BUMP_OS override: <token>' -ForEach @(
     @{ token = 'mac' }, @{ token = 'win' }, @{ token = 'linux' }
   ) {
-    $env:VIBE_OS = $token
+    $env:BUMP_OS = $token
     Get-VibeOs | Should -Be $token
   }
 
@@ -22,14 +22,14 @@ Describe 'Get-VibeOs' {
 }
 
 Describe 'Get-VibeOsKey' {
-  AfterEach { Remove-Item Env:VIBE_OS -ErrorAction SilentlyContinue }
+  AfterEach { Remove-Item Env:BUMP_OS -ErrorAction SilentlyContinue }
 
   It 'is the uppercase OS token: <token> -> <key>' -ForEach @(
     @{ token = 'mac'; key = 'MAC' }
     @{ token = 'win'; key = 'WIN' }
     @{ token = 'linux'; key = 'LINUX' }
   ) {
-    $env:VIBE_OS = $token
+    $env:BUMP_OS = $token
     Get-VibeOsKey | Should -Be $key
   }
 }

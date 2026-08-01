@@ -113,7 +113,7 @@ pressing Enter.
 The Linux item below is superseded by
 [0002](0002-linux-support.md), which decides it.
 
-- Linux. `vibe_os` returns `linux` and `vibe_os_key` returns `LINUX`, but no
+- Linux. `bump_os` returns `linux` and `bump_os_key` returns `LINUX`, but no
   block has `*_LINUX` cells and `ensure_brew` is the whole install substrate.
   Beyond that, no official Linux desktop app exists for Claude, ChatGPT *or*
   GitHub Desktop, so the `agent` axis presets cannot mean "CLI + app" there.

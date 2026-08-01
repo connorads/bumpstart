@@ -9,9 +9,9 @@
 # the ONLY file allowed to reference them (the lint-ps grep enforces that).
 
 function Get-VibeOs {
-  # Test seam: an explicit override wins (parity with os.sh's $VIBE_OS). Required
+  # Test seam: an explicit override wins (parity with os.sh's $BUMP_OS). Required
   # here - it's how the mac-hosted Windows e2e forces the win token set.
-  if ($env:VIBE_OS) { return $env:VIBE_OS }
+  if ($env:BUMP_OS) { return $env:BUMP_OS }
   # Windows PowerShell 5.1 is the Desktop edition and is Windows-only.
   if ($PSVersionTable.PSEdition -eq 'Desktop') { return 'win' }
   # pwsh 6+ (Core edition): the OS automatics are defined and reliable.

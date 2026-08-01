@@ -21,7 +21,7 @@ BeforeAll {
   # Meta lines are pwsh single-quoted literals so $ stays literal (expanded only
   # by the runner's Invoke-Expression at run time) and the cell's own single
   # quotes are the doubled ''. An INSTALL cell that records itself to the log:
-  $script:logInstall = "INSTALL_$script:osKey='Add-Content -LiteralPath `$env:VIBE_FAKE_LOG -Value `"brew install thing`"'"
+  $script:logInstall = "INSTALL_$script:osKey='Add-Content -LiteralPath `$env:BUMP_FAKE_LOG -Value `"brew install thing`"'"
 
   # Cells that PRINT and then fail - the normal shape of a real WIN cell, since
   # winget, irm|iex and npm all narrate. Nothing else in this suite writes to
@@ -34,10 +34,10 @@ Describe 'run.ps1' {
   BeforeEach {
     $script:root = Join-Path $TestDrive 'root'
     New-Item -ItemType Directory -Path (Join-Path $script:root 'blocks') -Force | Out-Null
-    $env:VIBE_FAKE_LOG = Join-Path $TestDrive 'fake.log'
-    Set-Content -LiteralPath $env:VIBE_FAKE_LOG -Value ''
+    $env:BUMP_FAKE_LOG = Join-Path $TestDrive 'fake.log'
+    Set-Content -LiteralPath $env:BUMP_FAKE_LOG -Value ''
   }
-  AfterEach { Remove-Item Env:VIBE_FAKE_LOG -ErrorAction SilentlyContinue }
+  AfterEach { Remove-Item Env:BUMP_FAKE_LOG -ErrorAction SilentlyContinue }
 
   It 'Test-BlockCheck is $true when the CHECK cell passes' {
     New-Block present @('KIND=tool', "CHECK_$script:osKey='`$true'")
@@ -76,13 +76,13 @@ Describe 'run.ps1' {
     New-Block sat @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$true'", $logInstall)
     $out = Invoke-Cell $script:root 'sat' 6>&1 | Out-String
     $out | Should -Match 'already installed'
-    (Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG) | Should -Not -Match 'brew install thing'
+    (Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG) | Should -Not -Match 'brew install thing'
   }
 
   It 'Invoke-Cell runs the install when not satisfied' {
     New-Block act @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $logInstall)
     Invoke-Cell $script:root 'act' 6>&1 | Out-Null
-    (Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG) | Should -Match 'brew install thing'
+    (Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG) | Should -Match 'brew install thing'
   }
 
   It 'Invoke-Cell is a silent no-op for an unmapped block' {

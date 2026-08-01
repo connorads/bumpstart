@@ -23,18 +23,18 @@ set -euo pipefail
 # plan footer is the follow-up that fixes that class properly.
 
 # shellcheck source=lib/common.sh
-. "$VIBE_LIB/common.sh"
+. "$BUMP_LIB/common.sh"
 # shellcheck source=lib/os.sh
-. "$VIBE_LIB/os.sh"
+. "$BUMP_LIB/os.sh"
 
-[ "$(vibe_os)" = linux ] || exit 0
+[ "$(bump_os)" = linux ] || exit 0
 
 # Anthropic's release signing key, and the fingerprint we require it to have. A key
 # fetched over TLS from a host we already trust is most of the story; pinning the
 # fingerprint is what makes a swapped key a refusal rather than a silent success.
 # Verified live: this fingerprint is what downloads.claude.ai/claude-desktop/key.asc
 # actually carries (uid "Anthropic Claude Code Release Signing").
-KEY_URL="${VIBE_CLAUDE_KEY_URL:-https://downloads.claude.ai/claude-desktop/key.asc}"
+KEY_URL="${BUMP_CLAUDE_KEY_URL:-https://downloads.claude.ai/claude-desktop/key.asc}"
 KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 # apt reads an ASCII-armoured key when the path ends in .asc, which is the form the
 # vendor publishes and documents — so the key is installed byte-for-byte as fetched,
@@ -75,7 +75,7 @@ fi
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe-claude.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
-if ! vibe_fetch "$KEY_URL" > "$tmp/key.asc" 2>/dev/null || [ ! -s "$tmp/key.asc" ]; then
+if ! bump_fetch "$KEY_URL" > "$tmp/key.asc" 2>/dev/null || [ ! -s "$tmp/key.asc" ]; then
   warn "couldn't download the Claude app's signing key — skipping the desktop app."
   exit 0
 fi

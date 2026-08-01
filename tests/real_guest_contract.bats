@@ -213,7 +213,7 @@ assert_guest_port() {
   # bin/sudo-forces-askpass can go.
   run guest_exec "printf '%s' '$GUEST_PASSWORD' > $GUEST_STATE/password"
   [ "$status" -eq 0 ] || { echo "$output"; false; }
-  run guest_exec "SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass VIBE_REAL_DIR=$GUEST_STATE sudo true"
+  run guest_exec "SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass BUMP_REAL_DIR=$GUEST_STATE sudo true"
   [ "$status" -ne 0 ] || { echo "SUDO_ASKPASS alone now works — drop the shim"; false; }
 
   # The mechanism the lane actually uses: the shim ahead of the real sudo on PATH.
@@ -221,7 +221,7 @@ assert_guest_port() {
   # exactly one prompt.
   run guest_exec "mkdir -p $GUEST_STATE/bin && cp $GUEST_SRC/tests/real/bin/sudo-forces-askpass $GUEST_STATE/bin/sudo && chmod 0755 $GUEST_STATE/bin/sudo"
   [ "$status" -eq 0 ] || { echo "$output"; false; }
-  run guest_exec "rm -f $GUEST_STATE/askpass.log; PATH=$GUEST_STATE/bin:\$PATH SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass VIBE_REAL_DIR=$GUEST_STATE sudo true"
+  run guest_exec "rm -f $GUEST_STATE/askpass.log; PATH=$GUEST_STATE/bin:\$PATH SUDO_ASKPASS=$GUEST_SRC/tests/real/bin/askpass BUMP_REAL_DIR=$GUEST_STATE sudo true"
   [ "$status" -eq 0 ] || { echo "sudo through the shim failed: $output"; false; }
   run guest_exec "wc -l < $GUEST_STATE/askpass.log"
   [ "$(printf '%s' "$output" | tr -d ' ')" = "1" ] || { echo "askpass log has [$output] lines"; false; }
@@ -274,9 +274,9 @@ assert_guest_port() {
 @test "the runner adapter satisfies the same guest port, or refuses when it cannot" {
   # No docker and no VM needed, so this leg runs everywhere - which is what stops the
   # port contract being vacuous on a machine with no container daemon.
-  # VIBE_REAL_ALLOW_HOST is the adapter's own safety catch; nothing here runs an entry
+  # BUMP_REAL_ALLOW_HOST is the adapter's own safety catch; nothing here runs an entry
   # point, so nothing is installed.
-  export VIBE_REAL_ALLOW_HOST=1
+  export BUMP_REAL_ALLOW_HOST=1
   export GUEST_IMAGE=this-machine
   export GUEST_STATE="$BATS_TEST_TMPDIR/state"
   # shellcheck source=tests/real/guests/runner.sh
@@ -304,7 +304,7 @@ assert_guest_port() {
 @test "the runner adapter refuses to install into a home nobody asked it to" {
   # The one thing standing between `mise run vm-test` and a developer's real $HOME -
   # and it is checked in guest_start, BEFORE the repo copy that used to happen first.
-  unset VIBE_REAL_ALLOW_HOST
+  unset BUMP_REAL_ALLOW_HOST
   local saved_ci="${CI:-}"
   unset CI
   export GUEST_IMAGE=this-machine
@@ -315,7 +315,7 @@ assert_guest_port() {
   run guest_start
   [ -z "$saved_ci" ] || export CI="$saved_ci"
   [ "$status" -ne 0 ] || { echo "the runner adapter started unasked"; false; }
-  printf '%s\n' "$output" | grep -q 'VIBE_REAL_ALLOW_HOST' || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q 'BUMP_REAL_ALLOW_HOST' || { echo "$output"; false; }
   [ ! -d "$GUEST_SRC" ] || { echo "it copied the repo before refusing"; false; }
 
   unset CI
@@ -327,7 +327,7 @@ assert_guest_port() {
 @test "the runner adapter refuses the password axis, which it cannot honour" {
   # A hosted runner has NOPASSWD sudo, so a password lane here would pass while
   # asserting nothing - the same refusal the tart adapter makes for the same reason.
-  export VIBE_REAL_ALLOW_HOST=1
+  export BUMP_REAL_ALLOW_HOST=1
   export GUEST_IMAGE=this-machine
   export GUEST_STATE="$BATS_TEST_TMPDIR/state"
   export GUEST_SUDO=password
@@ -343,7 +343,7 @@ assert_guest_port() {
 }
 
 @test "the runner adapter destroys its copy despite the permission bits it set" {
-  export VIBE_REAL_ALLOW_HOST=1
+  export BUMP_REAL_ALLOW_HOST=1
   export GUEST_IMAGE=this-machine
   export GUEST_STATE="$BATS_TEST_TMPDIR/state"
   # shellcheck source=tests/real/guests/runner.sh

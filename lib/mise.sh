@@ -17,7 +17,7 @@
 # and `brew install mise` is also a block cell.
 #
 # No sudo anywhere: mise.run installs a single user-owned binary into ~/.local/bin.
-# Depends on common.sh (info/success/warn, vibe_fetch). bash-3.2-clean.
+# Depends on common.sh (info/success/warn, bump_fetch). bash-3.2-clean.
 
 # ensure_mise: install mise if absent, then make sure THIS run can see it.
 ensure_mise() {
@@ -28,7 +28,7 @@ ensure_mise() {
 
   # The install location, overridable so the "already there but not on PATH" branch
   # is reachable in tests without a real uninstall (the default is the real path).
-  _em_bin="${VIBE_MISE_BIN:-$HOME/.local/bin/mise}"
+  _em_bin="${BUMP_MISE_BIN:-$HOME/.local/bin/mise}"
 
   if [ -x "$_em_bin" ]; then
     success "mise already installed"
@@ -38,7 +38,7 @@ ensure_mise() {
     # MISE_INSTALL_HELP=0 suppresses the "now add this to your shell" epilogue —
     # persist_path owns that edit, and two tools both claiming it is how a beginner
     # ends up with the line twice.
-    if vibe_fetch https://mise.run | MISE_INSTALL_HELP=0 sh; then
+    if bump_fetch https://mise.run | MISE_INSTALL_HELP=0 sh; then
       success "mise installed"
     else
       warn "couldn't install mise — the tools that need it may be skipped"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # probe.sh: run INSIDE a guest after a real install and print a state manifest.
 #
-#   VIBE_REAL_DIR=/tmp/vibe-real tests/real/probe.sh > manifest
+#   BUMP_REAL_DIR=/tmp/vibe-real tests/real/probe.sh > manifest
 #
 # It gathers and normalises; it judges NOTHING. That split is what lets judge.sh be
 # pure and unit-tested over fixtures, and it means "is this state correct" changes in
@@ -22,7 +22,7 @@
 #   the record        (transcript.* warn.* info.* error.* tool.*.version_raw) —
 #                      legitimately differs between runs, excluded from the diff
 #
-# The lane runner hands us what only it knows, in $VIBE_REAL_DIR:
+# The lane runner hands us what only it knows, in $BUMP_REAL_DIR:
 #   lane.tsv      lane / adapter / guest / axis / mode / run / blocks
 #   precheck.tsv  facts measured BEFORE the run (curl absent, no vibe marker, …)
 #   transcript.log  the run's combined stdout AND stderr — warn() writes to stderr
@@ -37,7 +37,7 @@
 # the failure instead of one honest error. It reports what it can and says what it
 # could not measure.
 
-STATE="${VIBE_REAL_DIR:-/tmp/vibe-real}"
+STATE="${BUMP_REAL_DIR:-/tmp/vibe-real}"
 
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 # The fresh-shell measurement is shared with precheck.sh, which takes it BEFORE the

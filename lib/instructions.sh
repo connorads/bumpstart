@@ -72,7 +72,7 @@ assemble_instructions() {
       # Prefer a per-OS content override (content.<os>.md) over the neutral content.md.
       # $(cat) strips a section's own trailing newlines, so joining with a blank
       # line is exact.
-      _ai_content="$_ai_dir/content.$(vibe_os).md"
+      _ai_content="$_ai_dir/content.$(bump_os).md"
       [ -f "$_ai_content" ] || _ai_content="$_ai_dir/content.md"
       if [ -f "$_ai_content" ]; then
         _ai_c="$(cat "$_ai_content")"

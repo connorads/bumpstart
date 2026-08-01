@@ -1,6 +1,6 @@
 # lib/apply.ps1: the Windows e2e anchor - the pwsh analogue of tests/e2e.bats.
 # Dot-sources apply.ps1 (which defines Invoke-VibeSetup without running) and
-# drives it in-process with $env:VIBE_OS=win, so the WIN command cells fire.
+# drives it in-process with $env:BUMP_OS=win, so the WIN command cells fire.
 # Installers are faked as global shadow functions (winget/npm/irm|iex/clipboard);
 # real git is kept on a hermetic PATH so repo init works, while node/gh/claude/
 # codex/pnpm are OFF PATH so their CHECK fails and the install dispatch is
@@ -22,15 +22,15 @@ BeforeAll {
   # codex/pnpm are simply never defined -> their Get-Command CHECK reports absent
   # -> the install dispatch is observable. git IS faked (config no-op, init makes
   # a .git dir) so the CHECK passes and repo init works without a real git.
-  function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "winget $($args -join ' ')" }
-  function global:npm    { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "npm $($args -join ' ')" }
+  function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')" }
+  function global:npm    { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "npm $($args -join ' ')" }
   function global:Invoke-RestMethod {
     param([Parameter(Position = 0)][string]$Uri)
-    if ($Uri -match 'claude\.ai/install\.ps1') { return 'Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "INSTALL claude"' }
-    if ($Uri -match 'codex/install\.ps1')      { return 'Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "INSTALL codex"' }
+    if ($Uri -match 'claude\.ai/install\.ps1') { return 'Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "INSTALL claude"' }
+    if ($Uri -match 'codex/install\.ps1')      { return 'Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "INSTALL codex"' }
     return ''
   }
-  function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'CLIPBOARD' }
+  function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'CLIPBOARD' }
   function global:git {
     if ($args -contains 'init') {
       $ci = [array]::IndexOf([object[]]$args, '-C')
@@ -54,10 +54,10 @@ Describe 'apply.ps1 (Windows spine)' {
     New-Item -ItemType Directory -Path $script:testHome -Force | Out-Null
     Set-Variable -Name HOME -Scope Global -Value $script:testHome -Force
     $env:HOME = $script:testHome
-    $env:VIBE_OS = 'win'
-    $env:VIBE_ROOT = $script:repoRoot
-    $env:VIBE_FAKE_LOG = Join-Path $script:testHome 'fake.log'
-    Set-Content -LiteralPath $env:VIBE_FAKE_LOG -Value ''
+    $env:BUMP_OS = 'win'
+    $env:BUMP_ROOT = $script:repoRoot
+    $env:BUMP_FAKE_LOG = Join-Path $script:testHome 'fake.log'
+    Set-Content -LiteralPath $env:BUMP_FAKE_LOG -Value ''
     # An empty bin on PATH: no host tool leaks in, so only the shadow functions
     # above are "present" and every install dispatch is observable.
     $emptyBin = Join-Path $script:testHome 'bin'
@@ -76,7 +76,7 @@ Describe 'apply.ps1 (Windows spine)' {
     Mock Send-VibeEnvironmentChange { }
   }
   AfterEach {
-    foreach ($v in 'VIBE_OS', 'VIBE_ROOT', 'VIBE_FAKE_LOG', 'VIBE_LIB', 'VIBE_BLOCK_DIR', 'VIBE_BLOCK_ID') {
+    foreach ($v in 'BUMP_OS', 'BUMP_ROOT', 'BUMP_FAKE_LOG', 'BUMP_LIB', 'BUMP_BLOCK_DIR', 'BUMP_BLOCK_ID') {
       Remove-Item "Env:$v" -ErrorAction SilentlyContinue
     }
   }
@@ -86,7 +86,7 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Match 'Setup complete'
     $out | Should -Match 'Agent to launch: claude'
 
-    $log = Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG
+    $log = Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG
     $log | Should -Match 'INSTALL claude'                        # claude-cli via irm|iex
     $log | Should -Match 'winget install --id Anthropic.Claude'  # claude-desktop
     $log | Should -Match 'winget install --id OpenJS.NodeJS.LTS' # node (winget, no mise)
@@ -160,10 +160,10 @@ Describe 'apply.ps1 (Windows spine)' {
     #
     # Order is the assertion, not effect - what Set-VibePath actually prepends is
     # its own business, and asserting it here would just restate common.ps1.
-    Mock Set-VibePath { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'PATHFIX' }
+    Mock Set-VibePath { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'PATHFIX' }
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
 
-    $log = @(Get-Content -LiteralPath $env:VIBE_FAKE_LOG)
+    $log = @(Get-Content -LiteralPath $env:BUMP_FAKE_LOG)
     $fix = [array]::IndexOf($log, 'PATHFIX')
     $firstInstall = -1
     for ($i = 0; $i -lt $log.Count; $i++) {
@@ -276,7 +276,7 @@ Describe 'apply.ps1 (Windows spine)' {
       $out | Should -Match 'Node.js'
       $out | Should -Match "retries only what's missing"
     } finally {
-      function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "winget $($args -join ' ')" }
+      function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')" }
     }
   }
 
@@ -293,14 +293,14 @@ Describe 'apply.ps1 (Windows spine)' {
     # reports the applier's effective value. A mock body resolves variables from
     # where it was defined, and would assert nothing.
     $ErrorActionPreference = 'Stop'
-    function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "EAP=$ErrorActionPreference" }
+    function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "EAP=$ErrorActionPreference" }
     try {
       Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
-      $log = Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG
+      $log = Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG
       $log | Should -Match 'EAP=Continue'
       $log | Should -Not -Match 'EAP=Stop'
     } finally {
-      function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "winget $($args -join ' ')" }
+      function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')" }
     }
   }
 
@@ -318,14 +318,14 @@ Describe 'apply.ps1 (Windows spine)' {
     # success stream beside the return code, and `exit @('chatter', 1)` exits 0 -
     # so a printing agent masked a failed setup. (On a real console it is worse:
     # a native command in a captured pipeline gets a pipe, not the terminal.)
-    function global:claude { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'LAUNCHED claude' }
+    function global:claude { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' }
     # Wait-Enter is a no-op only when input is redirected; mocked so a
     # terminal-attached run of this suite cannot block on it.
     Mock Wait-Enter { }
     $cwd = (Get-Location).Path
     try {
       Invoke-VibeSetup -Yes -Ids @('claude-cli') 6>$null | Out-Null
-      (Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG) | Should -Not -Match 'LAUNCHED claude'
+      (Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG) | Should -Not -Match 'LAUNCHED claude'
       $script:VibeLaunch | Should -Be 'claude'
       ($script:VibeLaunchDir -replace '\\', '/') | Should -Match 'git/first-project$'
       (Get-Location).Path | Should -Be $cwd
@@ -335,7 +335,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'records no launch under -NoLaunch' {
-    function global:claude { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'LAUNCHED claude' }
+    function global:claude { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' }
     try {
       Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
       $script:VibeLaunch | Should -BeNullOrEmpty
@@ -345,7 +345,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'a non-Windows OS redirects to the mac paste before any effect' {
-    $env:VIBE_OS = 'mac'
+    $env:BUMP_OS = 'mac'
     $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude') 6>&1 | Out-String
     $out | Should -Match 'macOS paste'
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude.json') | Should -BeFalse

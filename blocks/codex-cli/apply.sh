@@ -23,18 +23,18 @@ set -euo pipefail
 # the fallback, mirroring how content.<os>.md resolves.
 
 # shellcheck source=lib/common.sh
-. "$VIBE_LIB/common.sh"
+. "$BUMP_LIB/common.sh"
 # shellcheck source=lib/os.sh
-. "$VIBE_LIB/os.sh"
+. "$BUMP_LIB/os.sh"
 
-[ "$(vibe_os)" = linux ] || exit 0
+[ "$(bump_os)" = linux ] || exit 0
 
 # Root needs no namespace grant at all (containers, Codespaces), so there is
 # nothing to warn about.
 [ "$(id -u)" -eq 0 ] && exit 0
 
-# $VIBE_PROC_DIR is the test seam, the same shape as $VIBE_OSRELEASE_FILE in os.sh.
-PROC="${VIBE_PROC_DIR:-/proc/sys/kernel}"
+# $BUMP_PROC_DIR is the test seam, the same shape as $BUMP_OSRELEASE_FILE in os.sh.
+PROC="${BUMP_PROC_DIR:-/proc/sys/kernel}"
 APPARMOR_KNOB="$PROC/apparmor_restrict_unprivileged_userns"
 CLONE_KNOB="$PROC/unprivileged_userns_clone"
 

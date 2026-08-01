@@ -12,9 +12,9 @@ set -euo pipefail
 # GitHub sign-in prints a hint and skips, never aborting the setup.
 
 # shellcheck source=lib/common.sh
-. "$VIBE_LIB/common.sh"
+. "$BUMP_LIB/common.sh"
 # shellcheck source=lib/os.sh
-. "$VIBE_LIB/os.sh"
+. "$BUMP_LIB/os.sh"
 
 # ── 1. Linux only: install git itself ─────────────────────────────────────────
 #
@@ -31,7 +31,7 @@ set -euo pipefail
 # The manager is found by CAPABILITY, never by reading a distro name: probing for
 # the command makes Mint, Pop!_OS, openSUSE and every other derivative work for
 # free, where an /etc/os-release table would need a row each.
-if [ "$(vibe_os)" = linux ] && ! command -v git >/dev/null 2>&1; then
+if [ "$(bump_os)" = linux ] && ! command -v git >/dev/null 2>&1; then
   # sudo only when we are not already root (containers, Codespaces) and it exists.
   gsudo=""
   if [ "$(id -u)" -ne 0 ]; then

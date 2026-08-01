@@ -34,13 +34,13 @@ setup() {
 }
 
 @test "--build: no answers on stdin is a non-zero error pointing at --list" {
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build </dev/null
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build </dev/null
   [ "$status" -ne 0 ]
   [[ "$output" == *"--list"* ]]
 }
 
 @test "--build: one question per axis, asked in the axes' declared ORDER" {
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 n
 1
 n
@@ -64,7 +64,7 @@ ANS
 
 @test "--build: happy path emits the one-paste command for the chosen ids" {
   # agent = claude-cli (#3), plus node and concise; everything else declined.
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 n
 3
 n
@@ -86,7 +86,7 @@ ANS
 
 @test "--build: the recipe + agent answers emit the handout the README documents" {
   # starter on the recipe axis, the claude bundle (#1, the axis DEFAULT) as agent
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 y
 1
 n
@@ -107,7 +107,7 @@ ANS
 }
 
 @test "--build: an empty answer takes the agent axis DEFAULT" {
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 y
 
 n
@@ -124,7 +124,7 @@ ANS
 }
 
 @test "--build: rows show what they pull in, so wholes and parts read as nested" {
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 n
 1
 n
@@ -141,9 +141,9 @@ ANS
   [[ "$output" == *"node"*"(pulls in: mise)"* ]]
 }
 
-@test "--build: VIBE_REF pins the emitted command with a ref prefix" {
+@test "--build: BUMP_REF pins the emitted command with a ref prefix" {
   # default agent, node only
-  run env VIBE_REF=abc123 VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_REF=abc123 BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 n
 1
 n
@@ -156,12 +156,12 @@ n
 n
 ANS
   [ "$status" -eq 0 ]
-  [[ "$output" == *'VIBE_REF=abc123 /bin/bash -c'* ]]
+  [[ "$output" == *'BUMP_REF=abc123 /bin/bash -c'* ]]
   [[ "$output" == *'_ claude node'* ]]
 }
 
 @test "--build: run-now=yes falls through to resolve but never installs (non-tty confirm aborts)" {
-  run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
+  run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --build <<'ANS'
 n
 1
 n

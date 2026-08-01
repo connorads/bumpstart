@@ -65,7 +65,7 @@ jobs:
         env:
           # The commit under test, not a branch name - otherwise this fetches main
           # and asserts nothing about the change.
-          VIBE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+          BUMP_REF: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           # 'Continue', for the reason the windows-real-install job spells out:
           # GitHub prepends $ErrorActionPreference='stop', under which 5.1 turns a
@@ -445,7 +445,7 @@ jobs:
         run: |
           blocks="$(bash tests/helpers/resolve_driver.sh lib . claude starter | awk -F'\t' '{print $1}')"
           [ -n "$blocks" ] || { echo "the resolver produced nothing"; exit 3; }
-          echo "VIBE_BLOCKS=$blocks" >> "$GITHUB_ENV"
+          echo "BUMP_BLOCKS=$blocks" >> "$GITHUB_ENV"
 
       - name: state dir
         run: |
@@ -493,7 +493,7 @@ jobs:
               "axis${tab}base"
               "mode${tab}apply"
               "run$tab$run"
-              "blocks$tab$env:VIBE_BLOCKS"
+              "blocks$tab$env:BUMP_BLOCKS"
             ) | Set-Content -LiteralPath (Join-Path $state 'lane.tsv')
 
             # Every stream captured: the UI goes to Write-Host and apply.ps1 exits 0
@@ -535,7 +535,7 @@ jobs:
           for n in 1 2; do
             echo "--- run $n ---"
             # shellcheck disable=SC2086  # the block list is deliberately word-split
-            bash tests/real/judge.sh "$state/run$n.manifest" $VIBE_BLOCKS | tee "$state/run$n.tap"
+            bash tests/real/judge.sh "$state/run$n.manifest" $BUMP_BLOCKS | tee "$state/run$n.tap"
             worst="$(class_worse "$worst" "${PIPESTATUS[0]}")"
           done
           # Idempotence, as a differential rather than a second set of assertions -

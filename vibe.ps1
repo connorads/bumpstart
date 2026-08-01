@@ -1,16 +1,16 @@
 #!/usr/bin/env pwsh
-# vibe.ps1: fetch the vibe-setup repo at $env:VIBE_REF and hand the id list to the
+# vibe.ps1: fetch the vibe-setup repo at $env:BUMP_REF and hand the id list to the
 # applier. The Windows one-paste bootstrap, the mirror of the `vibe` bash script.
 #
 #   irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1 | iex
 #   & ([scriptblock]::Create((irm .../vibe.ps1))) claude starter   # with ids
-#   $env:VIBE_REF='<sha>'; irm .../vibe.ps1 | iex               # pinned workshop
+#   $env:BUMP_REF='<sha>'; irm .../vibe.ps1 | iex               # pinned workshop
 #
 # Windows PowerShell 5.1-safe: this is the default shell on a fresh Windows, so
 # the bootstrap must run there. It prefers pwsh 7 if already on PATH but never
 # requires it.
 $ErrorActionPreference = 'Stop'
-$ref = if ($env:VIBE_REF) { $env:VIBE_REF } else { 'main' }
+$ref = if ($env:BUMP_REF) { $env:BUMP_REF } else { 'main' }
 $repo = 'connorads/vibe-setup'
 
 # Windows-only - say so before fetching. 5.1 leaves $IsWindows unset and is

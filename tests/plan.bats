@@ -16,7 +16,7 @@ setup() {
   setup_isolated_env
   # The synthetic cells below are *_MAC, so the probe is exercised through the mac
   # lane. Pinned, not inherited from the host.
-  export VIBE_OS=mac
+  export BUMP_OS=mac
   ROOT="$BATS_TEST_TMPDIR/root"
   mkdir -p "$ROOT/blocks"
 }

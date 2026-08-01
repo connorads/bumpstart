@@ -18,8 +18,8 @@
 #
 # Depends on common.sh (success/info/warn). bash-3.2-clean.
 
-VIBE_PATH_MARKER_BEGIN="# >>> vibe-setup >>>"
-VIBE_PATH_MARKER_END="# <<< vibe-setup <<<"
+BUMP_PATH_MARKER_BEGIN="# >>> vibe-setup >>>"
+BUMP_PATH_MARKER_END="# <<< vibe-setup <<<"
 
 # _shell_rc — echo the startup file of the shell the user LOGS IN with ($SHELL,
 # not the bash running this script — that one is gone the moment vibe exits), or
@@ -50,10 +50,10 @@ _path_line() {
 }
 
 # persist_path: append the marker-wrapped PATH line to the login shell's rc file.
-# Sets VIBE_PATH_PERSISTED to the file written (empty when nothing was written).
+# Sets BUMP_PATH_PERSISTED to the file written (empty when nothing was written).
 # Never fatal: an rc file we cannot write warns and the setup continues.
 persist_path() {
-  VIBE_PATH_PERSISTED=""
+  BUMP_PATH_PERSISTED=""
   _sp_shell="$(basename "${SHELL:-}")"
   _sp_rc="$(_shell_rc)"
 
@@ -65,7 +65,7 @@ persist_path() {
     return 0
   fi
 
-  if [ -f "$_sp_rc" ] && grep -Fq -- "$VIBE_PATH_MARKER_BEGIN" "$_sp_rc"; then
+  if [ -f "$_sp_rc" ] && grep -Fq -- "$BUMP_PATH_MARKER_BEGIN" "$_sp_rc"; then
     success "Your shell already knows where vibe installs things"
     return 0
   fi
@@ -80,11 +80,11 @@ persist_path() {
     printf '\n' >> "$_sp_rc" || true
   fi
   if {
-    printf '%s\n' "$VIBE_PATH_MARKER_BEGIN"
+    printf '%s\n' "$BUMP_PATH_MARKER_BEGIN"
     printf '%s\n' "$(_path_line "$_sp_kind")"
-    printf '%s\n' "$VIBE_PATH_MARKER_END"
+    printf '%s\n' "$BUMP_PATH_MARKER_END"
   } >> "$_sp_rc"; then
-    VIBE_PATH_PERSISTED="$_sp_rc"
+    BUMP_PATH_PERSISTED="$_sp_rc"
     success "New terminals will find your tools (one line added to $_sp_rc)"
   else
     warn "couldn't update $_sp_rc — new terminals may not find your tools"

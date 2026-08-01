@@ -2,7 +2,7 @@
 # precheck.sh: run INSIDE a guest BEFORE the first real run, and print the baseline
 # every later assertion is measured against.
 #
-#   VIBE_REAL_DIR=/tmp/vibe-real tests/real/precheck.sh > precheck.tsv
+#   BUMP_REAL_DIR=/tmp/vibe-real tests/real/precheck.sh > precheck.tsv
 #
 # It gathers and normalises; it judges NOTHING — the same split as probe.sh, for the
 # same reason.

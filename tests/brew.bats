@@ -17,11 +17,11 @@ setup() {
   DRIVER="$REPO_ROOT/tests/helpers/brew_driver.sh"
   make_fake_curl   # the Homebrew installer URL emits a script that records the install
   make_fake sudo   # never invoke real sudo (also: no tty, so sudo -v is skipped)
-  export VIBE_BREW_OPT="$BATS_TEST_TMPDIR/nope-opt-brew"
-  export VIBE_BREW_USR="$BATS_TEST_TMPDIR/nope-usr-brew"
+  export BUMP_BREW_OPT="$BATS_TEST_TMPDIR/nope-opt-brew"
+  export BUMP_BREW_USR="$BATS_TEST_TMPDIR/nope-usr-brew"
 }
 
-brew_run() { run env VIBE_BREW_OPT="$VIBE_BREW_OPT" VIBE_BREW_USR="$VIBE_BREW_USR" \
+brew_run() { run env BUMP_BREW_OPT="$BUMP_BREW_OPT" BUMP_BREW_USR="$BUMP_BREW_USR" \
   bash "$DRIVER" "$REPO_ROOT/lib"; }
 
 @test "the install branch narrates the invisible-typing sudo prompt" {

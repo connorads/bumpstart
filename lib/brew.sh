@@ -19,8 +19,8 @@ ensure_brew() {
 
   # The Apple-Silicon / Intel brew prefixes, overridable so the install branch is
   # reachable in tests without a real uninstall (defaults are the real paths).
-  _eb_opt="${VIBE_BREW_OPT:-/opt/homebrew/bin/brew}"
-  _eb_usr="${VIBE_BREW_USR:-/usr/local/bin/brew}"
+  _eb_opt="${BUMP_BREW_OPT:-/opt/homebrew/bin/brew}"
+  _eb_usr="${BUMP_BREW_USR:-/usr/local/bin/brew}"
 
   if [ -x "$_eb_opt" ] || [ -x "$_eb_usr" ]; then
     success "Homebrew already installed"
@@ -42,7 +42,7 @@ ensure_brew() {
     # exits 0 — so the run reported an install that never happened. The whole
     # chain sits in an `if` condition, which set -e exempts. Still `bash -c
     # "$script"` and not a pipe, so the installer's own sudo/CLT prompts keep stdin.
-    if _eb_script="$(vibe_fetch https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
+    if _eb_script="$(bump_fetch https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
        [ -n "$_eb_script" ] &&
        NONINTERACTIVE=1 /bin/bash -c "$_eb_script"; then
       success "Homebrew installed"

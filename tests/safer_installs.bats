@@ -18,8 +18,8 @@ setup() {
 }
 
 apply_block() {
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/safer-installs" VIBE_BLOCK_ID=safer-installs \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/safer-installs" BUMP_BLOCK_ID=safer-installs \
     bash "$REPO_ROOT/blocks/safer-installs/apply.sh"
 }
 
@@ -114,7 +114,7 @@ apply_block() {
 
 @test "with XDG_CONFIG_HOME unset, macOS gets the native preferences dir" {
   unset XDG_CONFIG_HOME
-  export VIBE_OS=mac
+  export BUMP_OS=mac
   make_fake pnpm
   apply_block
   [ "$status" -eq 0 ]
@@ -125,7 +125,7 @@ apply_block() {
 
 @test "with XDG_CONFIG_HOME unset, Linux gets ~/.config/pnpm" {
   unset XDG_CONFIG_HOME
-  export VIBE_OS=linux
+  export BUMP_OS=linux
   make_fake pnpm
   apply_block
   [ "$status" -eq 0 ]

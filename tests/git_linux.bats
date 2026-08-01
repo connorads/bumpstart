@@ -31,8 +31,8 @@ make_fake_sudo() {
 
 # apply_git <os> — run the tail with the block contract in the env.
 apply_git() {
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS="${1:-linux}" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/git" VIBE_BLOCK_ID=git \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS="${1:-linux}" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/git" BUMP_BLOCK_ID=git \
     bash "$REPO_ROOT/blocks/git/apply.sh"
 }
 
@@ -46,8 +46,8 @@ apply_git_without_git() {
     [ -e "$FAKES/$_b" ] || ln -sf "$(command -v "$_b")" "$FAKES/$_b"
   done
   _wide_path="$PATH"
-  PATH="$FAKES" run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS=linux \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/git" VIBE_BLOCK_ID=git \
+  PATH="$FAKES" run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS=linux \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/git" BUMP_BLOCK_ID=git \
     bash "$REPO_ROOT/blocks/git/apply.sh"
   export PATH="$_wide_path"
 }
@@ -57,7 +57,7 @@ apply_git_without_git() {
   make_fake_sudo
   apply_git_without_git
   [ "$status" -eq 0 ]
-  grep -q "^apt-get install -y -qq git$" "$VIBE_FAKE_LOG"
+  grep -q "^apt-get install -y -qq git$" "$BUMP_FAKE_LOG"
   # A blank, non-echoing prompt reads as "broken" to a first-timer unless it is
   # named before it fires — the same copy, and the same reason, as lib/brew.sh.
   [[ "$output" == *"Nothing appears as you type"* ]]
@@ -68,7 +68,7 @@ apply_git_without_git() {
   make_fake_sudo
   apply_git_without_git
   [ "$status" -eq 0 ]
-  grep -q "^dnf install -y -q git$" "$VIBE_FAKE_LOG"
+  grep -q "^dnf install -y -q git$" "$BUMP_FAKE_LOG"
 }
 
 @test "pacman: installs git" {
@@ -76,7 +76,7 @@ apply_git_without_git() {
   make_fake_sudo
   apply_git_without_git
   [ "$status" -eq 0 ]
-  grep -q "^pacman -Sy --noconfirm --needed git$" "$VIBE_FAKE_LOG"
+  grep -q "^pacman -Sy --noconfirm --needed git$" "$BUMP_FAKE_LOG"
 }
 
 @test "zypper: installs git" {
@@ -84,7 +84,7 @@ apply_git_without_git() {
   make_fake_sudo
   apply_git_without_git
   [ "$status" -eq 0 ]
-  grep -q "^zypper --non-interactive install -y git$" "$VIBE_FAKE_LOG"
+  grep -q "^zypper --non-interactive install -y git$" "$BUMP_FAKE_LOG"
 }
 
 @test "as root, no sudo is used and none is required" {
@@ -93,7 +93,7 @@ apply_git_without_git() {
   make_fake id 'printf "0\n"'
   apply_git_without_git
   [ "$status" -eq 0 ]
-  grep -q "^apt-get install -y -qq git$" "$VIBE_FAKE_LOG"
+  grep -q "^apt-get install -y -qq git$" "$BUMP_FAKE_LOG"
   refute_fake_logged "sudo"
   [[ "$output" != *"Nothing appears as you type"* ]]
 }

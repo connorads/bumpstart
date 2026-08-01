@@ -4,4 +4,4 @@ LABEL="mise"
 CHECK_MAC='command -v mise >/dev/null 2>&1'
 INSTALL_MAC='brew install mise'
 CHECK_LINUX='command -v mise >/dev/null 2>&1'
-INSTALL_LINUX='vibe_fetch https://mise.run | MISE_INSTALL_HELP=0 sh'
+INSTALL_LINUX='bump_fetch https://mise.run | MISE_INSTALL_HELP=0 sh'

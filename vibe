@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# vibe: fetch the vibe-setup repo at VIBE_REF and hand the id list to the applier.
+# vibe: fetch the vibe-setup repo at BUMP_REF and hand the id list to the applier.
 #
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude react node
-#   VIBE_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/vibe)" _ claude starter   # pinned workshop
+#   BUMP_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/vibe)" _ claude starter   # pinned workshop
 #
 # The `bash -c "SCRIPT" _ a b` form sets $@ = a b. exec keeps stdin on the tty
 # for the interactive prompts; the curl|tar pipe below uses its own stdin.
 
-VIBE_REF="${VIBE_REF:-main}"
+BUMP_REF="${BUMP_REF:-main}"
 REPO="connorads/vibe-setup"
 
 # This paste serves macOS and Linux — send a native-Windows reader to the PowerShell
 # paste that does work, before fetching anything. Exit 0: an honest redirect, not a
 # failure (the applier repeats this guard after extraction).
 #
-# Deliberately duplicated, NOT routed through vibe_os(): this guard runs before
+# Deliberately duplicated, NOT routed through bump_os(): this guard runs before
 # the tarball fetch below, so lib/os.sh does not exist yet — the whole point is to
 # refuse without downloading anything. The cost is that the two guards must be
 # changed together or a supported OS is still refused at the paste; tests/vibe.bats
@@ -24,9 +24,9 @@ REPO="connorads/vibe-setup"
 #
 # WSL 1 first, for the same reason apply.sh checks it first: it passes for a
 # supported Linux everywhere else, yet cannot exec the agent binaries at all
-# (anthropics/claude-code#38788). Same lowercase-then-match logic as vibe_wsl in
-# lib/os.sh, and the same $VIBE_OSRELEASE_FILE test seam.
-osrel_file="${VIBE_OSRELEASE_FILE:-/proc/sys/kernel/osrelease}"
+# (anthropics/claude-code#38788). Same lowercase-then-match logic as bump_wsl in
+# lib/os.sh, and the same $BUMP_OSRELEASE_FILE test seam.
+osrel_file="${BUMP_OSRELEASE_FILE:-/proc/sys/kernel/osrelease}"
 osrel=""
 [ -r "$osrel_file" ] && osrel="$(tr '[:upper:]' '[:lower:]' < "$osrel_file" 2>/dev/null || true)"
 case "$osrel" in
@@ -49,7 +49,7 @@ esac
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe.XXXXXX")"
 
-# The same curl-else-wget fallback as lib/common.sh's vibe_fetch, spelled inline:
+# The same curl-else-wget fallback as lib/common.sh's bump_fetch, spelled inline:
 # this runs BEFORE the tarball that contains lib/common.sh exists. Ubuntu Desktop
 # ships wget but not curl, so a curl-only bootstrap dies on the machine the Linux
 # lane most needs to work.
@@ -64,8 +64,8 @@ fetch() {
   fi
 }
 
-if ! fetch "https://codeload.github.com/$REPO/tar.gz/$VIBE_REF" | tar -xz -C "$tmp"; then
-  printf 'vibe: could not fetch %s@%s — check the ref and your connection.\n' "$REPO" "$VIBE_REF" >&2
+if ! fetch "https://codeload.github.com/$REPO/tar.gz/$BUMP_REF" | tar -xz -C "$tmp"; then
+  printf 'vibe: could not fetch %s@%s — check the ref and your connection.\n' "$REPO" "$BUMP_REF" >&2
   rm -rf "$tmp"
   exit 1
 fi

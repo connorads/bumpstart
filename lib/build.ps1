@@ -17,12 +17,12 @@ $script:VibeRepo = 'connorads/vibe-setup'
 # Windows) and copy the Windows one to the clipboard. Inherits the run's ref.
 function Show-PasteCommands {
   param([string[]]$Ids)
-  $ref = if ($env:VIBE_REF) { $env:VIBE_REF } else { 'main' }
-  $prefix = if ($ref -ne 'main') { "VIBE_REF=$ref " } else { '' }
+  $ref = if ($env:BUMP_REF) { $env:BUMP_REF } else { 'main' }
+  $prefix = if ($ref -ne 'main') { "BUMP_REF=$ref " } else { '' }
   $idstr = ($Ids -join ' ')
 
   $mac = "${prefix}/bin/bash -c `"`$(curl -fsSL https://raw.githubusercontent.com/$script:VibeRepo/main/vibe)`" _ $idstr"
-  $winRef = if ($ref -ne 'main') { "`$env:VIBE_REF='$ref'; " } else { '' }
+  $winRef = if ($ref -ne 'main') { "`$env:BUMP_REF='$ref'; " } else { '' }
   $win = "${winRef}irm https://raw.githubusercontent.com/$script:VibeRepo/main/vibe.ps1 | iex"
   if ($idstr) { $win = "${winRef}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/$script:VibeRepo/main/vibe.ps1))) $idstr" }
 

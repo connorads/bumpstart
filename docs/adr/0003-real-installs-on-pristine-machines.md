@@ -27,7 +27,7 @@ What no fake can prove:
 1. **The vendor installers still exist and still work.** Every `INSTALL_*` cell is a URL
    someone else controls. A fake asserts we invoked it, never that it succeeded.
 2. **The bootstrap.** `tests/e2e.bats` targets `lib/apply.sh` directly, by design. The
-   `vibe` / `vibe.ps1` fetch path - tarball, `VIBE_REF` pin, wget fallback, layout check
+   `vibe` / `vibe.ps1` fetch path - tarball, `BUMP_REF` pin, wget fallback, layout check
    - is only unit-tested. The thing people actually paste has never run end to end.
 3. **PATH persistence into a *new* shell** - and *which* new shell, see below. POSIX
    only: the PowerShell spine persists no PATH at all (there is no `shellpath.ps1`;

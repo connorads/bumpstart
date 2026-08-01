@@ -22,7 +22,7 @@ _kind_colour() {
 # gate can dim steps already in place on a warm Mac. Reads the block's gate
 # predicate from meta — SATISFIED_<os> (the richer gate-only escape hatch, e.g.
 # gh signed-in or git identity set) else CHECK_<os> (the install skip predicate,
-# also the default gate). The VIBE_APPS_DIR *-desktop test seam now lives inside
+# also the default gate). The BUMP_APPS_DIR *-desktop test seam now lives inside
 # those cells. Read-only; eval'd via if/else (never bare) under the applier's
 # set -e. Returns 0 = satisfied (done), 1 = actionable but not done, 2 = unmapped
 # (no cell -> rendered neutral). Instruction blocks are deliberately unmapped —
@@ -32,8 +32,8 @@ _kind_colour() {
 # whose "done" differs from "binary present" spells it out rather than overclaim.
 _step_satisfied() {
   _ss_dir="$(block_dir "$ROOT" "$1")" || return 2
-  _ss_cell="$(meta_get "$_ss_dir" "SATISFIED_$(vibe_os_key)")"
-  [ -n "$_ss_cell" ] || _ss_cell="$(meta_get "$_ss_dir" "CHECK_$(vibe_os_key)")"
+  _ss_cell="$(meta_get "$_ss_dir" "SATISFIED_$(bump_os_key)")"
+  [ -n "$_ss_cell" ] || _ss_cell="$(meta_get "$_ss_dir" "CHECK_$(bump_os_key)")"
   [ -n "$_ss_cell" ] || return 2
   # Redirected, because this one evals the probe INLINE while rendering: a cell
   # that forgot its own >/dev/null printed between the rows of the consent gate,
@@ -188,7 +188,7 @@ _render_expectations() {
   # Command Line Tools also fetches them, which can be slow. Mac-only: on Linux
   # there is no Homebrew in the plan at all, and the bullet would be a promise about
   # a tool that never gets installed.
-  if [ "$(vibe_os)" = mac ] && ! command -v brew >/dev/null 2>&1; then
+  if [ "$(bump_os)" = mac ] && ! command -v brew >/dev/null 2>&1; then
     _exp "Installs Homebrew (a trusted tool installer) so the tools above can be added - macOS asks for your Mac password once."
     if ! xcode-select -p >/dev/null 2>&1; then
       _exp "A one-time download may take ~10-15 min."
@@ -196,7 +196,7 @@ _render_expectations() {
   fi
   # Linux's own password moment: only the git install needs root, and only when git
   # is absent — which on a fresh Ubuntu Desktop it is.
-  if [ "$(vibe_os)" = linux ] && ! command -v git >/dev/null 2>&1; then
+  if [ "$(bump_os)" = linux ] && ! command -v git >/dev/null 2>&1; then
     case " ${PLAN_STEP_IDS[*]} " in
       *" git "*)
         _exp "Installs git using your system's package manager, which asks for your login password once." ;;
@@ -207,7 +207,7 @@ _render_expectations() {
   # installs a version manager it never uses, so say so rather than let it be
   # discovered. Same trade macOS already makes by installing Homebrew for a
   # CLI-only plan.
-  if [ "$(vibe_os)" = linux ] && ! command -v mise >/dev/null 2>&1; then
+  if [ "$(bump_os)" = linux ] && ! command -v mise >/dev/null 2>&1; then
     _exp "Installs mise, a small version manager for developer tools - it goes in your home folder and needs no admin password. Set up even if nothing in this plan needs it."
   fi
   # Central persistent effects the applier performs (not per-block), disclosed in
@@ -229,7 +229,7 @@ _render_expectations() {
   # already carries the marker is left alone, and saying "adds" there would promise
   # a change that won't happen.
   _p_rc="$(_shell_rc)"
-  if [ -n "$_p_rc" ] && [ -f "$_p_rc" ] && grep -Fq -- "$VIBE_PATH_MARKER_BEGIN" "$_p_rc"; then
+  if [ -n "$_p_rc" ] && [ -f "$_p_rc" ] && grep -Fq -- "$BUMP_PATH_MARKER_BEGIN" "$_p_rc"; then
     _exp "Your shell startup file already has vibe's PATH line - it is left as-is."
   elif [ -n "$_p_rc" ]; then
     _exp "Adds one line to $_p_rc so a NEW terminal window still finds the tools it installs (it is marked, so you can delete it)."
@@ -271,7 +271,7 @@ _render_expectations() {
   # none, and a WSL shell has no xdg-open unless wslu is installed. One line covers
   # all three, because the fix is the same in each — the sign-in URL is printed and
   # can be opened anywhere.
-  if [ "$(vibe_os)" = linux ]; then
+  if [ "$(bump_os)" = linux ]; then
     _exp "If a browser doesn't open, copy the web address it prints, open that on your phone or another computer, and type the code back in here."
   fi
   # Which agent to install is not a tooling choice — it follows the subscription

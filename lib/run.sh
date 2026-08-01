@@ -3,7 +3,7 @@
 # DATA — a CHECK_<os> skip predicate and an INSTALL_<os> command in meta — and
 # this runner reads + executes the current-OS cell. "Data by default, script when
 # needed": a block that also ships an apply.sh keeps its interactive tail, run
-# after the cell. Depends on meta.sh (block_dir, meta_get), os.sh (vibe_os_key),
+# after the cell. Depends on meta.sh (block_dir, meta_get), os.sh (bump_os_key),
 # and common.sh (spin/success/warn). Sourced, not executed. bash-3.2-clean.
 
 # _block_label <root> <id> — the human name for spin/success lines: LABEL if set,
@@ -28,7 +28,7 @@ _block_label() {
 # Test-BlockCheck in run.ps1.)
 block_check() {
   _bc_dir="$(block_dir "$1" "$2")" || return 2
-  _bc_cell="$(meta_get "$_bc_dir" "CHECK_$(vibe_os_key)")"
+  _bc_cell="$(meta_get "$_bc_dir" "CHECK_$(bump_os_key)")"
   [ -n "$_bc_cell" ] || return 2
   if eval "$_bc_cell" >/dev/null 2>&1; then return 0; else return 1; fi
 }
@@ -40,7 +40,7 @@ block_check() {
 # setup continues, so it ALWAYS returns 0.
 run_cell() {
   _rc_dir="$(block_dir "$1" "$2")" || return 0
-  _rc_install="$(meta_get "$_rc_dir" "INSTALL_$(vibe_os_key)")"
+  _rc_install="$(meta_get "$_rc_dir" "INSTALL_$(bump_os_key)")"
   [ -n "$_rc_install" ] || return 0
   _rc_label="$(_block_label "$1" "$2")"
   if block_check "$1" "$2"; then
@@ -71,7 +71,7 @@ run_cell() {
 # neither get a step header nor inflate the total).
 _block_runs() {
   _br_dir="$(block_dir "$1" "$2")" || return 1
-  [ -n "$(meta_get "$_br_dir" "INSTALL_$(vibe_os_key)")" ] && return 0
+  [ -n "$(meta_get "$_br_dir" "INSTALL_$(bump_os_key)")" ] && return 0
   [ -f "$_br_dir/apply.sh" ] && return 0
   return 1
 }

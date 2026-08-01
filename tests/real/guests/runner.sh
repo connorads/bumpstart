@@ -14,7 +14,7 @@
 #
 # DANGEROUS BY NATURE, so it fails closed: a real install into $HOME is exactly what
 # it does, and on a developer's laptop that is their actual home directory. It refuses
-# to provision unless $CI is set or VIBE_REAL_ALLOW_HOST=1 is explicit. drive.sh's
+# to provision unless $CI is set or BUMP_REAL_ALLOW_HOST=1 is explicit. drive.sh's
 # lane groups never select it either. It refuses a root run for the same reason it
 # refuses the password axis: root cannot fail the properties the lane is there to
 # check, so the lane would pass while asserting nothing.
@@ -47,9 +47,9 @@ guest_start() {
   # The host guard, BEFORE anything is written. It used to live in guest_provision,
   # which runs after guest_start has already dropped a full copy of the repo into
   # TMPDIR - so the refusal came after the side effect it exists to prevent.
-  if [ -z "${CI:-}" ] && [ "${VIBE_REAL_ALLOW_HOST:-}" != 1 ]; then
+  if [ -z "${CI:-}" ] && [ "${BUMP_REAL_ALLOW_HOST:-}" != 1 ]; then
     printf 'guest: the runner adapter really installs into %s.\n' "$HOME" >&2
-    printf '       Set VIBE_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
+    printf '       Set BUMP_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
     return 1
   fi
 
@@ -98,9 +98,9 @@ guest_start() {
 guest_provision() {
   # Belt to guest_start's braces: the guard is repeated because provisioning is the
   # step that grants privilege, and a future caller might reach it another way.
-  if [ -z "${CI:-}" ] && [ "${VIBE_REAL_ALLOW_HOST:-}" != 1 ]; then
+  if [ -z "${CI:-}" ] && [ "${BUMP_REAL_ALLOW_HOST:-}" != 1 ]; then
     printf 'guest: the runner adapter really installs into %s.\n' "$HOME" >&2
-    printf '       Set VIBE_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
+    printf '       Set BUMP_REAL_ALLOW_HOST=1 only on a machine you are willing to lose.\n' >&2
     return 1
   fi
   if [ "${GUEST_SUDO:-nopasswd}" = password ]; then

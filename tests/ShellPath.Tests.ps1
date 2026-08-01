@@ -66,12 +66,12 @@ Describe 'Get-VibePathUpdate' {
   It 'recognises an entry written as an environment reference' {
     # A hand-authored PATH usually says %USERPROFILE%\.local\bin. Appending the
     # literal beside it is a duplicate that reads as two different dirs.
-    $env:VIBE_TEST_PROFILE = 'C:\Users\me'
+    $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
-      $u = Get-VibePathUpdate -Current '%VIBE_TEST_PROFILE%\.local\bin;%VIBE_TEST_PROFILE%\.codex\bin' -Dirs $script:dirs
+      $u = Get-VibePathUpdate -Current '%BUMP_TEST_PROFILE%\.local\bin;%BUMP_TEST_PROFILE%\.codex\bin' -Dirs $script:dirs
       $u.Changed | Should -BeFalse
     } finally {
-      Remove-Item Env:VIBE_TEST_PROFILE -ErrorAction SilentlyContinue
+      Remove-Item Env:BUMP_TEST_PROFILE -ErrorAction SilentlyContinue
     }
   }
 
@@ -79,13 +79,13 @@ Describe 'Get-VibePathUpdate' {
     # The value written back must not bake in today's expansion of somebody else's
     # entry: that is a permanent change to a PATH vibe was not asked to touch, and it
     # is why the raw registry value is read rather than the expanding accessor.
-    $env:VIBE_TEST_PROFILE = 'C:\Users\me'
+    $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
-      $u = Get-VibePathUpdate -Current '%VIBE_TEST_PROFILE%\bin' -Dirs $script:dirs
+      $u = Get-VibePathUpdate -Current '%BUMP_TEST_PROFILE%\bin' -Dirs $script:dirs
       $u.Changed | Should -BeTrue
-      $u.Value | Should -BeLike '%VIBE_TEST_PROFILE%\bin;*'
+      $u.Value | Should -BeLike '%BUMP_TEST_PROFILE%\bin;*'
     } finally {
-      Remove-Item Env:VIBE_TEST_PROFILE -ErrorAction SilentlyContinue
+      Remove-Item Env:BUMP_TEST_PROFILE -ErrorAction SilentlyContinue
     }
   }
 
@@ -133,7 +133,7 @@ Describe 'the effect half, where there is no user registry' {
 
   It 'is a no-op rather than a crash' {
     # apply.ps1 guards non-Windows before any of this runs, but the Pester suite
-    # drives the whole applier with VIBE_OS=win on a Mac - so this path is real and
+    # drives the whole applier with BUMP_OS=win on a Mac - so this path is real and
     # has to stay quiet.
     Test-VibeUserEnvironment | Should -BeFalse
     Get-VibeUserPathRaw | Should -Be ''
@@ -192,13 +192,13 @@ Describe 'the effect half, where there is a user registry' {
     # The reason the raw value is read rather than the expanding accessor: writing back
     # today's expansion of somebody else's %VAR% is a permanent change to a PATH vibe
     # was not asked to touch. Asserted end to end here, not only on the pure core.
-    $script:reg.Value = '%VIBE_TEST_PROFILE%\bin'
-    $env:VIBE_TEST_PROFILE = 'C:\Users\me'
+    $script:reg.Value = '%BUMP_TEST_PROFILE%\bin'
+    $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
       Set-VibePersistedPath 6>$null
-      $script:reg.Value | Should -BeLike '%VIBE_TEST_PROFILE%\bin;*'
+      $script:reg.Value | Should -BeLike '%BUMP_TEST_PROFILE%\bin;*'
     } finally {
-      Remove-Item Env:VIBE_TEST_PROFILE -ErrorAction SilentlyContinue
+      Remove-Item Env:BUMP_TEST_PROFILE -ErrorAction SilentlyContinue
     }
   }
 

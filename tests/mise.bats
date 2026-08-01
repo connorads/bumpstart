@@ -4,7 +4,7 @@
 # It runs pre-loop and unconditionally because block steps run in KIND rank order:
 # `auth` (gh-auth, 20) comes before `tool` (mise, 30), so a gh-auth cell that uses
 # mise would otherwise run before mise existed. Driven under /bin/bash (3.2) in an
-# isolated HOME with PATH-shadow fakes; VIBE_MISE_BIN points the already-installed
+# isolated HOME with PATH-shadow fakes; BUMP_MISE_BIN points the already-installed
 # probe at a path the test owns, so both branches run without a real install.
 
 load helpers/common
@@ -13,10 +13,10 @@ setup() {
   setup_isolated_env
   DRIVER="$REPO_ROOT/tests/helpers/mise_driver.sh"
   make_fake_curl    # the mise.run URL emits a script that records the install
-  export VIBE_MISE_BIN="$BATS_TEST_TMPDIR/nope/mise"
+  export BUMP_MISE_BIN="$BATS_TEST_TMPDIR/nope/mise"
 }
 
-mise_run() { run env VIBE_MISE_BIN="$VIBE_MISE_BIN" bash "$DRIVER" "$REPO_ROOT/lib"; }
+mise_run() { run env BUMP_MISE_BIN="$BUMP_MISE_BIN" bash "$DRIVER" "$REPO_ROOT/lib"; }
 
 @test "installs mise when it is absent" {
   mise_run
@@ -44,15 +44,15 @@ mise_run() { run env VIBE_MISE_BIN="$VIBE_MISE_BIN" bash "$DRIVER" "$REPO_ROOT/l
 @test "installed but not yet on PATH: no reinstall, and this run can see it" {
   # The shape of a machine where a previous run installed mise into ~/.local/bin
   # but the shell was never restarted.
-  mkdir -p "$(dirname "$VIBE_MISE_BIN")"
-  printf '#!/bin/bash\nexit 0\n' > "$VIBE_MISE_BIN"
-  chmod +x "$VIBE_MISE_BIN"
+  mkdir -p "$(dirname "$BUMP_MISE_BIN")"
+  printf '#!/bin/bash\nexit 0\n' > "$BUMP_MISE_BIN"
+  chmod +x "$BUMP_MISE_BIN"
   mise_run
   [ "$status" -eq 0 ]
   [[ "$output" == *"already installed"* ]]
   refute_fake_logged "INSTALL mise"
   # its dir is prepended for the rest of the run, so a later CHECK cell finds it
-  [[ "$output" == *"PATH=$(dirname "$VIBE_MISE_BIN"):"* ]]
+  [[ "$output" == *"PATH=$(dirname "$BUMP_MISE_BIN"):"* ]]
 }
 
 @test "a failed install warns and is recorded, rather than aborting the setup" {

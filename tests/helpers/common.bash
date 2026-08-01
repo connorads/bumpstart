@@ -1,6 +1,6 @@
 # Shared bats helpers: isolated HOME/PATH + PATH-shadow fakes.
 #
-# Fakes log every invocation to $VIBE_FAKE_LOG so tests assert against real
+# Fakes log every invocation to $BUMP_FAKE_LOG so tests assert against real
 # command lookup + args, with no network or installs. bash-3.2-clean.
 
 # shellcheck disable=SC2034  # consumed by test files that `load` this helper
@@ -20,9 +20,9 @@ setup_isolated_env() {
   export ZDOTDIR="$HOME"
   export XDG_CONFIG_HOME="$HOME/.config"
   export FAKES="$BATS_TEST_TMPDIR/bin"
-  export VIBE_FAKE_LOG="$BATS_TEST_TMPDIR/fake.log"
+  export BUMP_FAKE_LOG="$BATS_TEST_TMPDIR/fake.log"
   mkdir -p "$HOME" "$FAKES"
-  : > "$VIBE_FAKE_LOG"
+  : > "$BUMP_FAKE_LOG"
   export PATH="$FAKES:/usr/bin:/bin:/usr/sbin:/sbin"
   # Deterministic, colourless output regardless of the invoking terminal.
   export NO_COLOR=1
@@ -33,13 +33,13 @@ setup_isolated_env() {
 # shellcheck disable=SC2016
 #
 # make_fake <name> [body...] — writes an executable that logs "<name> <args>"
-# to $VIBE_FAKE_LOG. Extra lines are appended as the fake's body (they may read
-# "$@" and write to "$VIBE_FAKE_LOG", both inherited at run time).
+# to $BUMP_FAKE_LOG. Extra lines are appended as the fake's body (they may read
+# "$@" and write to "$BUMP_FAKE_LOG", both inherited at run time).
 make_fake() {
   name="$1"; shift
   {
     printf '%s\n' '#!/bin/bash'
-    printf '%s\n' 'printf "%s\n" "'"$name"' $*" >> "$VIBE_FAKE_LOG"'
+    printf '%s\n' 'printf "%s\n" "'"$name"' $*" >> "$BUMP_FAKE_LOG"'
     [ $# -gt 0 ] && printf '%s\n' "$@"
     printf '%s\n' 'exit 0'
   } > "$FAKES/$name"
@@ -53,10 +53,10 @@ make_fake_curl() {
   make_fake curl \
     'for a in "$@"; do url="$a"; done' \
     'case "$url" in' \
-    '  *claude.ai/install.sh*)       printf "%s\n" '\''printf "INSTALL claude\n" >> "$VIBE_FAKE_LOG"'\'' ;;' \
-    '  *chatgpt.com/codex/install.sh*) printf "%s\n" '\''printf "INSTALL codex %s\n" "${CODEX_NON_INTERACTIVE:-unset}" >> "$VIBE_FAKE_LOG"'\'' ;;' \
-    '  *mise.run*)                   printf "%s\n" '\''printf "INSTALL mise %s\n" "${MISE_INSTALL_HELP:-unset}" >> "$VIBE_FAKE_LOG"'\'' ;;' \
-    '  *Homebrew/install*)           printf "%s\n" '\''printf "INSTALL brew\n" >> "$VIBE_FAKE_LOG"'\'' ;;' \
+    '  *claude.ai/install.sh*)       printf "%s\n" '\''printf "INSTALL claude\n" >> "$BUMP_FAKE_LOG"'\'' ;;' \
+    '  *chatgpt.com/codex/install.sh*) printf "%s\n" '\''printf "INSTALL codex %s\n" "${CODEX_NON_INTERACTIVE:-unset}" >> "$BUMP_FAKE_LOG"'\'' ;;' \
+    '  *mise.run*)                   printf "%s\n" '\''printf "INSTALL mise %s\n" "${MISE_INSTALL_HELP:-unset}" >> "$BUMP_FAKE_LOG"'\'' ;;' \
+    '  *Homebrew/install*)           printf "%s\n" '\''printf "INSTALL brew\n" >> "$BUMP_FAKE_LOG"'\'' ;;' \
     'esac'
 }
 
@@ -82,9 +82,9 @@ require_git() {
 
 # fake_logged <pattern> — grep -F the invocation log.
 fake_logged() {
-  grep -Fq -- "$1" "$VIBE_FAKE_LOG"
+  grep -Fq -- "$1" "$BUMP_FAKE_LOG"
 }
 
 refute_fake_logged() {
-  ! grep -Fq -- "$1" "$VIBE_FAKE_LOG"
+  ! grep -Fq -- "$1" "$BUMP_FAKE_LOG"
 }

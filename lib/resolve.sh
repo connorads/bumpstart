@@ -134,7 +134,7 @@ resolve() {
       # catalogue.sh already implements. Reading only TARGET was benign while no
       # block set a per-OS target, but the day one does it becomes a silent
       # --show-versus-run disagreement.
-      _r_target="$(meta_get "$_r_dir" "TARGET_$(vibe_os_key)")"
+      _r_target="$(meta_get "$_r_dir" "TARGET_$(bump_os_key)")"
       [ -n "$_r_target" ] || _r_target="$(meta_get "$_r_dir" TARGET)"
       if [ -n "$_r_target" ]; then
         case " $_r_seen " in

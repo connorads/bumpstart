@@ -79,7 +79,7 @@ render_block() {
   _b_axis="$(meta_get "$_b_dir" AXIS)"
   _b_desc="$(meta_get "$_b_dir" DESC)"
   _b_inc="$(meta_get "$_b_dir" INCLUDE)"
-  _b_target="$(meta_get "$_b_dir" "TARGET_$(vibe_os_key)")"
+  _b_target="$(meta_get "$_b_dir" "TARGET_$(bump_os_key)")"
   [ -n "$_b_target" ] || _b_target="$(meta_get "$_b_dir" TARGET)"
 
   printf "\n  %s%s%s  %s[%s]%s\n" "$BOLD" "$_b_id" "$RESET" "$DIM" "$_b_kind" "$RESET"

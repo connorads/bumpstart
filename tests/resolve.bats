@@ -11,16 +11,16 @@ setup() {
   # Pinned rather than inherited from the host: without it, every _block_runs-gated
   # row disappears when the suite runs on Linux, and the assertions below go quiet
   # rather than failing loudly.
-  export VIBE_OS=mac
+  export BUMP_OS=mac
   FIX="$REPO_ROOT/tests/fixtures"
   # Point the *-desktop probes at an empty dir so no step reads as satisfied from
   # whatever is installed on the host — the hermetic PATH already lacks
   # claude/codex/gh/mise/node, and git's user.name is unset in the isolated HOME.
-  export VIBE_APPS_DIR="$BATS_TEST_TMPDIR/apps"
-  mkdir -p "$VIBE_APPS_DIR"
+  export BUMP_APPS_DIR="$BATS_TEST_TMPDIR/apps"
+  mkdir -p "$BUMP_APPS_DIR"
 }
 
-plan() { run env VIBE_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --plan "$@"; }
+plan() { run env BUMP_ROOT="$FIX" bash "$REPO_ROOT/lib/apply.sh" --plan "$@"; }
 
 # index of the first output line containing $1 (or empty if absent)
 line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1; }

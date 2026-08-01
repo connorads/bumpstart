@@ -11,8 +11,8 @@ setup() { setup_isolated_env; }
 
 run_block() {
   id="$1"; shift
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_BLOCK_ID="$id" \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/$id" BUMP_BLOCK_ID="$id" \
     bash "$REPO_ROOT/blocks/$id/apply.sh" "$@"
 }
 

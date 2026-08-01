@@ -8,7 +8,7 @@
 #
 # The kernel switch is the signal, not whether a packaged bwrap works: the AppArmor
 # grant is attached to the path /usr/bin/bwrap and Codex uses its own bundled copy,
-# so a system bwrap can succeed while Codex is still denied. $VIBE_PROC_DIR is the
+# so a system bwrap can succeed while Codex is still denied. $BUMP_PROC_DIR is the
 # seam that makes those switches fakeable off Linux.
 
 load helpers/common
@@ -24,9 +24,9 @@ setup() {
 }
 
 probe() {
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" VIBE_OS="${1:-linux}" \
-    VIBE_PROC_DIR="$PROC" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/codex-cli" VIBE_BLOCK_ID=codex-cli \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" BUMP_OS="${1:-linux}" \
+    BUMP_PROC_DIR="$PROC" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/codex-cli" BUMP_BLOCK_ID=codex-cli \
     bash "$REPO_ROOT/blocks/codex-cli/apply.sh"
 }
 

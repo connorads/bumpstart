@@ -18,18 +18,18 @@
 
 # emit_paste_command <id>... — print the README one-liner for these ids and copy
 # it to the clipboard when pbcopy exists. Inherits the run's ref: prefixes
-# "VIBE_REF=<ref> " only when the ref is not the default main (the bootstrap URL
+# "BUMP_REF=<ref> " only when the ref is not the default main (the bootstrap URL
 # stays /main/, matching the documented pin pattern).
 #
 # The fetcher is per-OS, because the paste has to run on the machine it is handed
 # to: macOS always has curl, but Ubuntu Desktop ships only wget, so the Linux form
 # is the dual `curl … || wget …` the README documents.
 emit_paste_command() {
-  _e_ref="${VIBE_REF:-main}"
+  _e_ref="${BUMP_REF:-main}"
   _e_prefix=""
-  [ "$_e_ref" != "main" ] && _e_prefix="VIBE_REF=$_e_ref "
+  [ "$_e_ref" != "main" ] && _e_prefix="BUMP_REF=$_e_ref "
   _e_url="https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe"
-  if [ "$(vibe_os)" = linux ]; then
+  if [ "$(bump_os)" = linux ]; then
     _e_get="curl -fsSL $_e_url 2>/dev/null || wget -qO- $_e_url"
   else
     _e_get="curl -fsSL $_e_url"

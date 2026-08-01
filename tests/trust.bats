@@ -10,7 +10,7 @@ setup() {
   DRIVER="$REPO_ROOT/tests/helpers/trust_driver.sh"
   DIR="$HOME/git/first-project"
   mkdir -p "$DIR"
-  make_fake pbcopy 'cat >> "$VIBE_FAKE_LOG"'  # log copies, spare the real clipboard
+  make_fake pbcopy 'cat >> "$BUMP_FAKE_LOG"'  # log copies, spare the real clipboard
 }
 
 trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
@@ -101,9 +101,9 @@ trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
 
 @test "WSL 2 reaches the Windows clipboard via clip.exe" {
   make_fake pbcopy 'exit 1'   # present but broken: the chain must fall through
-  make_fake clip.exe 'cat >> "$VIBE_FAKE_LOG"'
-  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
-  printf '5.15.153.1-microsoft-standard-WSL2\n' > "$VIBE_OSRELEASE_FILE"
+  make_fake clip.exe 'cat >> "$BUMP_FAKE_LOG"'
+  export BUMP_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '5.15.153.1-microsoft-standard-WSL2\n' > "$BUMP_OSRELEASE_FILE"
   trust copy_starter_prompt "$REPO_ROOT"
   [ "$status" -eq 0 ]
   fake_logged "build it together"
@@ -111,14 +111,14 @@ trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
 
 @test "Wayland uses wl-copy; X11 falls back to xclip" {
   make_fake pbcopy 'exit 1'
-  make_fake wl-copy 'cat >> "$VIBE_FAKE_LOG"'
+  make_fake wl-copy 'cat >> "$BUMP_FAKE_LOG"'
   trust copy_starter_prompt "$REPO_ROOT"
   [ "$status" -eq 0 ]
   fake_logged "wl-copy"
 
   make_fake wl-copy 'exit 1'
-  : > "$VIBE_FAKE_LOG"
-  make_fake xclip 'cat >> "$VIBE_FAKE_LOG"'
+  : > "$BUMP_FAKE_LOG"
+  make_fake xclip 'cat >> "$BUMP_FAKE_LOG"'
   trust copy_starter_prompt "$REPO_ROOT"
   [ "$status" -eq 0 ]
   fake_logged "xclip -selection clipboard"
@@ -138,9 +138,9 @@ trust() { run bash "$DRIVER" "$REPO_ROOT/lib" "$@"; }
 @test "the paste keystroke matches the platform" {
   # Naming the wrong key is worse than naming none: they press it, nothing happens,
   # and they conclude the message was never copied.
-  run env VIBE_OS=mac bash "$DRIVER" "$REPO_ROOT/lib" paste_key
+  run env BUMP_OS=mac bash "$DRIVER" "$REPO_ROOT/lib" paste_key
   [ "$output" = "Cmd+V" ]
-  run env VIBE_OS=linux bash "$DRIVER" "$REPO_ROOT/lib" paste_key
+  run env BUMP_OS=linux bash "$DRIVER" "$REPO_ROOT/lib" paste_key
   # VTE terminals and Windows Terminal agree on this, so WSL needs no branch
   [ "$output" = "Ctrl+Shift+V" ]
 }

@@ -107,7 +107,7 @@ have a portable install anyway. Capability probing answers the same question wit
 branch that never needs a new row.
 
 **Capability probes in the runner, so any block could ask "which manager".** A
-`vibe_pkg_install` helper in `lib/`. Rejected: it puts distro knowledge in the spine,
+`bump_pkg_install` helper in `lib/`. Rejected: it puts distro knowledge in the spine,
 where the deny-grep now forbids it, and it invites blocks to reach for a package
 manager when a portable install exists. Exactly one block needs it (`git`), and one
 caller is not an abstraction.

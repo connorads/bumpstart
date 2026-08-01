@@ -5,7 +5,7 @@
 # email keeps the real address private. We only SET config that is unset - never
 # clobber an existing identity. Non-fatal throughout. The pwsh mirror of
 # git/apply.sh. 5.1-safe.
-. (Join-Path $env:VIBE_LIB 'common.ps1')
+. (Join-Path $env:BUMP_LIB 'common.ps1')
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   Warn 'git is not available - skipping identity setup.'

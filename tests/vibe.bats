@@ -24,13 +24,13 @@ setup() {
 }
 
 # A tar fake that extracts the layout `vibe` globs for: <-C dir>/vibe-setup-main/
-# with lib/apply.sh inside. VIBE_TAR_BAD=1 omits the apply.sh, which is the
+# with lib/apply.sh inside. BUMP_TAR_BAD=1 omits the apply.sh, which is the
 # unexpected-layout path. It drains stdin so the fetcher upstream of the pipe
 # never takes a SIGPIPE.
 make_fake_tar() {
   cat > "$FAKES/tar" <<'TAR'
 #!/bin/bash
-printf '%s\n' "tar $*" >> "$VIBE_FAKE_LOG"
+printf '%s\n' "tar $*" >> "$BUMP_FAKE_LOG"
 dest="."; prev=""
 for a in "$@"; do
   [ "$prev" = "-C" ] && dest="$a"
@@ -38,8 +38,8 @@ for a in "$@"; do
 done
 cat >/dev/null
 mkdir -p "$dest/vibe-setup-main/lib"
-if [ -z "${VIBE_TAR_BAD:-}" ]; then
-  printf '%s\n%s\n' '#!/bin/bash' 'printf "APPLY %s\n" "$*" >> "$VIBE_FAKE_LOG"' \
+if [ -z "${BUMP_TAR_BAD:-}" ]; then
+  printf '%s\n%s\n' '#!/bin/bash' 'printf "APPLY %s\n" "$*" >> "$BUMP_FAKE_LOG"' \
     > "$dest/vibe-setup-main/lib/apply.sh"
 fi
 exit 0
@@ -72,11 +72,11 @@ boot_curlless() {
   fake_logged "APPLY claude starter"
 }
 
-@test "VIBE_REF pins the fetched ref" {
+@test "BUMP_REF pins the fetched ref" {
   make_fake uname 'printf "Darwin\n"'
   make_fake curl
   make_fake_tar
-  VIBE_REF=abc123 boot claude
+  BUMP_REF=abc123 boot claude
   [ "$status" -eq 0 ]
   fake_logged "tar.gz/abc123"
 }
@@ -107,8 +107,8 @@ boot_curlless() {
   make_fake uname 'printf "Linux\n"'
   make_fake curl
   make_fake_tar
-  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
-  printf '4.4.0-19041-Microsoft\n' > "$VIBE_OSRELEASE_FILE"
+  export BUMP_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '4.4.0-19041-Microsoft\n' > "$BUMP_OSRELEASE_FILE"
   WSL_DISTRO_NAME=Ubuntu boot claude
   [ "$status" -eq 0 ]
   [[ "$output" == *"WSL 1"* ]]
@@ -122,8 +122,8 @@ boot_curlless() {
   make_fake uname 'printf "Linux\n"'
   make_fake curl
   make_fake_tar
-  export VIBE_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
-  printf '5.15.153.1-microsoft-standard-WSL2\n' > "$VIBE_OSRELEASE_FILE"
+  export BUMP_OSRELEASE_FILE="$BATS_TEST_TMPDIR/osrelease"
+  printf '5.15.153.1-microsoft-standard-WSL2\n' > "$BUMP_OSRELEASE_FILE"
   boot claude
   [ "$status" -eq 0 ]
   [[ "$output" != *"WSL 1"* ]]
@@ -162,7 +162,7 @@ boot_curlless() {
   make_fake uname 'printf "Darwin\n"'
   make_fake curl
   make_fake_tar
-  export VIBE_TAR_BAD=1
+  export BUMP_TAR_BAD=1
   boot claude
   [ "$status" -eq 1 ]
   [[ "$output" == *"unexpected tarball layout"* ]]
@@ -170,7 +170,7 @@ boot_curlless() {
 }
 
 @test "the bootstrap and the applier reach the same verdict for the same machine" {
-  # The drift guard. vibe's guard cannot call vibe_os() (it must answer before the
+  # The drift guard. vibe's guard cannot call bump_os() (it must answer before the
   # fetch that delivers lib/os.sh), so the two are hand-kept in step — and a
   # supported OS still refused at the paste is invisible to every test that drives
   # lib/apply.sh directly.
@@ -179,7 +179,7 @@ boot_curlless() {
   for _sys in Darwin Linux MINGW64_NT-10.0; do
     make_fake uname "printf '$_sys\n'"
 
-    : > "$VIBE_FAKE_LOG"
+    : > "$BUMP_FAKE_LOG"
     run bash "$REPO_ROOT/vibe" claude --plan
     if fake_logged "APPLY"; then _boot=proceed; else _boot=refuse; fi
 

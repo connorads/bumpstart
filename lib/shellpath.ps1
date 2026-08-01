@@ -114,7 +114,7 @@ function Get-VibePathUpdate {
 # Test-VibeUserEnvironment: is there a per-user registry environment to write?
 #
 # Windows-only by construction. apply.ps1 guards non-Windows before anything here
-# runs, but the Pester suite drives the whole applier with $env:VIBE_OS=win on a Mac,
+# runs, but the Pester suite drives the whole applier with $env:BUMP_OS=win on a Mac,
 # where HKCU does not exist - so this is what makes that a no-op rather than a crash.
 function Test-VibeUserEnvironment {
   $key = Get-VibeUserEnvKey

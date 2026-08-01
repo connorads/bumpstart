@@ -6,7 +6,7 @@ set -euo pipefail
 #
 #   bash lib/apply.sh [--plan] [--yes] [--no-launch] <id>...
 #
-# VIBE_ROOT overrides the repo root (the dir containing blocks/ and presets/) —
+# BUMP_ROOT overrides the repo root (the dir containing blocks/ and presets/) —
 # the seam the tests use to point at a fixture tree.
 
 LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -37,7 +37,7 @@ LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=lib/shellpath.sh
 . "$LIB/shellpath.sh"
 
-ROOT="${VIBE_ROOT:-$(cd "$LIB/.." && pwd -P)}"
+ROOT="${BUMP_ROOT:-$(cd "$LIB/.." && pwd -P)}"
 
 die() { error "$1"; exit 1; }
 
@@ -107,22 +107,22 @@ fi
 # Exit 0 (informational, not an error) — a script wrapping this could branch on the
 # message; a non-zero would read as a failure it isn't.
 #
-# Through vibe_os(), not uname -s directly: that is the seam every other OS
+# Through bump_os(), not uname -s directly: that is the seam every other OS
 # decision in both spines reads (and apply.ps1's mirror guard already does), so
-# a $VIBE_OS-driven test can reach the whole applier on any host.
+# a $BUMP_OS-driven test can reach the whole applier on any host.
 #
 # WSL 1 first, and separately: it looks like a supported Linux to every check we
 # have, but it cannot exec the agent binaries at all (anthropics/claude-code#38788),
 # and the fix is one command the user runs on the Windows side. Refusing with that
 # command beats installing everything and dying at the launch.
-if [ "$(vibe_wsl)" = 1 ]; then
+if [ "$(bump_wsl)" = 1 ]; then
   error "This is WSL 1, where the coding agents can't run."
   info "In PowerShell on Windows, run:  wsl --set-version ${WSL_DISTRO_NAME:-<your-distro>} 2"
   info "Then open this terminal again and paste the same line."
   exit 0
 fi
 
-case "$(vibe_os)" in
+case "$(bump_os)" in
   mac|linux) : ;;
   *)
     info "This setup runs on macOS and Linux."
@@ -166,13 +166,13 @@ printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 # section marker (non-numeric [·]) so the earliest visible effect — on mac,
 # installing Homebrew, which prompts for the Mac password — isn't a silent surprise.
 # Each ensure_* narrates its own install (or "already installed").
-case "$(vibe_os)" in
+case "$(bump_os)" in
   mac)   _prep="your Mac" ;;
   linux) _prep="your machine" ;;
   *)     _prep="your machine" ;;
 esac
 printf "\n  %s[·]%s %sPreparing %s%s\n" "$BOLD$CYAN" "$RESET" "$BOLD" "$_prep" "$RESET"
-case "$(vibe_os)" in
+case "$(bump_os)" in
   mac)   ensure_brew ;;
   linux) ensure_mise ;;
 esac
@@ -184,10 +184,10 @@ esac
 fixup_path
 
 # An INSTALL cell runs in a `bash -c` child (run_cell), which inherits functions
-# only when they are exported. vibe_fetch is the one helper a cell needs — a cell
+# only when they are exported. bump_fetch is the one helper a cell needs — a cell
 # cannot source a lib, and hardcoding curl would make every install cell a silent
 # no-op on a machine that ships only wget.
-export -f vibe_fetch
+export -f bump_fetch
 
 # run_block <id> — execute a block's apply.sh (its interactive tail) in a fresh
 # bash with the block contract in the environment. A missing apply.sh is a silent
@@ -198,7 +198,7 @@ export -f vibe_fetch
 run_block() {
   _b_dir="$(block_dir "$ROOT" "$1")"
   [ -f "$_b_dir/apply.sh" ] || return 0
-  VIBE_LIB="$LIB" VIBE_ROOT="$ROOT" VIBE_BLOCK_DIR="$_b_dir" VIBE_BLOCK_ID="$1" \
+  BUMP_LIB="$LIB" BUMP_ROOT="$ROOT" BUMP_BLOCK_DIR="$_b_dir" BUMP_BLOCK_ID="$1" \
     bash "$_b_dir/apply.sh" || {
       warn "block '$1' failed — continuing"
       record_warning "$(_block_label "$ROOT" "$1")"
@@ -241,16 +241,16 @@ hrule
 # that costs trust: the warning scrolled past 40 lines ago and a beginner cannot
 # tell a real failure from noise. So the verdict follows the ledger — unchanged
 # wording when nothing warned, and a named list when something did.
-if [ "$VIBE_WARN_COUNT" -eq 0 ]; then
+if [ "$BUMP_WARN_COUNT" -eq 0 ]; then
   success "Setup complete."
   printf "  %sYou're all set — the hard part is done.%s\n" "$GREEN" "$RESET"
 else
-  if [ "$VIBE_WARN_COUNT" -eq 1 ]; then
+  if [ "$BUMP_WARN_COUNT" -eq 1 ]; then
     warn "Setup finished, but one step didn't work:"
   else
-    warn "Setup finished, but $VIBE_WARN_COUNT steps didn't work:"
+    warn "Setup finished, but $BUMP_WARN_COUNT steps didn't work:"
   fi
-  printf '%s' "$VIBE_WARN_ITEMS" | while IFS= read -r _wi; do
+  printf '%s' "$BUMP_WARN_ITEMS" | while IFS= read -r _wi; do
     [ -n "$_wi" ] || continue
     printf "    %s\n" "$_wi"
   done

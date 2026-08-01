@@ -3,7 +3,7 @@
 # this tail); what remains here needs a keyboard, so it only runs with a terminal
 # and when not already authenticated. The pwsh mirror of gh-auth/apply.sh.
 # 5.1-safe.
-. (Join-Path $env:VIBE_LIB 'common.ps1')
+. (Join-Path $env:BUMP_LIB 'common.ps1')
 
 if (Get-Command gh -ErrorAction SilentlyContinue) {
   gh auth status 2>$null | Out-Null

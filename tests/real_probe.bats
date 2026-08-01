@@ -28,7 +28,7 @@ setup() {
 
 # probe — run it as if inside a guest with nothing installed.
 probe() {
-  run env -i PATH="$BIN" HOME="$H" SHELL=/bin/false VIBE_REAL_DIR="$S" \
+  run env -i PATH="$BIN" HOME="$H" SHELL=/bin/false BUMP_REAL_DIR="$S" \
     "$BIN/bash" "$REAL/probe.sh"
 }
 

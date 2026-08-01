@@ -7,7 +7,7 @@ set -euo pipefail
 # only runs with a terminal and when not already authenticated. Check-then-act.
 
 # shellcheck source=lib/common.sh
-. "$VIBE_LIB/common.sh"
+. "$BUMP_LIB/common.sh"
 
 if command -v gh >/dev/null 2>&1 && ! gh auth status >/dev/null 2>&1; then
   if [ -t 0 ]; then

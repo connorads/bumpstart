@@ -3,7 +3,7 @@
 # Declarative install blocks, driven through the generic runner (run_cell) with
 # the block contract in the env. Check-then-act: sentinel present -> "already
 # installed"; absent -> the INSTALL_<os> cell runs once. The harness (*-cli) and
-# app (*-desktop) blocks are separate; VIBE_APPS_DIR points the app blocks' check
+# app (*-desktop) blocks are separate; BUMP_APPS_DIR points the app blocks' check
 # at an empty dir so the cask install path is reachable without the real app
 # present. Escape-hatch blocks (gh-auth) split: run_cell installs, the trimmed
 # apply.sh owns the interactive login tail.
@@ -12,25 +12,25 @@ load helpers/common
 
 setup() {
   setup_isolated_env
-  export VIBE_APPS_DIR="$BATS_TEST_TMPDIR/apps"
-  mkdir -p "$VIBE_APPS_DIR"
+  export BUMP_APPS_DIR="$BATS_TEST_TMPDIR/apps"
+  mkdir -p "$BUMP_APPS_DIR"
 }
 
 # run_cell <id> — drive the generic runner's declarative install for a block's MAC
-# cells. VIBE_OS is pinned rather than inherited: run on Linux, these cases would
+# cells. BUMP_OS is pinned rather than inherited: run on Linux, these cases would
 # read the LINUX cells and quietly assert nothing about the mac lane.
 run_cell() {
-  run env VIBE_OS=mac VIBE_APPS_DIR="$VIBE_APPS_DIR" \
+  run env BUMP_OS=mac BUMP_APPS_DIR="$BUMP_APPS_DIR" \
     bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
     "$REPO_ROOT/lib" run_cell "$REPO_ROOT" "$1"
 }
 
-# run_cell_linux <id> — the same, with the LINUX cells selected. VIBE_OS is the
-# cross-spine seam, so this asserts the real Linux data on any host. vibe_fetch is
+# run_cell_linux <id> — the same, with the LINUX cells selected. BUMP_OS is the
+# cross-spine seam, so this asserts the real Linux data on any host. bump_fetch is
 # exported because the applier exports it before the block loop and the Linux
 # install cells call it.
 run_cell_linux() {
-  run env VIBE_OS=linux VIBE_APPS_DIR="$VIBE_APPS_DIR" \
+  run env BUMP_OS=linux BUMP_APPS_DIR="$BUMP_APPS_DIR" \
     bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
     "$REPO_ROOT/lib" run_cell "$REPO_ROOT" "$1"
 }
@@ -38,8 +38,8 @@ run_cell_linux() {
 # run_block <id> — drive a block's interactive apply.sh tail directly.
 run_block() {
   id="$1"; shift
-  run env VIBE_LIB="$REPO_ROOT/lib" VIBE_ROOT="$REPO_ROOT" \
-    VIBE_BLOCK_DIR="$REPO_ROOT/blocks/$id" VIBE_BLOCK_ID="$id" \
+  run env BUMP_LIB="$REPO_ROOT/lib" BUMP_ROOT="$REPO_ROOT" \
+    BUMP_BLOCK_DIR="$REPO_ROOT/blocks/$id" BUMP_BLOCK_ID="$id" \
     bash "$REPO_ROOT/blocks/$id/apply.sh" "$@"
 }
 
@@ -47,7 +47,7 @@ run_block() {
   make_fake_curl
   run_cell claude-cli
   [ "$status" -eq 0 ]
-  count="$(grep -c -F 'INSTALL claude' "$VIBE_FAKE_LOG")"
+  count="$(grep -c -F 'INSTALL claude' "$BUMP_FAKE_LOG")"
   [ "$count" -eq 1 ]
   # the CLI harness never touches the cask
   refute_fake_logged "brew install --cask claude"
@@ -66,13 +66,13 @@ run_block() {
   make_fake brew
   run_cell claude-desktop
   [ "$status" -eq 0 ]
-  count="$(grep -c -F 'brew install --cask claude' "$VIBE_FAKE_LOG")"
+  count="$(grep -c -F 'brew install --cask claude' "$BUMP_FAKE_LOG")"
   [ "$count" -eq 1 ]
 }
 
 @test "claude-desktop block installs nothing when the app is present" {
   make_fake brew
-  mkdir -p "$VIBE_APPS_DIR/Claude.app"
+  mkdir -p "$BUMP_APPS_DIR/Claude.app"
   run_cell claude-desktop
   [ "$status" -eq 0 ]
   refute_fake_logged "brew install --cask claude"
@@ -83,7 +83,7 @@ run_block() {
   make_fake_curl
   run_cell codex-cli
   [ "$status" -eq 0 ]
-  count="$(grep -c -F 'INSTALL codex' "$VIBE_FAKE_LOG")"
+  count="$(grep -c -F 'INSTALL codex' "$BUMP_FAKE_LOG")"
   [ "$count" -eq 1 ]
 }
 
@@ -101,7 +101,7 @@ run_block() {
   make_fake brew
   run_cell codex-desktop
   [ "$status" -eq 0 ]
-  count="$(grep -c -F 'brew install --cask chatgpt' "$VIBE_FAKE_LOG")"
+  count="$(grep -c -F 'brew install --cask chatgpt' "$BUMP_FAKE_LOG")"
   [ "$count" -eq 1 ]
 }
 
@@ -109,13 +109,13 @@ run_block() {
   make_fake brew
   run_cell github-desktop
   [ "$status" -eq 0 ]
-  count="$(grep -c -F 'brew install --cask github' "$VIBE_FAKE_LOG")"
+  count="$(grep -c -F 'brew install --cask github' "$BUMP_FAKE_LOG")"
   [ "$count" -eq 1 ]
 }
 
 @test "github-desktop block installs nothing when the app is present" {
   make_fake brew
-  mkdir -p "$VIBE_APPS_DIR/GitHub Desktop.app"
+  mkdir -p "$BUMP_APPS_DIR/GitHub Desktop.app"
   run_cell github-desktop
   [ "$status" -eq 0 ]
   refute_fake_logged "brew install --cask github"
@@ -143,7 +143,7 @@ run_block() {
   # runs the setup from inside a checkout (this repo included) would hit it, so the
   # cell moves to $HOME before installing.
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
-    'printf "CWD %s\n" "$PWD" >> "$VIBE_FAKE_LOG"'
+    'printf "CWD %s\n" "$PWD" >> "$BUMP_FAKE_LOG"'
   run_cell node
   [ "$status" -eq 0 ]
   fake_logged "mise use -g node@lts"
@@ -152,7 +152,7 @@ run_block() {
 
 @test "pnpm block installs via mise when absent, from the home dir" {
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
-    'printf "CWD %s\n" "$PWD" >> "$VIBE_FAKE_LOG"'
+    'printf "CWD %s\n" "$PWD" >> "$BUMP_FAKE_LOG"'
   run_cell pnpm
   [ "$status" -eq 0 ]
   fake_logged "mise use -g pnpm"
@@ -177,7 +177,7 @@ run_block() {
 
 # ── The Linux cells ───────────────────────────────────────────────────────────
 #
-# Same blocks, same runner, VIBE_OS=linux. Vendor one-liners rather than a package
+# Same blocks, same runner, BUMP_OS=linux. Vendor one-liners rather than a package
 # manager, so no leg of this depends on which distro the test host is: both agent
 # vendors resolve arch and libc themselves, and mise supplies gh/node/pnpm.
 
@@ -185,14 +185,14 @@ run_block() {
   make_fake_curl
   run_cell_linux claude-cli
   [ "$status" -eq 0 ]
-  count="$(grep -c -F 'INSTALL claude' "$VIBE_FAKE_LOG")"
+  count="$(grep -c -F 'INSTALL claude' "$BUMP_FAKE_LOG")"
   [ "$count" -eq 1 ]
 }
 
 @test "claude-cli on Linux fetches with wget when curl is absent" {
   # The Ubuntu Desktop case: wget present, curl not. A curl-only cell would be a
   # silent no-op on the machine this lane most needs to work.
-  make_fake wget 'printf "%s\n" "printf \"INSTALL claude\\n\" >> \"$VIBE_FAKE_LOG\""'
+  make_fake wget 'printf "%s\n" "printf \"INSTALL claude\\n\" >> \"$BUMP_FAKE_LOG\""'
   # PATH is narrowed to the fakes dir ALONE, with only what the cell needs symlinked
   # in. Leaving a system bin dir on PATH would let a real curl answer — and on Fedora
   # and Arch /bin IS /usr/bin, so "curl absent" would be false and the cell would
@@ -200,7 +200,7 @@ run_block() {
   ln -sf /bin/bash "$FAKES/bash"
   ln -sf "$(command -v env)" "$FAKES/env"
   _wide_path="$PATH"
-  PATH="$FAKES" run env VIBE_OS=linux \
+  PATH="$FAKES" run env BUMP_OS=linux \
     bash "$REPO_ROOT/tests/helpers/run_driver.sh" \
     "$REPO_ROOT/lib" run_cell "$REPO_ROOT" claude-cli
   export PATH="$_wide_path"
@@ -229,7 +229,7 @@ run_block() {
   # keyring dance rather than expressing it per distro.
   make_fake brew
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
-    'printf "CWD %s\n" "$PWD" >> "$VIBE_FAKE_LOG"'
+    'printf "CWD %s\n" "$PWD" >> "$BUMP_FAKE_LOG"'
   run_cell_linux gh-auth
   [ "$status" -eq 0 ]
   fake_logged "mise use -g gh"
