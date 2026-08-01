@@ -3,7 +3,7 @@
 # manifest. The pwsh twin of probe.sh, emitting the same key<TAB>value shape so the
 # ONE judge (tests/real/judge.sh) decides every lane.
 #
-#   powershell.exe -File tests\real\probe.ps1 -StateDir C:\vibe-real -Manifest out.tsv
+#   powershell.exe -File tests\real\probe.ps1 -StateDir C:\bumpstart-real -Manifest out.tsv
 #
 # It gathers and normalises; it judges nothing.
 #
@@ -27,7 +27,7 @@
 [CmdletBinding()]
 param(
   # Where the lane runner left lane.tsv / precheck.tsv / transcript.log / exit.
-  [string]$StateDir = 'C:\vibe-real',
+  [string]$StateDir = 'C:\bumpstart-real',
   # Write here rather than to stdout: Windows PowerShell's `>` writes UTF-16LE,
   # which the judge's awk cannot read. Empty means stdout.
   #

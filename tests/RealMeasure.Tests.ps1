@@ -12,7 +12,7 @@ BeforeAll { . "$PSScriptRoot/../tests/real/lib/measure.ps1" }
 
 Describe 'Test-BumpRegPathResolves' {
   BeforeEach {
-    $script:dir = Join-Path ([System.IO.Path]::GetTempPath()) ("vibe-measure-" + [guid]::NewGuid())
+    $script:dir = Join-Path ([System.IO.Path]::GetTempPath()) ("bumpstart-measure-" + [guid]::NewGuid())
     New-Item -ItemType Directory -Path $script:dir -Force | Out-Null
     $script:savedExt = $env:PATHEXT
     $env:PATHEXT = '.COM;.EXE;.BAT;.CMD'

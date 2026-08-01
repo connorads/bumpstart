@@ -18,7 +18,7 @@
 # POSIX sh, not bash: it runs as sudo's helper on every distro in the matrix, and it
 # needs nothing bash provides.
 
-STATE="${BUMP_REAL_DIR:-/tmp/vibe-real}"
+STATE="${BUMP_REAL_DIR:-/tmp/bumpstart-real}"
 
 printf '%s\n' "${1:-<sudo gave no prompt>}" >> "$STATE/askpass.log" 2>/dev/null
 

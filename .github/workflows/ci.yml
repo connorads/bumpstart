@@ -231,7 +231,7 @@ jobs:
       # the whole point of the summary is to tell those apart.
       #
       # include-hidden-files, on every upload step here: the lane writes to
-      # `.vibe-real/<lane>/`, and upload-artifact treats anything under a dot
+      # `.bumpstart-real/<lane>/`, and upload-artifact treats anything under a dot
       # directory as hidden and silently skips it. Without it all ten lanes uploaded
       # ZERO files, and the two jobs added to prove the suite proved something both
       # exited 3 with nothing to read.
@@ -247,8 +247,8 @@ jobs:
         with:
           name: real-verdict-${{ matrix.lane }}
           path: |
-            .vibe-real/*/lane.verdict
-            .vibe-real/*/run*.manifest
+            .bumpstart-real/*/lane.verdict
+            .bumpstart-real/*/run*.manifest
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -259,7 +259,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: real-linux-${{ matrix.lane }}
-          path: .vibe-real/
+          path: .bumpstart-real/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
@@ -288,13 +288,13 @@ jobs:
             [ -d "$d" ] || continue
             lane="$(basename "$d")"
             lane="${lane#real-verdict-}"
-            mkdir -p ".vibe-real/$lane"
+            mkdir -p ".bumpstart-real/$lane"
             find "$d" -type f \( -name 'lane.verdict' -o -name 'run*.manifest' \) \
-              -exec cp {} ".vibe-real/$lane/" \;
+              -exec cp {} ".bumpstart-real/$lane/" \;
           done
-          find .vibe-real -type f | sort
+          find .bumpstart-real -type f | sort
       - name: cross-lane differentials
-        run: bash tests/real/differentials.sh .vibe-real
+        run: bash tests/real/differentials.sh .bumpstart-real
 
   real-summary:
     # The failure NO per-lane job can see: whether the SUITE proved anything.
@@ -378,8 +378,8 @@ jobs:
         with:
           name: real-verdict-macos-drift
           path: |
-            .vibe-real/*/lane.verdict
-            .vibe-real/*/run*.manifest
+            .bumpstart-real/*/lane.verdict
+            .bumpstart-real/*/run*.manifest
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -388,7 +388,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: real-macos-drift
-          path: .vibe-real/
+          path: .bumpstart-real/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
@@ -449,7 +449,7 @@ jobs:
 
       - name: state dir
         run: |
-          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          $state = Join-Path $env:RUNNER_TEMP 'bumpstart-real'
           New-Item -ItemType Directory -Path $state -Force | Out-Null
 
       - name: precheck (the baseline the judge measures vibe against)
@@ -459,7 +459,7 @@ jobs:
         # and the judge counted that as a pass. The delta is what tells the two apart,
         # and a baseline retaken after run 1 would not be one.
         run: |
-          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          $state = Join-Path $env:RUNNER_TEMP 'bumpstart-real'
           & powershell.exe -NoProfile -File tests\real\precheck.ps1 `
             -Baseline (Join-Path $state 'precheck.tsv')
 
@@ -473,7 +473,7 @@ jobs:
         # duplicated `@<canonical>` import line and a second registry PATH append were
         # all undetectable.
         run: |
-          $state = Join-Path $env:RUNNER_TEMP 'vibe-real'
+          $state = Join-Path $env:RUNNER_TEMP 'bumpstart-real'
           $tab = [char]9
           # 'Continue', deliberately. GitHub prepends $ErrorActionPreference='stop' to
           # every step, and under 'stop' Windows PowerShell 5.1 turns a native command's
@@ -525,7 +525,7 @@ jobs:
       - name: judge both runs, and diff them
         shell: bash
         run: |
-          state="$(cygpath -u "$RUNNER_TEMP")/vibe-real"
+          state="$(cygpath -u "$RUNNER_TEMP")/bumpstart-real"
           set +e
           worst=0
           # shellcheck source=tests/real/lib/class.sh
@@ -554,11 +554,11 @@ jobs:
       - name: log bundle
         if: failure()
         shell: bash
-        run: cp -r "$(cygpath -u "$RUNNER_TEMP")/vibe-real" ./vibe-real-bundle || true
+        run: cp -r "$(cygpath -u "$RUNNER_TEMP")/bumpstart-real" ./bumpstart-real-bundle || true
       - name: upload log bundle
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: real-windows-${{ matrix.os }}
-          path: vibe-real-bundle/
+          path: bumpstart-real-bundle/
           retention-days: 7

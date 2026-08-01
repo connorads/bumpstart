@@ -73,7 +73,7 @@ if [ -z "$LANE" ]; then
   exit "$CLASS_HARNESS"
 fi
 
-[ -n "$OUT" ] || OUT="$REPO/.vibe-real/$LANE"
+[ -n "$OUT" ] || OUT="$REPO/.bumpstart-real/$LANE"
 mkdir -p "$OUT" || exit "$CLASS_HARNESS"
 
 # Cleared, not merely created. do_run writes run$n.manifest only on success, and the
@@ -191,11 +191,11 @@ if [ ! -f "$ADAPTER_FILE" ]; then
   exit "$CLASS_HARNESS"
 fi
 
-GUEST_NAME="vibe-real-$LANE"
+GUEST_NAME="bumpstart-real-$LANE"
 GUEST_IMAGE="$IMAGE"
 GUEST_REPO="$REPO"
-GUEST_STATE=/tmp/vibe-real
-GUEST_PASSWORD='vibe-test-not-a-secret'
+GUEST_STATE=/tmp/bumpstart-real
+GUEST_PASSWORD='bumpstart-test-not-a-secret'
 GUEST_DEPS="$DEPS"
 case "$AXIS" in
   *password-sudo*) GUEST_SUDO=password ;;

@@ -169,7 +169,7 @@ _manifest_compare() {
 # differential failed" is not a finding a reader can act on.
 manifest_diff() {
   _md_a_label="$1"; _md_a="$2"; _md_b_label="$3"; _md_b="$4"; _md_fn="$5"
-  _md_tmp="${TMPDIR:-/tmp}/vibe-mdiff.$$"
+  _md_tmp="${TMPDIR:-/tmp}/bumpstart-mdiff.$$"
   mkdir -p "$_md_tmp" || return 1
   # The subset's own status decides, before the comparison gets a look in: comparing
   # two things neither of which could be read is not a comparison, and a hash join

@@ -36,7 +36,7 @@ GUEST_USER=admin
 # tart's --dir lands at /Volumes/My Shared Files/<name>, whose spaces would have to
 # be quoted through every layer of every command string. guest_provision symlinks it
 # somewhere spaceless and this is that path.
-GUEST_SRC=/tmp/vibe-src
+GUEST_SRC=/tmp/bumpstart-src
 TART_SHARE='/Volumes/My Shared Files/repo'
 
 # Tart's LRU sweep would delete the 23 GB golden image to make room for clones
@@ -85,7 +85,7 @@ guest_start() {
 
   # --no-graphics needs FileVault off, which the vanilla image already is.
   nohup tart run --no-graphics --dir="repo:$GUEST_REPO:ro" "$GUEST_NAME" \
-    >"${TMPDIR:-/tmp}/vibe-tart-$GUEST_NAME.log" 2>&1 &
+    >"${TMPDIR:-/tmp}/bumpstart-tart-$GUEST_NAME.log" 2>&1 &
 
   # Bounded polling for a genuinely pending thing is not a retry: the VM has to boot
   # and sshd has to come up, and there is no event to wait on.

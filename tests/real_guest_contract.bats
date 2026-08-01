@@ -46,10 +46,10 @@ load helpers/common
 
 setup() {
   REAL="$REPO_ROOT/tests/real"
-  export GUEST_NAME="vibe-port-contract-$$"
+  export GUEST_NAME="bumpstart-port-contract-$$"
   export GUEST_REPO="$REPO_ROOT"
-  export GUEST_STATE=/tmp/vibe-real
-  export GUEST_PASSWORD='vibe-test-not-a-secret'
+  export GUEST_STATE=/tmp/bumpstart-real
+  export GUEST_PASSWORD='bumpstart-test-not-a-secret'
   export GUEST_SUDO=nopasswd
   # The contract needs no packages: `true` keeps the case to a few seconds while
   # still exercising the provision step's own command path.

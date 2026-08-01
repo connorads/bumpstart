@@ -46,7 +46,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-OUT="$REPO/.vibe-real"
+OUT="$REPO/.bumpstart-real"
 mkdir -p "$OUT" || exit 3
 
 # ── Which lanes ──────────────────────────────────────────────────────────────

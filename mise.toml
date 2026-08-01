@@ -79,7 +79,7 @@ description = "Pull the vanilla macOS image once (23 GB)"
 # sources/outputs so the guard is not re-checked on every macOS run. The stamp is the
 # output; lanes.tsv is the source, because that is where the image name lives.
 sources = ["tests/real/lanes.tsv"]
-outputs = [".vibe-real/macos-image.stamp"]
+outputs = [".bumpstart-real/macos-image.stamp"]
 run = """
 set -eu
 image="$(awk -F'\t' 'NR > 1 && $2 == "tart" { print $3; exit }' tests/real/lanes.tsv)"
@@ -98,30 +98,30 @@ else
   TART_NO_AUTO_PRUNE=1 tart pull "ghcr.io/cirruslabs/$image:latest"
   TART_NO_AUTO_PRUNE=1 tart clone "ghcr.io/cirruslabs/$image:latest" "$image"
 fi
-mkdir -p .vibe-real
-date > .vibe-real/macos-image.stamp
+mkdir -p .bumpstart-real
+date > .bumpstart-real/macos-image.stamp
 """
 
 [tasks.vm-clean]
 description = "Reap leftover real-install guests, their log bundles and their scratch"
 run = """
 set -u
-docker ps -aq --filter 'name=^vibe-real-' 2>/dev/null | xargs -r docker rm -f
+docker ps -aq --filter 'name=^bumpstart-real-' 2>/dev/null | xargs -r docker rm -f
 if command -v tart >/dev/null 2>&1; then
   # --source local --quiet, not a grep over JSON: the old pattern failed OPEN, so a
   # shape change upstream would leave 6 GB guests behind and say "clean".
-  tart list --source local --quiet 2>/dev/null | grep '^vibe-real-' | while read -r vm; do
+  tart list --source local --quiet 2>/dev/null | grep '^bumpstart-real-' | while read -r vm; do
     tart stop "$vm" >/dev/null 2>&1 || true
     tart delete "$vm" >/dev/null 2>&1 || true
   done
 fi
 # The runner adapter's read-only repo copy, and the tart console logs. Neither is
-# under .vibe-real, so neither was ever reaped - and the copy is chmod a-w, which is
+# under .bumpstart-real, so neither was ever reaped - and the copy is chmod a-w, which is
 # why the write bit goes back first.
-src="${TMPDIR:-/tmp}/vibe-real-src"
+src="${TMPDIR:-/tmp}/bumpstart-real-src"
 [ -d "$src" ] && chmod -R u+w "$src" 2>/dev/null
-rm -rf "$src" "${TMPDIR:-/tmp}"/vibe-tart-vibe-real-*.log
-rm -rf .vibe-real
+rm -rf "$src" "${TMPDIR:-/tmp}"/bumpstart-tart-bumpstart-real-*.log
+rm -rf .bumpstart-real
 echo "clean"
 """
 

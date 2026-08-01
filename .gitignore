@@ -2,4 +2,4 @@
 testResults.xml
 
 # Real-install lane output: manifests, TAP, transcripts, log bundles.
-.vibe-real/
+.bumpstart-real/

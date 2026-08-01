@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # probe.sh: run INSIDE a guest after a real install and print a state manifest.
 #
-#   BUMP_REAL_DIR=/tmp/vibe-real tests/real/probe.sh > manifest
+#   BUMP_REAL_DIR=/tmp/bumpstart-real tests/real/probe.sh > manifest
 #
 # It gathers and normalises; it judges NOTHING. That split is what lets judge.sh be
 # pure and unit-tested over fixtures, and it means "is this state correct" changes in
@@ -37,7 +37,7 @@
 # the failure instead of one honest error. It reports what it can and says what it
 # could not measure.
 
-STATE="${BUMP_REAL_DIR:-/tmp/vibe-real}"
+STATE="${BUMP_REAL_DIR:-/tmp/bumpstart-real}"
 
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 # The fresh-shell measurement is shared with precheck.sh, which takes it BEFORE the

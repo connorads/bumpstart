@@ -55,7 +55,7 @@ guest_start() {
   # machine rather than one machine per step.
   docker run -d \
     --name "$GUEST_NAME" \
-    --hostname vibe-guest \
+    --hostname bumpstart-guest \
     -v "$GUEST_REPO:$GUEST_SRC:ro" \
     -w / \
     "$GUEST_IMAGE" \
@@ -65,8 +65,8 @@ guest_start() {
 guest_provision() {
   # The image's bare minimum, as data from the lane row — deliberately NOT a
   # convenience "install everything", because what the guest lacks is the point.
-  if ! guest_exec_root "{ $GUEST_DEPS ; } > /tmp/vibe-deps.log 2>&1"; then
-    guest_exec_root 'tail -40 /tmp/vibe-deps.log' >&2
+  if ! guest_exec_root "{ $GUEST_DEPS ; } > /tmp/bumpstart-deps.log 2>&1"; then
+    guest_exec_root 'tail -40 /tmp/bumpstart-deps.log' >&2
     return 1
   fi
 
@@ -81,12 +81,12 @@ guest_provision() {
   # and a lane whose deps do not include sudo would otherwise fail here obscurely.
   guest_exec_root "mkdir -p /etc/sudoers.d" || return 1
   if [ "$GUEST_SUDO" = password ]; then
-    guest_exec_root "printf '%s ALL=(ALL) ALL\n' $GUEST_USER > /etc/sudoers.d/vibe-test" || return 1
+    guest_exec_root "printf '%s ALL=(ALL) ALL\n' $GUEST_USER > /etc/sudoers.d/bumpstart-test" || return 1
     guest_exec_root "printf '%s:%s\n' $GUEST_USER '$GUEST_PASSWORD' | chpasswd" || return 1
   else
-    guest_exec_root "printf '%s ALL=(ALL) NOPASSWD: ALL\n' $GUEST_USER > /etc/sudoers.d/vibe-test" || return 1
+    guest_exec_root "printf '%s ALL=(ALL) NOPASSWD: ALL\n' $GUEST_USER > /etc/sudoers.d/bumpstart-test" || return 1
   fi
-  guest_exec_root "chmod 0440 /etc/sudoers.d/vibe-test" || return 1
+  guest_exec_root "chmod 0440 /etc/sudoers.d/bumpstart-test" || return 1
 
   # Outside $HOME on purpose: the probe hashes vibe-owned paths under the home dir,
   # and harness scratch living there would show up as a state difference.

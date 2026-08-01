@@ -27,7 +27,7 @@
 
 GUEST_KIND=runner
 GUEST_USER="$(id -un)"
-GUEST_SRC="${TMPDIR:-/tmp}/vibe-real-src"
+GUEST_SRC="${TMPDIR:-/tmp}/bumpstart-real-src"
 # Set by guest_start from the password database, never inherited.
 GUEST_SHELL=
 

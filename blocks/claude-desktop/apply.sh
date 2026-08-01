@@ -72,7 +72,7 @@ if ! command -v gpg >/dev/null 2>&1; then
   exit 0
 fi
 
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe-claude.XXXXXX")"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/bumpstart-claude.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
 if ! bump_fetch "$KEY_URL" > "$tmp/key.asc" 2>/dev/null || [ ! -s "$tmp/key.asc" ]; then

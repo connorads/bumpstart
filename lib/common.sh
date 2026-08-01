@@ -84,8 +84,8 @@ spin() {
   _sp_frames=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
   _sp_nframes=${#_sp_frames[@]}
 
-  _sp_log="$(mktemp "${TMPDIR:-/tmp}/vibe-spin.XXXXXX" 2>/dev/null)" \
-    || _sp_log="${TMPDIR:-/tmp}/vibe-spin.$$"
+  _sp_log="$(mktemp "${TMPDIR:-/tmp}/bumpstart-spin.XXXXXX" 2>/dev/null)" \
+    || _sp_log="${TMPDIR:-/tmp}/bumpstart-spin.$$"
 
   "$@" >"$_sp_log" 2>&1 &
   _sp_pid=$!
