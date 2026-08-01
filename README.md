@@ -396,7 +396,14 @@ One rule keeps the OS spread from leaking into code: **a portable command is a c
 anything that differs by machine is a `blocks/*/apply.sh`; anything that cannot be
 done honestly is absent.** A deny-grep in `tests/meta_schema.bats` enforces it — no
 distro token (`ubuntu`, `apt-get`, `/etc/os-release`, …) may appear in a meta cell or
-anywhere under `lib/`. Tooling via `mise`:
+anywhere under `lib/`.
+
+One asymmetry to know when writing a `CHECK_*` cell: a POSIX cell is read by its
+**exit status**, a `CHECK_WIN` cell by the **truthiness of what it returns** — so a
+Windows cell that emits something unconditionally is permanently "satisfied" and its
+install never runs (hence the `| Select-String <id>` in the winget cells).
+
+Tooling via `mise`:
 
 ```bash
 # bash spine (macOS + Linux)

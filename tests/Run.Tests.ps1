@@ -54,6 +54,24 @@ Describe 'run.ps1' {
     Test-BlockCheck $script:root 'bare' | Should -BeNullOrEmpty
   }
 
+  It 'Test-BlockCheck reads the OUTPUT of the cell, not its exit status' {
+    # The Windows contract is the opposite of the POSIX one, on the same field
+    # family: bash reads a CHECK cell's exit status, this reads the truthiness of
+    # what the cell returns. Pinned in both directions so a future "make it match
+    # bash" refactor fails loudly instead of silently marking every Windows block
+    # installed. A cell that emits something is satisfied...
+    New-Block emits @('KIND=tool', "CHECK_$script:osKey='`"anything`"'")
+    Test-BlockCheck $script:root 'emits' | Should -BeTrue
+  }
+
+  It 'Test-BlockCheck is $false for a cell that succeeds but emits nothing' {
+    # ...and one that emits nothing is NOT, however cleanly it ran. This is what
+    # `Get-Command x -ErrorAction SilentlyContinue` relies on, and why the winget
+    # cells pipe through Select-String rather than trusting winget's exit code.
+    New-Block silent @('KIND=tool', "CHECK_$script:osKey='`$null'")
+    Test-BlockCheck $script:root 'silent' | Should -BeFalse
+  }
+
   It 'Invoke-Cell skips the install when already satisfied' {
     New-Block sat @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$true'", $logInstall)
     $out = Invoke-Cell $script:root 'sat' 6>&1 | Out-String

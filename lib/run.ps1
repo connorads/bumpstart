@@ -28,6 +28,16 @@ function Test-BlockCheck {
   if (-not $dir) { return $null }
   $cell = Get-Meta $dir ("CHECK_" + (Get-VibeOsKey))
   if (-not $cell) { return $null }
+  # The evaluation model is the OPPOSITE of the POSIX one, and the field family is
+  # shared, so it is worth spelling out: bash reads a CHECK cell's EXIT STATUS
+  # (block_check redirects the output away), and this reads the TRUTHINESS OF WHAT
+  # THE CELL RETURNS. So a CHECK_WIN cell must emit something falsy when the thing
+  # is absent - `Get-Command x -ErrorAction SilentlyContinue` returns nothing, and
+  # `winget list <id>` is piped through Select-String for exactly this reason.
+  #
+  # The trap: a cell that emits UNCONDITIONALLY is permanently satisfied, so its
+  # install never runs and the step reports "already installed" forever.
+  #
   # A predicate that errors (e.g. winget absent on Windows 10 pre-1809) reads as
   # "not satisfied" - the bash analogue of a non-zero eval - never a crash.
   try {

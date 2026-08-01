@@ -35,6 +35,10 @@ function Test-StepSatisfied {
   $cell = Get-Meta $dir ("SATISFIED_" + (Get-VibeOsKey))
   if (-not $cell) { $cell = Get-Meta $dir ("CHECK_" + (Get-VibeOsKey)) }
   if (-not $cell) { return 2 }
+  # Read by the TRUTHINESS OF WHAT THE CELL RETURNS, not by an exit status - the
+  # same model Test-BlockCheck uses, and the opposite of plan.sh's _step_satisfied.
+  # A cell that emits unconditionally therefore dims its row at the gate forever.
+  #
   # A probe that errors (e.g. winget absent) reads as actionable, never a crash.
   try {
     if (Invoke-Expression $cell) { return 0 } else { return 1 }
