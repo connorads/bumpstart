@@ -11,7 +11,7 @@
 # required numbered pick, multi = per-row y/N) and, for a single-select, DEFAULT
 # (the pre-selected id). A block or preset joins a question by declaring AXIS.
 
-$script:VibeRepo = 'connorads/vibe-setup'
+$script:BumpRepo = 'connorads/vibe-setup'
 
 # Show-PasteCommands <ids...> - print the README one-liners for these ids (mac +
 # Windows) and copy the Windows one to the clipboard. Inherits the run's ref.
@@ -21,10 +21,10 @@ function Show-PasteCommands {
   $prefix = if ($ref -ne 'main') { "BUMP_REF=$ref " } else { '' }
   $idstr = ($Ids -join ' ')
 
-  $mac = "${prefix}/bin/bash -c `"`$(curl -fsSL https://raw.githubusercontent.com/$script:VibeRepo/main/vibe)`" _ $idstr"
+  $mac = "${prefix}/bin/bash -c `"`$(curl -fsSL https://raw.githubusercontent.com/$script:BumpRepo/main/vibe)`" _ $idstr"
   $winRef = if ($ref -ne 'main') { "`$env:BUMP_REF='$ref'; " } else { '' }
-  $win = "${winRef}irm https://raw.githubusercontent.com/$script:VibeRepo/main/vibe.ps1 | iex"
-  if ($idstr) { $win = "${winRef}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/$script:VibeRepo/main/vibe.ps1))) $idstr" }
+  $win = "${winRef}irm https://raw.githubusercontent.com/$script:BumpRepo/main/vibe.ps1 | iex"
+  if ($idstr) { $win = "${winRef}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/$script:BumpRepo/main/vibe.ps1))) $idstr" }
 
   Write-Host "`n  Share the paste for your audience:`n"
   Write-Host "  macOS:"
@@ -34,9 +34,9 @@ function Show-PasteCommands {
   if (Copy-ToClipboard $win) { Info 'Copied the Windows command to your clipboard.' }
 }
 
-# Get-VibeAxisMembers <root> <axis> - the ids that declare this AXIS, presets
+# Get-BumpAxisMembers <root> <axis> - the ids that declare this AXIS, presets
 # first (the coarse, ready-made choice leads) then alphabetically.
-function Get-VibeAxisMembers {
+function Get-BumpAxisMembers {
   param([string]$Root, [string]$Axis)
   $rows = @()
   foreach ($sub in 'blocks', 'presets') {
@@ -53,16 +53,16 @@ function Get-VibeAxisMembers {
   return @($rows | Sort-Object Rank, Id | ForEach-Object { $_.Id })
 }
 
-# Get-VibeAxes <root> - the axes that have at least one member, by their declared
+# Get-BumpAxes <root> - the axes that have at least one member, by their declared
 # ORDER. An axis nothing declares is not a question worth asking.
-function Get-VibeAxes {
+function Get-BumpAxes {
   param([string]$Root)
   $path = Join-Path $Root 'axes'
   if (-not (Test-Path -LiteralPath $path)) { return @() }
   $rows = @()
   foreach ($d in (Get-ChildItem -LiteralPath $path -Directory)) {
     if (-not (Test-Path -LiteralPath (Join-Path $d.FullName 'meta'))) { continue }
-    if ((Get-VibeAxisMembers $Root $d.Name).Count -eq 0) { continue }
+    if ((Get-BumpAxisMembers $Root $d.Name).Count -eq 0) { continue }
     $order = Get-Meta $d.FullName 'ORDER'
     if (-not $order) { $order = '99' }
     $rows += [pscustomobject]@{ Order = [int]$order; Id = $d.Name; Dir = $d.FullName }
@@ -70,26 +70,26 @@ function Get-VibeAxes {
   return @($rows | Sort-Object Order, Id)
 }
 
-# Get-VibeAxisDetail <root> <id> - " (pulls in: ...)" for a block that includes
+# Get-BumpAxisDetail <root> <id> - " (pulls in: ...)" for a block that includes
 # others, else ''. The same containment detail Show-Catalogue prints: without it
 # `starter`, `web` and `gh-auth` read as three unrelated ticks.
-function Get-VibeAxisDetail {
+function Get-BumpAxisDetail {
   param([string]$Root, [string]$Id)
   $inc = Get-Meta (Get-BlockDir $Root $Id) 'INCLUDE'
   if ($inc) { return " (pulls in: $inc)" }
   return ''
 }
 
-# Invoke-VibeWizard <root> - drive the interactive build: one question per axis,
+# Invoke-BumpWizard <root> - drive the interactive build: one question per axis,
 # in the axes' declared ORDER. Returns an object with .Ids (chosen ids, the
 # required single-select first) and .RunNow ($true iff apply-now was asked). On
 # no answers (input redirected) or an invalid choice, .Ids is empty + .RunNow
 # $false.
-function Invoke-VibeWizard {
+function Invoke-BumpWizard {
   param([string]$Root)
   $result = [pscustomobject]@{ Ids = @(); RunNow = $false }
 
-  $axes = Get-VibeAxes $Root
+  $axes = Get-BumpAxes $Root
   if ($axes.Count -eq 0) { Err "no axis has any members - nothing to ask about under $Root/axes"; return $result }
 
   # One guard, before the first question: the wizard is interactive throughout,
@@ -102,7 +102,7 @@ function Invoke-VibeWizard {
   $one = @()
   $multi = @()
   foreach ($ax in $axes) {
-    $ids = Get-VibeAxisMembers $Root $ax.Id
+    $ids = Get-BumpAxisMembers $Root $ax.Id
     $label = Get-Meta $ax.Dir 'LABEL'
     if ((Get-Meta $ax.Dir 'SELECT') -eq 'one') {
       Write-Host ("`n  {0} {1}(required){2}`n" -f $label, $script:Dim, $script:Reset)
@@ -112,7 +112,7 @@ function Invoke-VibeWizard {
         if ($ids[$i] -eq $default) { $defaultNum = $i + 1 }
         Write-Host ("    {0}{1}){2} {0}{3}{2}  {4}{5}{6}{2}" -f `
             $script:Bold, ($i + 1), $script:Reset, $ids[$i], `
-          (Get-Meta (Get-BlockDir $Root $ids[$i]) 'DESC'), $script:Dim, (Get-VibeAxisDetail $Root $ids[$i]))
+          (Get-Meta (Get-BlockDir $Root $ids[$i]) 'DESC'), $script:Dim, (Get-BumpAxisDetail $Root $ids[$i]))
       }
       Write-Host ("`n  Choose {0}[{1}]{2}: " -f $script:Yellow, $defaultNum, $script:Reset) -NoNewline
       $choice = [Console]::ReadLine()
@@ -124,7 +124,7 @@ function Invoke-VibeWizard {
       foreach ($id in $ids) {
         Write-Host ("    {0}{1}{2}  {3}{4}{5}{2} {6}[y/N]{2} " -f `
             $script:Bold, $id, $script:Reset, `
-          (Get-Meta (Get-BlockDir $Root $id) 'DESC'), $script:Dim, (Get-VibeAxisDetail $Root $id), $script:Yellow) -NoNewline
+          (Get-Meta (Get-BlockDir $Root $id) 'DESC'), $script:Dim, (Get-BumpAxisDetail $Root $id), $script:Yellow) -NoNewline
         $reply = [Console]::ReadLine()
         if ($reply -match '^[Yy]') { $multi += $id }
       }

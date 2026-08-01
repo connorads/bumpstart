@@ -10,7 +10,7 @@
 
 BeforeAll { . "$PSScriptRoot/../tests/real/lib/measure.ps1" }
 
-Describe 'Test-VibeRegPathResolves' {
+Describe 'Test-BumpRegPathResolves' {
   BeforeEach {
     $script:dir = Join-Path ([System.IO.Path]::GetTempPath()) ("vibe-measure-" + [guid]::NewGuid())
     New-Item -ItemType Directory -Path $script:dir -Force | Out-Null
@@ -24,50 +24,50 @@ Describe 'Test-VibeRegPathResolves' {
 
   It 'finds an executable with a PATHEXT extension' {
     Set-Content -LiteralPath (Join-Path $script:dir 'node.exe') -Value 'x'
-    Test-VibeRegPathResolves 'node' @($script:dir) | Should -BeTrue
+    Test-BumpRegPathResolves 'node' @($script:dir) | Should -BeTrue
   }
 
   It 'finds a shim with any PATHEXT extension, not just .exe' {
     Set-Content -LiteralPath (Join-Path $script:dir 'pnpm.cmd') -Value 'x'
-    Test-VibeRegPathResolves 'pnpm' @($script:dir) | Should -BeTrue
+    Test-BumpRegPathResolves 'pnpm' @($script:dir) | Should -BeTrue
   }
 
   It 'does NOT resolve a directory that happens to share the name' {
     New-Item -ItemType Directory -Path (Join-Path $script:dir 'node') -Force | Out-Null
-    Test-VibeRegPathResolves 'node' @($script:dir) | Should -BeFalse
+    Test-BumpRegPathResolves 'node' @($script:dir) | Should -BeFalse
   }
 
   It 'does NOT resolve an extensionless file cmd.exe could not execute' {
     # npm's MSYS shim. A new terminal on Windows cannot run it, so reporting it as
     # resolvable is the vacuous pass this measurement exists to avoid.
     Set-Content -LiteralPath (Join-Path $script:dir 'claude') -Value '#!/bin/sh'
-    Test-VibeRegPathResolves 'claude' @($script:dir) | Should -BeFalse
+    Test-BumpRegPathResolves 'claude' @($script:dir) | Should -BeFalse
   }
 
   It 'honours PATHEXT rather than a hand-written list' {
     Set-Content -LiteralPath (Join-Path $script:dir 'gh.ps1') -Value 'x'
-    Test-VibeRegPathResolves 'gh' @($script:dir) | Should -BeFalse
+    Test-BumpRegPathResolves 'gh' @($script:dir) | Should -BeFalse
     $env:PATHEXT = '.COM;.EXE;.PS1'
-    Test-VibeRegPathResolves 'gh' @($script:dir) | Should -BeTrue
+    Test-BumpRegPathResolves 'gh' @($script:dir) | Should -BeTrue
   }
 
   It 'says no when the tool is nowhere on the list' {
-    Test-VibeRegPathResolves 'mise' @($script:dir) | Should -BeFalse
+    Test-BumpRegPathResolves 'mise' @($script:dir) | Should -BeFalse
   }
 
   It 'ignores an empty or missing directory entry rather than throwing' {
-    Test-VibeRegPathResolves 'git' @('', $script:dir) | Should -BeFalse
-    Test-VibeRegPathResolves 'git' @() | Should -BeFalse
+    Test-BumpRegPathResolves 'git' @('', $script:dir) | Should -BeFalse
+    Test-BumpRegPathResolves 'git' @() | Should -BeFalse
   }
 }
 
-Describe 'Get-VibeUserRegPathRaw' {
+Describe 'Get-BumpUserRegPathRaw' {
   It 'returns empty rather than throwing where there is no registry' {
     # This suite runs on macOS in the `check` job. The probe and precheck call it
     # inside a Windows guest; what is asserted here is that the off-Windows path is a
     # quiet empty string, so a harness that grows a Mac-side caller cannot crash on it.
-    { Get-VibeUserRegPathRaw } | Should -Not -Throw
-    Get-VibeUserRegPathRaw | Should -BeOfType [string]
+    { Get-BumpUserRegPathRaw } | Should -Not -Throw
+    Get-BumpUserRegPathRaw | Should -BeOfType [string]
   }
 }
 
@@ -77,6 +77,6 @@ Describe 'the measured set' {
     # resolved block list and expects a key for each on either OS.
     $posix = (Select-String -Path "$PSScriptRoot/../tests/real/lib/measure.sh" `
       -Pattern '^MEASURE_TOOLS="(.*)"$').Matches[0].Groups[1].Value -split ' '
-    (Get-VibeMeasureTool) | Should -Be $posix
+    (Get-BumpMeasureTool) | Should -Be $posix
   }
 }

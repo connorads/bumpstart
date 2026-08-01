@@ -64,26 +64,26 @@ Describe 'Invoke-Spin' {
   }
 }
 
-Describe 'Add-VibeWarning' {
+Describe 'Add-BumpWarning' {
   BeforeEach {
-    $script:VibeWarnCount = 0
-    $script:VibeWarnItems = @()
+    $script:BumpWarnCount = 0
+    $script:BumpWarnItems = @()
   }
 
   It 'lists one thing once, however many times it was attempted' {
     # The twin of the e2e.bats case: a tool can be attempted twice in one run by
     # design (the substrate and its own block cell), and the same name listed
     # twice reads as a bug in vibe rather than as one thing that didn't work.
-    Add-VibeWarning 'mise'
-    Add-VibeWarning 'mise'
-    $script:VibeWarnCount | Should -Be 1
-    @($script:VibeWarnItems).Count | Should -Be 1
+    Add-BumpWarning 'mise'
+    Add-BumpWarning 'mise'
+    $script:BumpWarnCount | Should -Be 1
+    @($script:BumpWarnItems).Count | Should -Be 1
   }
 
   It 'counts distinct failures separately' {
-    Add-VibeWarning 'mise'
-    Add-VibeWarning 'Node.js'
-    $script:VibeWarnCount | Should -Be 2
-    $script:VibeWarnItems | Should -Contain 'Node.js'
+    Add-BumpWarning 'mise'
+    Add-BumpWarning 'Node.js'
+    $script:BumpWarnCount | Should -Be 2
+    $script:BumpWarnItems | Should -Contain 'Node.js'
   }
 }

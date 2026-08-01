@@ -9,7 +9,7 @@ BeforeAll {
   . "$PSScriptRoot/../lib/meta.ps1"
   . "$PSScriptRoot/../lib/os.ps1"
   . "$PSScriptRoot/../lib/run.ps1"
-  $script:osKey = Get-VibeOsKey
+  $script:osKey = Get-BumpOsKey
 
   function New-Block {
     param([string]$Id, [string[]]$Lines)
@@ -103,22 +103,22 @@ Describe 'run.ps1' {
     # truthy array - so this printed "installed" over a machine where nothing
     # landed, and never reached the ledger.
     New-Block noisy @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $printThenThrow)
-    $script:VibeWarnCount = 0
-    $script:VibeWarnItems = @()
+    $script:BumpWarnCount = 0
+    $script:BumpWarnItems = @()
     $out = Invoke-Cell $script:root 'noisy' 6>&1 | Out-String
     $out | Should -Match "Couldn't install thing"
     $out | Should -Not -Match 'thing installed'
-    $script:VibeWarnItems | Should -Contain 'thing'
+    $script:BumpWarnItems | Should -Contain 'thing'
   }
 
   It 'Invoke-Cell warns when the install PRINTED and then left a non-zero exit code' {
     New-Block noisyrc @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $printThenRc)
-    $script:VibeWarnCount = 0
-    $script:VibeWarnItems = @()
+    $script:BumpWarnCount = 0
+    $script:BumpWarnItems = @()
     $out = Invoke-Cell $script:root 'noisyrc' 6>&1 | Out-String
     $out | Should -Match "Couldn't install thing"
     $out | Should -Not -Match 'thing installed'
-    $script:VibeWarnItems | Should -Contain 'thing'
+    $script:BumpWarnItems | Should -Contain 'thing'
   }
 
   It "Invoke-Cell shows the vendor's own output" {

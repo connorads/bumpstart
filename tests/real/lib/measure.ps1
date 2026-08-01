@@ -21,10 +21,10 @@
 # Functions rather than variables: a dot-sourced script's variables read as
 # assigned-but-never-used to PSScriptAnalyzer, and suppressing that rule is worse
 # than spelling the accessor.
-function Get-VibeMeasureTool { return @('claude', 'codex', 'gh', 'git', 'node', 'pnpm', 'mise') }
-function Get-VibeMeasureScope { return @('User', 'Machine') }
+function Get-BumpMeasureTool { return @('claude', 'codex', 'gh', 'git', 'node', 'pnpm', 'mise') }
+function Get-BumpMeasureScope { return @('User', 'Machine') }
 
-function Get-VibeRegPathDir {
+function Get-BumpRegPathDir {
   param([string]$Scope)
   $dirs = @()
   $raw = [Environment]::GetEnvironmentVariable('Path', $Scope)
@@ -36,7 +36,7 @@ function Get-VibeRegPathDir {
   return $dirs
 }
 
-# Get-VibeUserRegPathRaw - the User PATH exactly as it is stored, unexpanded.
+# Get-BumpUserRegPathRaw - the User PATH exactly as it is stored, unexpanded.
 #
 # The User scope, because that is the one vibe writes. RAW, because the product reads
 # and writes the raw value: [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -46,7 +46,7 @@ function Get-VibeRegPathDir {
 #
 # Empty string for "not readable" as well as "not set": on Windows the key always
 # exists, so the distinction has no lane to appear on.
-function Get-VibeUserRegPathRaw {
+function Get-BumpUserRegPathRaw {
   try {
     $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
     if (-not $key) { return '' }
@@ -60,12 +60,12 @@ function Get-VibeUserRegPathRaw {
   }
 }
 
-# Test-VibeRegPathResolves - would a new terminal find <Tool> in these dirs?
+# Test-BumpRegPathResolves - would a new terminal find <Tool> in these dirs?
 #
 # $env:PATHEXT rather than a hand-written list, and a FILE rather than any entry: a
 # DIRECTORY named `node` on PATH and npm's extensionless MSYS shim (which cmd.exe
 # cannot execute) both resolved under the old list, and neither is a working install.
-function Test-VibeRegPathResolves {
+function Test-BumpRegPathResolves {
   param([string]$Tool, [string[]]$Dirs)
   $exts = @()
   if (-not [string]::IsNullOrWhiteSpace($env:PATHEXT)) { $exts = $env:PATHEXT -split ';' }

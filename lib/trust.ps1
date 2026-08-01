@@ -19,10 +19,10 @@ function New-StarterDir {
   return (Get-Item -LiteralPath $dir).FullName
 }
 
-# Get-VibePathVariants <path> - distinct spellings of a Windows path a harness
+# Get-BumpPathVariants <path> - distinct spellings of a Windows path a harness
 # might store trust under: as-is, all-forward-slash, all-back-slash, and the
 # drive-letter case toggled for each. Deduped, order-stable.
-function Get-VibePathVariants {
+function Get-BumpPathVariants {
   param([string]$Path)
   $forms = New-Object System.Collections.Generic.List[string]
   foreach ($p in @($Path, ($Path -replace '\\', '/'), ($Path -replace '/', '\'))) {
@@ -66,7 +66,7 @@ function Set-CodexTrust {
   $existing = if (Test-Path -LiteralPath $cfg) { Get-Content -LiteralPath $cfg -Raw } else { '' }
 
   $wrote = $false
-  foreach ($v in (Get-VibePathVariants $Path)) {
+  foreach ($v in (Get-BumpPathVariants $Path)) {
     $header = "[projects.`"$v`"]"
     if ($existing.Contains($header)) { continue }
     if ((Test-Path -LiteralPath $cfg) -and (Get-Item -LiteralPath $cfg).Length -gt 0) {
@@ -92,7 +92,7 @@ function Set-ClaudeTrust {
     return
   }
   $projects = [ordered]@{}
-  foreach ($v in (Get-VibePathVariants $Path)) {
+  foreach ($v in (Get-BumpPathVariants $Path)) {
     $projects[$v] = [ordered]@{ hasTrustDialogAccepted = $true }
   }
   $obj = [ordered]@{
@@ -104,8 +104,8 @@ function Set-ClaudeTrust {
   Success "Pre-trusted $Path for Claude (best-effort)"
 }
 
-# Set-VibeTrust <harness> <path> - dispatch to the harness-specific seeder.
-function Set-VibeTrust {
+# Set-BumpTrust <harness> <path> - dispatch to the harness-specific seeder.
+function Set-BumpTrust {
   param([string]$Harness, [string]$Path)
   switch ($Harness) {
     'claude' { Set-ClaudeTrust $Path }

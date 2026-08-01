@@ -9,7 +9,7 @@
 # $env:BUMP_ROOT overrides the repo root (the test seam). Windows-only at run
 # time (guarded below); the pure core above ran cross-platform. Structured as a
 # function + a run-only-when-executed guard so the tests can dot-source it and
-# drive Invoke-VibeSetup in-process with shadowed installers. 5.1-safe.
+# drive Invoke-BumpSetup in-process with shadowed installers. 5.1-safe.
 
 # PositionalBinding off so the mode flags (-Show <id>, etc.) never swallow a bare
 # id: only -Ids is positional, and it collects every remaining bare arg.
@@ -62,11 +62,11 @@ function Invoke-BlockTail {
   $env:BUMP_BLOCK_ID = $Id
   try { & $tail } catch {
     Warn "block '$Id' failed - continuing"
-    Add-VibeWarning (Get-BlockLabel $Root $Id)
+    Add-BumpWarning (Get-BlockLabel $Root $Id)
   }
 }
 
-function Invoke-VibeSetup {
+function Invoke-BumpSetup {
   [CmdletBinding()]
   param(
     [switch]$Plan,
@@ -96,14 +96,14 @@ function Invoke-VibeSetup {
   if ($List) { Show-Catalogue $root; return 0 }
   if ($Show) { if (Show-Block $root $Show) { return 0 } else { return 1 } }
   if ($Build) {
-    $wiz = Invoke-VibeWizard $root
+    $wiz = Invoke-BumpWizard $root
     if (-not $wiz.RunNow) { return 0 }
     $Ids = $wiz.Ids
   }
 
   # Platform guard: everything below is Windows-specific. An honest redirect (the
   # mirror of apply.sh's Darwin guard). Exit 0 - informational, not a failure.
-  if ((Get-VibeOs) -ne 'win') {
+  if ((Get-BumpOs) -ne 'win') {
     Info 'This is the Windows setup. On a Mac, use the macOS paste from the README instead.'
     return 0
   }
@@ -133,15 +133,15 @@ function Invoke-VibeSetup {
   # block installed. Concretely on Windows, npm arrives with node's winget MSI
   # (%ProgramFiles%\nodejs) and blocks/pnpm's cell is `npm install -g pnpm`, so
   # run post-loop this fixed up a PATH nothing was left to use.
-  Set-VibePath
+  Set-BumpPath
 
   # Per-run state, reset here rather than at load: the tests dot-source this file
-  # once and drive Invoke-VibeSetup repeatedly, so a load-time-only ledger would
+  # once and drive Invoke-BumpSetup repeatedly, so a load-time-only ledger would
   # carry one run's failures into the next.
-  $script:VibeWarnCount = 0
-  $script:VibeWarnItems = @()
-  $script:VibeLaunch = ''
-  $script:VibeLaunchDir = ''
+  $script:BumpWarnCount = 0
+  $script:BumpWarnItems = @()
+  $script:BumpLaunch = ''
+  $script:BumpLaunchDir = ''
 
   # Count blocks that do real work (declarative cell or apply.ps1 tail).
   $total = 0
@@ -164,16 +164,16 @@ function Invoke-VibeSetup {
   # that costs trust: the warning scrolled past and a beginner cannot tell a real
   # failure from noise. So the verdict follows the ledger - unchanged wording when
   # nothing warned, a named list when something did. Mirrors apply.sh.
-  if ($script:VibeWarnCount -eq 0) {
+  if ($script:BumpWarnCount -eq 0) {
     Success 'Setup complete.'
     Write-Host ("  {0}You're all set - the hard part is done.{1}" -f $script:Green, $script:Reset)
   } else {
-    if ($script:VibeWarnCount -eq 1) {
+    if ($script:BumpWarnCount -eq 1) {
       Warn "Setup finished, but one step didn't work:"
     } else {
-      Warn "Setup finished, but $($script:VibeWarnCount) steps didn't work:"
+      Warn "Setup finished, but $($script:BumpWarnCount) steps didn't work:"
     }
-    foreach ($w in $script:VibeWarnItems) { Write-Host "    $w" }
+    foreach ($w in $script:BumpWarnItems) { Write-Host "    $w" }
     Info "Everything else is set up. Re-run the same paste and it retries only what's missing."
   }
 
@@ -209,7 +209,7 @@ function Invoke-VibeSetup {
   # we installed into outlive this terminal. A block cannot own it - every block would
   # want it, and the edit is one claim about vibe's own install dirs. Mirrors
   # apply.sh:276, which calls persist_path in the same place for the same reason.
-  Set-VibePersistedPath
+  Set-BumpPersistedPath
 
   $canon = Get-CanonicalPath
   if ($script:InstructionsWrote) {
@@ -232,7 +232,7 @@ function Invoke-VibeSetup {
 
   # Starter project + trust preseed.
   $starter = New-StarterDir
-  Set-VibeTrust $resolved.DefaultHarness $starter
+  Set-BumpTrust $resolved.DefaultHarness $starter
   if ($resolved.StepIds -contains 'git') { Initialize-StarterRepo $starter }
 
   Copy-StarterPrompt $root
@@ -255,8 +255,8 @@ function Invoke-VibeSetup {
     # exits 0, so a printing agent would mask a failure. And a native command
     # inside a captured pipeline is handed a pipe rather than the terminal, so on
     # a real console the agent's TUI would open with no tty.
-    $script:VibeLaunch = $resolved.DefaultHarness
-    $script:VibeLaunchDir = $starter
+    $script:BumpLaunch = $resolved.DefaultHarness
+    $script:BumpLaunchDir = $starter
   } else {
     Write-Host ''
     Info "Run '$($resolved.DefaultHarness)' in $starter to start (you'll sign in on first launch)."
@@ -271,12 +271,12 @@ function Invoke-VibeSetup {
 
 # Run only when executed directly (pwsh -File ...), not when dot-sourced by tests.
 if ($MyInvocation.InvocationName -ne '.') {
-  $rc = Invoke-VibeSetup -Plan:$Plan -Yes:$Yes -NoLaunch:$NoLaunch -List:$List -Show $Show -Build:$Build -Force:$Force -Ids $Ids
+  $rc = Invoke-BumpSetup -Plan:$Plan -Yes:$Yes -NoLaunch:$NoLaunch -List:$List -Show $Show -Build:$Build -Force:$Force -Ids $Ids
   # Outside the assignment above, deliberately - see the launch branch. The exit
   # code stays the setup's verdict; the agent is what the person does next.
-  if ($script:VibeLaunch) {
-    Set-Location -LiteralPath $script:VibeLaunchDir
-    & $script:VibeLaunch
+  if ($script:BumpLaunch) {
+    Set-Location -LiteralPath $script:BumpLaunchDir
+    & $script:BumpLaunch
   }
   exit $rc
 }

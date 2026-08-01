@@ -5,7 +5,7 @@
 # Why it exists: lib/shellpath.ps1's effect half writes the account PATH of whoever is
 # running, and the suite runs on Windows too (the `check-windows` job) - so an
 # unfaked write aims a test's $TestDrive paths at a real person's environment.
-# Get-VibeUserEnvKey is the single door to the registry, so a test that mocks it holds
+# Get-BumpUserEnvKey is the single door to the registry, so a test that mocks it holds
 # the whole effect half at arm's length while still running every line of it.
 #
 # Shared by ShellPath.Tests.ps1 (the effect half directly) and Apply.Tests.ps1 (the
@@ -28,7 +28,7 @@ function New-FakeEnvState {
   }
 }
 
-# New-FakeEnvKey <state>: the object Get-VibeUserEnvKey is mocked to return. Implements
+# New-FakeEnvKey <state>: the object Get-BumpUserEnvKey is mocked to return. Implements
 # exactly the three members shellpath.ps1 uses, so a fourth one appearing there fails
 # loudly here rather than being quietly faked.
 function New-FakeEnvKey {

@@ -2,7 +2,7 @@
 # carries its per-OS install as DATA - a CHECK_<os> skip predicate and an
 # INSTALL_<os> command in meta - and this runner reads + Invoke-Expressions the
 # current-OS cell. Depends on meta.ps1 (Get-BlockDir, Get-Meta), os.ps1
-# (Get-VibeOsKey), common.ps1 (Invoke-Spin, Success, Warn). Dot-sourced. 5.1-safe.
+# (Get-BumpOsKey), common.ps1 (Invoke-Spin, Success, Warn). Dot-sourced. 5.1-safe.
 #
 # On the pwsh spine every cell is PowerShell (the WIN cells), evaluated with
 # Invoke-Expression - the analogue of bash's eval on the MAC cells.
@@ -26,7 +26,7 @@ function Test-BlockCheck {
   param([string]$Root, [string]$Id)
   $dir = Get-BlockDir $Root $Id
   if (-not $dir) { return $null }
-  $cell = Get-Meta $dir ("CHECK_" + (Get-VibeOsKey))
+  $cell = Get-Meta $dir ("CHECK_" + (Get-BumpOsKey))
   if (-not $cell) { return $null }
   # The evaluation model is the OPPOSITE of the POSIX one, and the field family is
   # shared, so it is worth spelling out: bash reads a CHECK cell's EXIT STATUS
@@ -55,7 +55,7 @@ function Invoke-Cell {
   param([string]$Root, [string]$Id)
   $dir = Get-BlockDir $Root $Id
   if (-not $dir) { return }
-  $install = Get-Meta $dir ("INSTALL_" + (Get-VibeOsKey))
+  $install = Get-Meta $dir ("INSTALL_" + (Get-BumpOsKey))
   if (-not $install) { return }
   $label = Get-BlockLabel $Root $Id
   if ((Test-BlockCheck $Root $Id) -eq $true) {
@@ -72,7 +72,7 @@ function Invoke-Cell {
   } else {
     Warn "Couldn't install $label - continuing"
     # Non-fatal still means "did not happen": recorded so the finish message says so.
-    Add-VibeWarning $label
+    Add-BumpWarning $label
   }
 }
 
@@ -84,7 +84,7 @@ function Test-BlockRuns {
   param([string]$Root, [string]$Id)
   $dir = Get-BlockDir $Root $Id
   if (-not $dir) { return $false }
-  if (Get-Meta $dir ("INSTALL_" + (Get-VibeOsKey))) { return $true }
+  if (Get-Meta $dir ("INSTALL_" + (Get-BumpOsKey))) { return $true }
   if (Test-Path -LiteralPath (Join-Path $dir 'apply.ps1')) { return $true }
   return $false
 }

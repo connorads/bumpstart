@@ -4,7 +4,7 @@
 # Zero is the right number of skips here, and it is a claim about this suite rather
 # than a general rule. It depends on nothing external - bootstrap.ps1 pins Pester and
 # PSScriptAnalyzer, and the one effect the spine has reaches the outside world through
-# a single seam the tests fake (Get-VibeUserEnvKey, tests/helpers/FakeEnvKey.ps1). So
+# a single seam the tests fake (Get-BumpUserEnvKey, tests/helpers/FakeEnvKey.ps1). So
 # a skip can only mean one thing: a case gated on the host it happened to land on -
 # which is exactly the shape that let `check` sit green on macOS while `check-windows`
 # was red on the same file. Caught at the commit now, not by the Windows job.

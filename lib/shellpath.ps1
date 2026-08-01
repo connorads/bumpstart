@@ -1,7 +1,7 @@
 # shellpath.ps1: make the dirs vibe installs into survive the terminal window, on
 # Windows. The mirror of lib/shellpath.sh, and of the same promise.
 #
-# Set-VibePath (common.ps1) fixes PATH for THIS process only - it is fixup_path's
+# Set-BumpPath (common.ps1) fixes PATH for THIS process only - it is fixup_path's
 # twin. What that leaves is the failure shellpath.sh's own opening comment names: a
 # beginner watches the install work, opens a new terminal, and is told "command not
 # found", the most demoralising way for a setup to fail, because nothing looked
@@ -17,9 +17,9 @@
 # marker, so removal is not "delete the marked block" but "delete these two dirs" -
 # which is what the README says.
 #
-# Two things make this file testable anywhere. The pure core (Get-VibePathUpdate)
+# Two things make this file testable anywhere. The pure core (Get-BumpPathUpdate)
 # holds all the logic, and the effect reaches the registry through exactly one
-# function - Get-VibeUserEnvKey - which is the seam the suite fakes. So both worlds,
+# function - Get-BumpUserEnvKey - which is the seam the suite fakes. So both worlds,
 # a host with a per-user registry and a host without one, are asserted on every host,
 # and no test writes the account PATH of whoever ran it. Windows PowerShell 5.1-clean.
 
@@ -32,33 +32,33 @@
 # dynamic parameters that Windows PowerShell 5.1 does not offer on Set-ItemProperty by
 # default. The API also fails cleanly off Windows (PlatformNotSupportedException),
 # which is what makes the Pester run on a Mac a no-op rather than a crash.
-$script:VibeUserEnvKey = 'Environment'
-$script:VibeUserEnvPath = 'HKCU\Environment\Path'
+$script:BumpUserEnvKey = 'Environment'
+$script:BumpUserEnvPath = 'HKCU\Environment\Path'
 
-# Get-VibeUserEnvKey [-Writable]: the opened key, or $null when there is none.
-function Get-VibeUserEnvKey {
+# Get-BumpUserEnvKey [-Writable]: the opened key, or $null when there is none.
+function Get-BumpUserEnvKey {
   param([switch]$Writable)
   try {
-    return [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:VibeUserEnvKey, [bool]$Writable)
+    return [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($script:BumpUserEnvKey, [bool]$Writable)
   } catch {
     return $null
   }
 }
 
-# Get-VibeOwnedPathDir: the dirs vibe installs into that nothing else persists.
+# Get-BumpOwnedPathDir: the dirs vibe installs into that nothing else persists.
 #
-# Exactly two, and deliberately NOT all of Set-VibePath's candidates: %AppData%\npm
+# Exactly two, and deliberately NOT all of Set-BumpPath's candidates: %AppData%\npm
 # and %ProgramFiles%\nodejs are put on PATH by Node's own MSI, so adding them here
 # would author a duplicate of somebody else's entry. Keep this list and the README's
 # removal instructions in step.
-function Get-VibeOwnedPathDir {
+function Get-BumpOwnedPathDir {
   return @(
     (Join-Path $HOME '.local\bin')
     (Join-Path $HOME '.codex\bin')
   )
 }
 
-# Get-VibePathKey <entry>: the form two PATH entries are compared in - trimmed, no
+# Get-BumpPathKey <entry>: the form two PATH entries are compared in - trimmed, no
 # trailing separator, case-folded, and with %VAR% references expanded.
 #
 # Expanded for the COMPARISON ONLY. A PATH already carrying %USERPROFILE%\.local\bin
@@ -66,13 +66,13 @@ function Get-VibeOwnedPathDir {
 # this file exists not to create; but the entries written back are untouched, because
 # expanding somebody else's entry into the value is a change vibe was not asked to
 # make.
-function Get-VibePathKey {
+function Get-BumpPathKey {
   param([string]$Entry)
   $e = [Environment]::ExpandEnvironmentVariables($Entry.Trim())
   return ($e.TrimEnd('\', '/')).ToLowerInvariant()
 }
 
-# Get-VibePathUpdate -Current <raw PATH> -Dirs <dirs vibe owns>: the pure core.
+# Get-BumpPathUpdate -Current <raw PATH> -Dirs <dirs vibe owns>: the pure core.
 # Returns @{ Value = <new raw PATH>; Changed = <bool>; Added = @(<dirs>) }.
 #
 # APPENDED, not prepended, and the reason is worth stating because shellpath.sh
@@ -80,7 +80,7 @@ function Get-VibePathKey {
 # one, so nothing written here can come before a machine-wide entry anyway. Prepending
 # would buy no ordering guarantee and would put vibe ahead of choices the person made
 # in their own account PATH.
-function Get-VibePathUpdate {
+function Get-BumpPathUpdate {
   param([string]$Current, [string[]]$Dirs)
 
   $entries = @()
@@ -92,12 +92,12 @@ function Get-VibePathUpdate {
   }
 
   $have = @{}
-  foreach ($e in $entries) { $have[(Get-VibePathKey $e)] = $true }
+  foreach ($e in $entries) { $have[(Get-BumpPathKey $e)] = $true }
 
   $added = @()
   foreach ($d in $Dirs) {
     if ([string]::IsNullOrWhiteSpace($d)) { continue }
-    $k = Get-VibePathKey $d
+    $k = Get-BumpPathKey $d
     if ($have.ContainsKey($k)) { continue }
     $have[$k] = $true
     $added += $d
@@ -111,26 +111,26 @@ function Get-VibePathUpdate {
   }
 }
 
-# Test-VibeUserEnvironment: is there a per-user registry environment to write?
+# Test-BumpUserEnvironment: is there a per-user registry environment to write?
 #
 # Windows-only by construction. apply.ps1 guards non-Windows before anything here
 # runs, but the Pester suite drives the whole applier with $env:BUMP_OS=win on a Mac,
 # where HKCU does not exist - so this is what makes that a no-op rather than a crash.
-function Test-VibeUserEnvironment {
-  $key = Get-VibeUserEnvKey
+function Test-BumpUserEnvironment {
+  $key = Get-BumpUserEnvKey
   if (-not $key) { return $false }
   $key.Close()
   return $true
 }
 
-# Get-VibeUserPathRaw: the User PATH exactly as it is stored.
+# Get-BumpUserPathRaw: the User PATH exactly as it is stored.
 #
 # NOT [Environment]::GetEnvironmentVariable('Path', 'User'): that accessor EXPANDS
 # %USERPROFILE%-style entries, so writing its result back bakes today's expansion into
 # a PATH vibe did not author - a silent, permanent change to somebody else's entries.
 # DoNotExpandEnvironmentNames is how you read the value that was actually written.
-function Get-VibeUserPathRaw {
-  $key = Get-VibeUserEnvKey
+function Get-BumpUserPathRaw {
+  $key = Get-BumpUserEnvKey
   if (-not $key) { return '' }
   try {
     return [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
@@ -141,7 +141,7 @@ function Get-VibeUserPathRaw {
   }
 }
 
-# Send-VibeEnvironmentChange: tell the running desktop that the environment moved.
+# Send-BumpEnvironmentChange: tell the running desktop that the environment moved.
 #
 # Without it the registry is correct and a NEW terminal is still wrong: Explorer keeps
 # its own copy of the environment and hands it to everything it launches, so the
@@ -156,10 +156,10 @@ function Get-VibeUserPathRaw {
 # SendMessageTimeout rather than SendMessage: a single hung top-level window would
 # otherwise block the setup indefinitely. Never fatal - the write has already happened,
 # and the fallback is the next sign-in.
-function Send-VibeEnvironmentChange {
+function Send-BumpEnvironmentChange {
   try {
-    if (-not ('VibeSetup.Env' -as [type])) {
-      Add-Type -Namespace VibeSetup -Name Env -ErrorAction Stop -MemberDefinition @'
+    if (-not ('BumpSetup.Env' -as [type])) {
+      Add-Type -Namespace BumpSetup -Name Env -ErrorAction Stop -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
 public static extern System.IntPtr SendMessageTimeout(
   System.IntPtr hWnd, uint Msg, System.UIntPtr wParam, string lParam,
@@ -168,25 +168,25 @@ public static extern System.IntPtr SendMessageTimeout(
     }
     # HWND_BROADCAST 0xffff, WM_SETTINGCHANGE 0x1A, SMTO_ABORTIFHUNG 0x2, 5s timeout
     $res = [System.UIntPtr]::Zero
-    $null = [VibeSetup.Env]::SendMessageTimeout(
+    $null = [BumpSetup.Env]::SendMessageTimeout(
       [System.IntPtr]0xffff, 0x1A, [System.UIntPtr]::Zero, 'Environment', 0x2, 5000, [ref]$res)
   } catch {
     Info 'If a new terminal cannot find your tools yet, sign out and back in.'
   }
 }
 
-# Test-VibePersistedPath: would persisting change anything? $true = already there.
+# Test-BumpPersistedPath: would persisting change anything? $true = already there.
 #
 # The confirm gate is state-aware for the reason plan.sh's is: promising "adds your
 # install dirs to PATH" where nothing will change is a promise the run does not keep.
-function Test-VibePersistedPath {
-  if (-not (Test-VibeUserEnvironment)) { return $false }
-  $upd = Get-VibePathUpdate -Current (Get-VibeUserPathRaw) -Dirs (Get-VibeOwnedPathDir)
+function Test-BumpPersistedPath {
+  if (-not (Test-BumpUserEnvironment)) { return $false }
+  $upd = Get-BumpPathUpdate -Current (Get-BumpUserPathRaw) -Dirs (Get-BumpOwnedPathDir)
   return (-not $upd.Changed)
 }
 
-# Set-VibePersistedPath: persist vibe's install dirs on the User PATH, so a new
-# terminal finds them. Sets $script:VibePathPersisted to what was written (empty when
+# Set-BumpPersistedPath: persist vibe's install dirs on the User PATH, so a new
+# terminal finds them. Sets $script:BumpPathPersisted to what was written (empty when
 # nothing was). Never fatal: a PATH we cannot write warns and the setup continues,
 # exactly as persist_path does.
 #
@@ -194,17 +194,17 @@ function Test-VibePersistedPath {
 # characters, which on a machine with a long PATH quietly destroys entries vibe does
 # not own. ExpandString because that is what a PATH holding %USERPROFILE% has to be,
 # and rewriting the kind would break every reference in it.
-function Set-VibePersistedPath {
-  $script:VibePathPersisted = ''
-  if (-not (Test-VibeUserEnvironment)) { return }
+function Set-BumpPersistedPath {
+  $script:BumpPathPersisted = ''
+  if (-not (Test-BumpUserEnvironment)) { return }
 
-  $upd = Get-VibePathUpdate -Current (Get-VibeUserPathRaw) -Dirs (Get-VibeOwnedPathDir)
+  $upd = Get-BumpPathUpdate -Current (Get-BumpUserPathRaw) -Dirs (Get-BumpOwnedPathDir)
   if (-not $upd.Changed) {
     Success 'Your account already knows where vibe installs things'
     return
   }
 
-  $key = Get-VibeUserEnvKey -Writable
+  $key = Get-BumpUserEnvKey -Writable
   if (-not $key) {
     Warn "couldn't open your account's environment - new terminals may not find your tools"
     return
@@ -218,7 +218,7 @@ function Set-VibePersistedPath {
     $key.Close()
   }
 
-  $script:VibePathPersisted = $script:VibeUserEnvPath
-  Send-VibeEnvironmentChange
+  $script:BumpPathPersisted = $script:BumpUserEnvPath
+  Send-BumpEnvironmentChange
   Success ('New terminals will find your tools (added to your PATH: ' + ($upd.Added -join '; ') + ')')
 }

@@ -3,7 +3,7 @@
 # The DECISION half - which dirs go on the PATH, and whether any of them is already
 # there - is pure, so it runs anywhere. The EFFECT half writes HKCU\Environment and
 # broadcasts WM_SETTINGCHANGE, and it reaches that registry through exactly one
-# function: Get-VibeUserEnvKey. That single door is the seam. Faking it asserts BOTH
+# function: Get-BumpUserEnvKey. That single door is the seam. Faking it asserts BOTH
 # worlds - a host with a per-user registry and a host without one - on every host, so
 # no case here is gated on the machine it happens to run on.
 #
@@ -30,13 +30,13 @@ BeforeAll {
   . "$PSScriptRoot/helpers/FakeEnvKey.ps1"
 }
 
-Describe 'Get-VibePathUpdate' {
+Describe 'Get-BumpPathUpdate' {
   BeforeEach {
     $script:dirs = @('C:\Users\me\.local\bin', 'C:\Users\me\.codex\bin')
   }
 
   It 'appends both dirs to a PATH that has neither' {
-    $u = Get-VibePathUpdate -Current 'C:\Windows;C:\Windows\System32' -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current 'C:\Windows;C:\Windows\System32' -Dirs $script:dirs
     $u.Changed | Should -BeTrue
     $u.Added.Count | Should -Be 2
     $u.Value | Should -Be 'C:\Windows;C:\Windows\System32;C:\Users\me\.local\bin;C:\Users\me\.codex\bin'
@@ -46,20 +46,20 @@ Describe 'Get-VibePathUpdate' {
     # The second run of the lane, and the second run of a beginner's paste. A PATH
     # that grows by two entries per install is the regression this asserts against.
     $current = 'C:\Windows;C:\Users\me\.local\bin;C:\Users\me\.codex\bin'
-    $u = Get-VibePathUpdate -Current $current -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current $current -Dirs $script:dirs
     $u.Changed | Should -BeFalse
     $u.Added.Count | Should -Be 0
     $u.Value | Should -Be $current
   }
 
   It 'recognises an entry that differs only by a trailing backslash' {
-    $u = Get-VibePathUpdate -Current 'C:\Users\me\.local\bin\;C:\Users\me\.codex\bin\' -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current 'C:\Users\me\.local\bin\;C:\Users\me\.codex\bin\' -Dirs $script:dirs
     $u.Changed | Should -BeFalse
   }
 
   It 'recognises an entry that differs only in case' {
     # Windows paths are case-insensitive, so C:\USERS\ME\.Local\Bin is the same dir.
-    $u = Get-VibePathUpdate -Current 'C:\USERS\ME\.LOCAL\BIN;c:\users\me\.codex\bin' -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current 'C:\USERS\ME\.LOCAL\BIN;c:\users\me\.codex\bin' -Dirs $script:dirs
     $u.Changed | Should -BeFalse
   }
 
@@ -68,7 +68,7 @@ Describe 'Get-VibePathUpdate' {
     # literal beside it is a duplicate that reads as two different dirs.
     $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
-      $u = Get-VibePathUpdate -Current '%BUMP_TEST_PROFILE%\.local\bin;%BUMP_TEST_PROFILE%\.codex\bin' -Dirs $script:dirs
+      $u = Get-BumpPathUpdate -Current '%BUMP_TEST_PROFILE%\.local\bin;%BUMP_TEST_PROFILE%\.codex\bin' -Dirs $script:dirs
       $u.Changed | Should -BeFalse
     } finally {
       Remove-Item Env:BUMP_TEST_PROFILE -ErrorAction SilentlyContinue
@@ -81,7 +81,7 @@ Describe 'Get-VibePathUpdate' {
     # is why the raw registry value is read rather than the expanding accessor.
     $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
-      $u = Get-VibePathUpdate -Current '%BUMP_TEST_PROFILE%\bin' -Dirs $script:dirs
+      $u = Get-BumpPathUpdate -Current '%BUMP_TEST_PROFILE%\bin' -Dirs $script:dirs
       $u.Changed | Should -BeTrue
       $u.Value | Should -BeLike '%BUMP_TEST_PROFILE%\bin;*'
     } finally {
@@ -92,29 +92,29 @@ Describe 'Get-VibePathUpdate' {
   It 'handles an empty PATH without a leading separator' {
     # An empty user PATH is the normal state of a fresh Windows account, so a
     # `;C:\...` value - which reads as "the current directory" - is the wrong answer.
-    $u = Get-VibePathUpdate -Current '' -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current '' -Dirs $script:dirs
     $u.Changed | Should -BeTrue
     $u.Value | Should -Be 'C:\Users\me\.local\bin;C:\Users\me\.codex\bin'
   }
 
   It 'drops empty entries rather than preserving a malformed PATH' {
-    $u = Get-VibePathUpdate -Current 'C:\Windows;;  ;' -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current 'C:\Windows;;  ;' -Dirs $script:dirs
     $u.Value | Should -Be 'C:\Windows;C:\Users\me\.local\bin;C:\Users\me\.codex\bin'
   }
 
   It 'adds only the dir that is missing' {
-    $u = Get-VibePathUpdate -Current 'C:\Users\me\.local\bin' -Dirs $script:dirs
+    $u = Get-BumpPathUpdate -Current 'C:\Users\me\.local\bin' -Dirs $script:dirs
     $u.Changed | Should -BeTrue
     $u.Added | Should -Be @('C:\Users\me\.codex\bin')
   }
 }
 
-Describe 'Get-VibeOwnedPathDir' {
+Describe 'Get-BumpOwnedPathDir' {
   It 'is exactly the two dirs whose installers persist nothing' {
     # winget puts node, git, gh and the desktop apps on a registry PATH itself, so
     # claiming those here would author a duplicate of somebody else's entry. The
     # README's removal instructions name these same two.
-    $dirs = Get-VibeOwnedPathDir
+    $dirs = Get-BumpOwnedPathDir
     $dirs.Count | Should -Be 2
     ($dirs[0] -replace '\\', '/') | Should -BeLike '*/.local/bin'
     ($dirs[1] -replace '\\', '/') | Should -BeLike '*/.codex/bin'
@@ -127,20 +127,20 @@ Describe 'the effect half, where there is no user registry' {
   # runs on, and it cannot go red for the reason it once did - by stating a fact about
   # the host in a suite that runs on two of them.
   BeforeEach {
-    Mock Get-VibeUserEnvKey { $null }
-    Mock Send-VibeEnvironmentChange { }
+    Mock Get-BumpUserEnvKey { $null }
+    Mock Send-BumpEnvironmentChange { }
   }
 
   It 'is a no-op rather than a crash' {
     # apply.ps1 guards non-Windows before any of this runs, but the Pester suite
     # drives the whole applier with BUMP_OS=win on a Mac - so this path is real and
     # has to stay quiet.
-    Test-VibeUserEnvironment | Should -BeFalse
-    Get-VibeUserPathRaw | Should -Be ''
-    Test-VibePersistedPath | Should -BeFalse
-    { Set-VibePersistedPath } | Should -Not -Throw
+    Test-BumpUserEnvironment | Should -BeFalse
+    Get-BumpUserPathRaw | Should -Be ''
+    Test-BumpPersistedPath | Should -BeFalse
+    { Set-BumpPersistedPath } | Should -Not -Throw
     # Quiet all the way out: nothing to write means nothing to announce either.
-    Should -Invoke Send-VibeEnvironmentChange -Times 0 -Exactly
+    Should -Invoke Send-BumpEnvironmentChange -Times 0 -Exactly
   }
 }
 
@@ -152,40 +152,40 @@ Describe 'the effect half, where there is a user registry' {
   BeforeEach {
     $script:reg = New-FakeEnvState -Value 'C:\Windows'
     $script:key = New-FakeEnvKey $script:reg
-    Mock Get-VibeUserEnvKey { $script:key }
+    Mock Get-BumpUserEnvKey { $script:key }
     # The broadcast needs a desktop to hear it and a user32.dll to make it. Its absence
     # is already non-fatal in the code; faking it keeps this suite from shouting at the
     # window manager of whoever is running.
-    Mock Send-VibeEnvironmentChange { }
+    Mock Send-BumpEnvironmentChange { }
   }
 
   It 'reads the account PATH back before it has anything of vibe own in it' {
-    Test-VibeUserEnvironment | Should -BeTrue
-    Get-VibeUserPathRaw | Should -Be 'C:\Windows'
+    Test-BumpUserEnvironment | Should -BeTrue
+    Get-BumpUserPathRaw | Should -Be 'C:\Windows'
     # The confirm gate is state-aware, so "already there" has to be false here or the
     # gate promises a PATH edit it will not make.
-    Test-VibePersistedPath | Should -BeFalse
+    Test-BumpPersistedPath | Should -BeFalse
   }
 
   It 'appends the owned dirs and writes the value as an ExpandString' {
-    Set-VibePersistedPath 6>$null
+    Set-BumpPersistedPath 6>$null
     $script:reg.Writes | Should -Be 1
     ($script:reg.Value -replace '\\', '/') | Should -BeLike 'C:/Windows;*/.local/bin;*/.codex/bin'
     # Not a plain String: a REG_SZ value would kill every %VAR% already in the PATH.
     $script:reg.Kind | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
     # Without the broadcast the registry is right and a new terminal is still wrong
     # until the next sign-in, so it is part of the promise, not a flourish.
-    Should -Invoke Send-VibeEnvironmentChange -Times 1 -Exactly
+    Should -Invoke Send-BumpEnvironmentChange -Times 1 -Exactly
   }
 
   It 'writes nothing on a second run' {
     # The pure core already refuses to duplicate; this is the same promise through the
     # effect, which is where a beginner's second paste actually lands.
-    Set-VibePersistedPath 6>$null
-    Set-VibePersistedPath 6>$null
+    Set-BumpPersistedPath 6>$null
+    Set-BumpPersistedPath 6>$null
     $script:reg.Writes | Should -Be 1
     # ...and the gate for a third run now says so, rather than promising the edit again.
-    Test-VibePersistedPath | Should -BeTrue
+    Test-BumpPersistedPath | Should -BeTrue
   }
 
   It 'leaves an entry it did not author unexpanded in what it writes' {
@@ -195,7 +195,7 @@ Describe 'the effect half, where there is a user registry' {
     $script:reg.Value = '%BUMP_TEST_PROFILE%\bin'
     $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
-      Set-VibePersistedPath 6>$null
+      Set-BumpPersistedPath 6>$null
       $script:reg.Value | Should -BeLike '%BUMP_TEST_PROFILE%\bin;*'
     } finally {
       Remove-Item Env:BUMP_TEST_PROFILE -ErrorAction SilentlyContinue
@@ -203,8 +203,8 @@ Describe 'the effect half, where there is a user registry' {
   }
 
   It 'warns rather than throwing when the key cannot be opened for writing' {
-    Mock Get-VibeUserEnvKey { if ($Writable) { return $null } return $script:key }
-    { Set-VibePersistedPath 3>$null 6>$null } | Should -Not -Throw
+    Mock Get-BumpUserEnvKey { if ($Writable) { return $null } return $script:key }
+    { Set-BumpPersistedPath 3>$null 6>$null } | Should -Not -Throw
     $script:reg.Writes | Should -Be 0
   }
 
@@ -212,25 +212,25 @@ Describe 'the effect half, where there is a user registry' {
     # A managed or locked-down account. The setup has already done everything else it
     # promised, so this ends in a warning, not a failure.
     $script:reg.Writable = $false
-    { Set-VibePersistedPath 3>$null 6>$null } | Should -Not -Throw
+    { Set-BumpPersistedPath 3>$null 6>$null } | Should -Not -Throw
   }
 }
 
 Describe 'the seam itself, unmocked' {
-  # The one thing a fake cannot cover: Get-VibeUserEnvKey's own try/catch, which is
+  # The one thing a fake cannot cover: Get-BumpUserEnvKey's own try/catch, which is
   # what makes "no registry" a value rather than an exception. Off Windows the .NET
   # registry API raises PlatformNotSupportedException; on Windows it returns a key.
   # Either answer is fine here - the point is that it ANSWERS, on whichever host you
   # are on, because every caller above treats the result as data.
   #
-  # Nothing in this block writes. Set-VibePersistedPath is deliberately absent: unfaked
+  # Nothing in this block writes. Set-BumpPersistedPath is deliberately absent: unfaked
   # it edits the account PATH of whoever ran the suite.
   It 'answers with a key or with nothing, and never throws' {
-    { $script:probe = Get-VibeUserEnvKey } | Should -Not -Throw
+    { $script:probe = Get-BumpUserEnvKey } | Should -Not -Throw
     if ($script:probe) { $script:probe.Close() }
 
-    Test-VibeUserEnvironment | Should -BeOfType [bool]
-    Get-VibeUserPathRaw     | Should -BeOfType [string]
-    Test-VibePersistedPath  | Should -BeOfType [bool]
+    Test-BumpUserEnvironment | Should -BeOfType [bool]
+    Get-BumpUserPathRaw     | Should -BeOfType [string]
+    Test-BumpPersistedPath  | Should -BeOfType [bool]
   }
 }

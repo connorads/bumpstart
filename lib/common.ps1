@@ -32,18 +32,18 @@ function Err     { param([string]$Msg) Write-Host "  $($script:Red)$([char]0x271
 # green 'Setup complete.' over a machine where an install warned 40 lines ago and
 # scrolled away. Separate from Warn itself: not every warning is a failed step (a
 # deliberate back-off is a warning too), and only failures change the verdict.
-$script:VibeWarnCount = 0
-$script:VibeWarnItems = @()
+$script:BumpWarnCount = 0
+$script:BumpWarnItems = @()
 
-# Add-VibeWarning <label>: count one failed step and remember its human label, once.
+# Add-BumpWarning <label>: count one failed step and remember its human label, once.
 # Deduped by label, mirroring record_warning: a tool can be attempted twice in one
 # run by design, and the same name listed twice reads as a bug in vibe rather than as
 # one thing that didn't work.
-function Add-VibeWarning {
+function Add-BumpWarning {
   param([string]$Label)
-  if ($script:VibeWarnItems -contains $Label) { return }
-  $script:VibeWarnCount++
-  $script:VibeWarnItems += $Label
+  if ($script:BumpWarnItems -contains $Label) { return }
+  $script:BumpWarnCount++
+  $script:BumpWarnItems += $Label
 }
 
 # Step <n> <total> <label>: a numbered progress header before each install block.
@@ -107,14 +107,14 @@ function Wait-Enter {
   [void][Console]::ReadLine()
 }
 
-# Set-VibePath: freshly-installed CLIs land in per-user dirs the current shell may
+# Set-BumpPath: freshly-installed CLIs land in per-user dirs the current shell may
 # not have on PATH yet - prepend the Windows ones so the launch step and any
 # later cell sees them without a re-login. The mirror of common.sh's fixup_path.
 # Only dirs that exist are prepended, so a mac-hosted test run is a near no-op.
 #   Claude Code + Codex per-user installers -> %USERPROFILE%\.local\bin
 #   npm-global (pnpm + npm-installed Codex)  -> %AppData%\npm
 #   Node.js (winget machine MSI)             -> %ProgramFiles%\nodejs
-function Set-VibePath {
+function Set-BumpPath {
   $candidates = @(
     (Join-Path $HOME '.local\bin')
     (Join-Path $HOME '.codex\bin')
@@ -130,11 +130,11 @@ function Set-VibePath {
   }
 }
 
-# Expand-VibeHome <path>: expand a leading $HOME or ~ in a meta path literal (e.g.
+# Expand-BumpHome <path>: expand a leading $HOME or ~ in a meta path literal (e.g.
 # TARGET_WIN='$HOME/.claude/CLAUDE.md') to the automatic $HOME (= %USERPROFILE% on
 # Windows, defined in both 5.1 and pwsh 7). Bash source-expands its own paths; the
 # pwsh line-reader returns them literal, so this is where they resolve.
-function Expand-VibeHome {
+function Expand-BumpHome {
   param([string]$Path)
   if ($Path -like '$HOME*') { return (Join-Path $HOME ($Path.Substring(5).TrimStart('/', '\'))) }
   if ($Path -like '~*')     { return (Join-Path $HOME ($Path.Substring(1).TrimStart('/', '\'))) }

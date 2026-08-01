@@ -113,7 +113,7 @@ assemble_instructions() {
 # _backup_file <path> — move a file aside to <path>.bak (timestamp-suffixed when
 # .bak is taken) and echo the path it landed at. The caller words its own message:
 # a canonical rewrite and a native-file relink are different sentences. Mirrored by
-# Backup-VibeFile in instructions.ps1, including the timestamp source (wall clock).
+# Backup-BumpFile in instructions.ps1, including the timestamp source (wall clock).
 _backup_file() {
   _bf_path="$1"
   _bf_bak="$_bf_path.bak"

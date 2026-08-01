@@ -68,23 +68,23 @@ Emit-Precheck 'shell.kind' 'registry'
 
 $scopeDirs = @{}
 $allDirs = @()
-foreach ($scope in (Get-VibeMeasureScope)) {
-  $d = @(Get-VibeRegPathDir $scope)
+foreach ($scope in (Get-BumpMeasureScope)) {
+  $d = @(Get-BumpRegPathDir $scope)
   $scopeDirs[$scope] = $d
   $allDirs += $d
 }
-foreach ($t in (Get-VibeMeasureTool)) {
-  foreach ($scope in (Get-VibeMeasureScope)) {
-    Emit-PrecheckBool ("shell.regpath." + $scope.ToLower() + ".$t") (Test-VibeRegPathResolves $t $scopeDirs[$scope])
+foreach ($t in (Get-BumpMeasureTool)) {
+  foreach ($scope in (Get-BumpMeasureScope)) {
+    Emit-PrecheckBool ("shell.regpath." + $scope.ToLower() + ".$t") (Test-BumpRegPathResolves $t $scopeDirs[$scope])
   }
-  Emit-PrecheckBool "shell.regpath.$t" (Test-VibeRegPathResolves $t $allDirs)
+  Emit-PrecheckBool "shell.regpath.$t" (Test-BumpRegPathResolves $t $allDirs)
 }
 
 # The User PATH itself, raw, beside those booleans. They say whether a lookup now
 # succeeds; this says what the value WAS, so a delta can name what changed rather than
 # only that something did - and it is the User scope because that is the one vibe
 # writes. Tabs out, because the value lands in a TSV manifest verbatim.
-Emit-Precheck 'regpath.user.raw' ((Get-VibeUserRegPathRaw) -replace "`t", ' ')
+Emit-Precheck 'regpath.user.raw' ((Get-BumpUserRegPathRaw) -replace "`t", ' ')
 
 # -- Write it out --------------------------------------------------------------
 

@@ -19,7 +19,7 @@ The first Windows real-install run reported `derived.shell.regpath.claude: got
 the desktop apps arrive via winget, whose installers put them on a registry PATH.
 `claude-cli` runs a vendor PowerShell script that installs into
 `%USERPROFILE%\.local\bin` and persists nothing; `codex-cli` does the same into
-`%USERPROFILE%\.codex\bin`. `Set-VibePath` (the mirror of `fixup_path`) prepends both
+`%USERPROFILE%\.codex\bin`. `Set-BumpPath` (the mirror of `fixup_path`) prepends both
 to `$env:PATH`, which lasts exactly as long as the process.
 
 Three things followed from that, and none of them is small:
@@ -68,12 +68,12 @@ The mechanics, each chosen against a plausible wrong answer:
   everything it launches, so without the broadcast the registry is right and a new
   terminal is still wrong until the next sign-in. `SendMessageTimeout` rather than
   `SendMessage` because one hung top-level window would otherwise block the setup.
-- **The decision is pure, the effect is not.** `Get-VibePathUpdate` takes the current
+- **The decision is pure, the effect is not.** `Get-BumpPathUpdate` takes the current
   PATH plus the dirs and returns the new value and whether anything changed, comparing
   entries case-insensitively, ignoring a trailing separator, and expanding `%VAR%`
   references *for the comparison only*. It is tested in both `check` jobs, on macOS and
   on Windows, because it needs no registry at all.
-- **The effect half reaches the registry through one function**, `Get-VibeUserEnvKey`,
+- **The effect half reaches the registry through one function**, `Get-BumpUserEnvKey`,
   and that single door is the seam the Pester suite fakes. Both worlds are therefore
   asserted on every host - the no-op where no per-user registry exists, and the value
   written, its kind and the second-run no-op where one does - so the suite is

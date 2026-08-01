@@ -20,7 +20,7 @@
 
   # Write-Host is the intended UI channel; Invoke-Expression is the runner's
   # design (evaluating per-OS command cells, the eval analogue). PSUseSingularNouns
-  # misfires on Get-VibeOs ("Os" is an abbreviation, not a plural). All safe here,
+  # misfires on Get-BumpOs ("Os" is an abbreviation, not a plural). All safe here,
   # so their advisory rules would be noise.
   ExcludeRules = @(
     'PSAvoidUsingWriteHost',

@@ -1,7 +1,7 @@
 # resolve.ps1: PURE CORE, the pwsh mirror of resolve.sh. Given a repo root + an id
 # list, return a Plan object or a domain error - no network, no installs, no
 # filesystem writes. Depends on meta.ps1 (Get-BlockDir, Get-Meta) + os.ps1
-# (Get-VibeOsKey). Dot-sourced. 5.1-safe.
+# (Get-BumpOsKey). Dot-sourced. 5.1-safe.
 #
 # The OS-neutral outputs (StepIds/StepKinds/DefaultHarness/Error) are locked to
 # resolve.sh by the shared TSV contract. Targets are OS-specific (MAC reads
@@ -121,7 +121,7 @@ function Resolve-Plan {
   # Instruction targets = the OS-native TARGET of each harness present, deduped in
   # order - only meaningful when some step ships content (content.md or a per-OS
   # content.<os>.md), since that is what the canonical file is assembled from.
-  $osKey = Get-VibeOsKey
+  $osKey = Get-BumpOsKey
   $targetField = @{ MAC = 'TARGET'; WIN = 'TARGET_WIN'; LINUX = 'TARGET_LINUX' }[$osKey]
   $targets = @()
   $targetMethods = @()

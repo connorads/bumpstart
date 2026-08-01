@@ -1,5 +1,5 @@
 # lib/apply.ps1: the Windows e2e anchor - the pwsh analogue of tests/e2e.bats.
-# Dot-sources apply.ps1 (which defines Invoke-VibeSetup without running) and
+# Dot-sources apply.ps1 (which defines Invoke-BumpSetup without running) and
 # drives it in-process with $env:BUMP_OS=win, so the WIN command cells fire.
 # Installers are faked as global shadow functions (winget/npm/irm|iex/clipboard);
 # real git is kept on a hermetic PATH so repo init works, while node/gh/claude/
@@ -65,15 +65,15 @@ Describe 'apply.ps1 (Windows spine)' {
     $env:PATH = $emptyBin
 
     # The account PATH is faked for the same reason the installers are: an applied run
-    # calls Set-VibePersistedPath, which on a Windows host appends THIS TEST'S $TestDrive
+    # calls Set-BumpPersistedPath, which on a Windows host appends THIS TEST'S $TestDrive
     # dirs to the registry PATH of whoever ran the suite, and broadcasts
-    # WM_SETTINGCHANGE - once per applied case. Get-VibeUserEnvKey is the only door to
+    # WM_SETTINGCHANGE - once per applied case. Get-BumpUserEnvKey is the only door to
     # that registry (see helpers/FakeEnvKey.ps1), so mocking it runs every line of the
     # persist step against a value the test can read back instead.
     $script:regPath = New-FakeEnvState -Value 'C:\Windows;C:\Windows\System32'
     $script:regKey = New-FakeEnvKey $script:regPath
-    Mock Get-VibeUserEnvKey { $script:regKey }
-    Mock Send-VibeEnvironmentChange { }
+    Mock Get-BumpUserEnvKey { $script:regKey }
+    Mock Send-BumpEnvironmentChange { }
   }
   AfterEach {
     foreach ($v in 'BUMP_OS', 'BUMP_ROOT', 'BUMP_FAKE_LOG', 'BUMP_LIB', 'BUMP_BLOCK_DIR', 'BUMP_BLOCK_ID') {
@@ -82,7 +82,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'claude starter dispatches installs, lands per-OS content, links Claude via @import, pre-trusts' {
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-String
     $out | Should -Match 'Setup complete'
     $out | Should -Match 'Agent to launch: claude'
 
@@ -110,18 +110,18 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'a one-agent plan names the other agent at the gate; a two-agent plan does not' {
-    $out = Invoke-VibeSetup -Plan -Ids @('claude', 'starter') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Plan -Ids @('claude', 'starter') 6>&1 | Out-String
     $out | Should -Match 'sign into your Claude account'
     $out | Should -Match 'Use ChatGPT instead\?'
     $out | Should -Match "re-run with 'codex' in place of 'claude'"
 
     # generated from the catalogue, not hardcoded - so it is symmetric...
-    $out = Invoke-VibeSetup -Plan -Ids @('codex', 'starter') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Plan -Ids @('codex', 'starter') 6>&1 | Out-String
     $out | Should -Match 'sign into your ChatGPT account'
     $out | Should -Match 'Use Claude instead\?'
 
     # ...and silent once the plan already installs both
-    $out = Invoke-VibeSetup -Plan -Ids @('claude', 'codex', 'starter') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Plan -Ids @('claude', 'codex', 'starter') 6>&1 | Out-String
     $out | Should -Not -Match 'instead\?'
   }
 
@@ -131,7 +131,7 @@ Describe 'apply.ps1 (Windows spine)' {
     # is the account PATH (lib/shellpath.ps1) rather than an rc line, and the promise
     # does not get to be OS-dependent. Asserted at the gate, where Ctrl-C is still
     # cheap - not after the write.
-    $out = Invoke-VibeSetup -Plan -Ids @('claude', 'starter') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Plan -Ids @('claude', 'starter') 6>&1 | Out-String
     $out | Should -Match "account's PATH"
     $out | Should -Match 'NEW terminal window'
     # The dirs by name, because "adds some folders to PATH" is not a removal
@@ -142,10 +142,10 @@ Describe 'apply.ps1 (Windows spine)' {
 
   It 'persists the install dirs on the account PATH, not only promises them at the gate' {
     # The other half of the case above: the gate's wording was asserted and the EFFECT
-    # was not, so the applier could stop calling Set-VibePersistedPath and only the
+    # was not, so the applier could stop calling Set-BumpPersistedPath and only the
     # weekly Windows lane would notice. Appended to what was already there, never
     # replacing it.
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-Null
     $script:regPath.Writes | Should -Be 1
     ($script:regPath.Value -replace '\\', '/') | Should -BeLike 'C:/Windows;C:/Windows/System32;*/.local/bin;*/.codex/bin'
     $script:regPath.Kind | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
@@ -158,10 +158,10 @@ Describe 'apply.ps1 (Windows spine)' {
     # cell is `npm install -g pnpm`, so run after the loop this fixed up a PATH
     # nothing was left to use.
     #
-    # Order is the assertion, not effect - what Set-VibePath actually prepends is
+    # Order is the assertion, not effect - what Set-BumpPath actually prepends is
     # its own business, and asserting it here would just restate common.ps1.
-    Mock Set-VibePath { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'PATHFIX' }
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
+    Mock Set-BumpPath { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'PATHFIX' }
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
 
     $log = @(Get-Content -LiteralPath $env:BUMP_FAKE_LOG)
     $fix = [array]::IndexOf($log, 'PATHFIX')
@@ -174,7 +174,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'codex copies instructions (no import) and writes the trust TOML' {
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>&1 | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>&1 | Out-Null
 
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     $agents = Join-Path $script:testHome '.codex/AGENTS.md'
@@ -189,7 +189,7 @@ Describe 'apply.ps1 (Windows spine)' {
   It "a codex-only plan does not touch Claude's path" {
     # The missing analogue of the e2e.bats case: a plan that installs one agent
     # must not leave the other one's config file behind pointing at anything.
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>$null | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>$null | Out-Null
     Test-Path -LiteralPath (Join-Path $script:testHome '.codex/AGENTS.md')  | Should -BeTrue
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
   }
@@ -199,7 +199,7 @@ Describe 'apply.ps1 (Windows spine)' {
     # the assembler has nothing to write. The applier used to re-derive the
     # targets from the steps, losing that gate: it wrote ~/.claude/CLAUDE.md
     # importing a canonical that does not exist.
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
     Test-Path -LiteralPath (Join-Path $script:testHome '.agents/AGENTS.md')  | Should -BeFalse
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
   }
@@ -210,24 +210,24 @@ Describe 'apply.ps1 (Windows spine)' {
     # nothing to write. The resolver still resolves Claude's target, because the
     # plan does carry content. Without the guard, ~/.claude/CLAUDE.md was written
     # as an @import of a canonical that is not there.
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli', 'mise') 6>$null | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli', 'mise') 6>$null | Out-Null
     Test-Path -LiteralPath (Join-Path $script:testHome '.agents/AGENTS.md')  | Should -BeFalse
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
   }
 
   It 'a second run leaves the canonical identical and backs off' {
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-Null
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     $once = Get-Content -Raw -LiteralPath $canon
 
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-String
     (Get-Content -Raw -LiteralPath $canon) | Should -Be $once
     $out | Should -Match 'left as-is'
     $out | Should -Match 'skipped \(file exists\)'
   }
 
   It 'puts the instruction sections above the tool guidance' {
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-Null
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     $lines = Get-Content -LiteralPath $canon
     # node is a [tool] (kind rank 30), so the plan runs it before the
@@ -240,10 +240,10 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'a re-run tags a content-carrying tool row, not just the instruction rows' {
-    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-Null
     # node ships content.win.md, so on the re-run its guidance is skipped too -
     # an unqualified 'already set up' would claim the whole row landed.
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
     $out | Should -Match 'guidance skipped'
   }
 
@@ -252,7 +252,7 @@ Describe 'apply.ps1 (Windows spine)' {
     New-Item -ItemType Directory -Path (Split-Path -Parent $canon) -Force | Out-Null
     Set-Content -LiteralPath $canon -Value 'MY OWN NOTES'
 
-    Invoke-VibeSetup -Yes -NoLaunch -Force -Ids @('claude', 'concise') 6>&1 | Out-Null
+    Invoke-BumpSetup -Yes -NoLaunch -Force -Ids @('claude', 'concise') 6>&1 | Out-Null
 
     (Get-Content -Raw -LiteralPath $canon) | Should -Match '## Be concise'
     (Get-Content -Raw -LiteralPath "$canon.bak").Trim() | Should -Be 'MY OWN NOTES'
@@ -270,7 +270,7 @@ Describe 'apply.ps1 (Windows spine)' {
     # read "not satisfied".
     function global:winget { Write-Output 'installer output'; $global:LASTEXITCODE = 1 }
     try {
-      $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
+      $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>&1 | Out-String
       $out | Should -Not -Match 'Setup complete'
       $out | Should -Match "steps didn't work"
       $out | Should -Match 'Node.js'
@@ -295,7 +295,7 @@ Describe 'apply.ps1 (Windows spine)' {
     $ErrorActionPreference = 'Stop'
     function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "EAP=$ErrorActionPreference" }
     try {
-      Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
+      Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
       $log = Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG
       $log | Should -Match 'EAP=Continue'
       $log | Should -Not -Match 'EAP=Stop'
@@ -307,14 +307,14 @@ Describe 'apply.ps1 (Windows spine)' {
   It 'admits a missing agent binary instead of a run-it hint' {
     # claude is never defined as a shadow function, so the install dispatch runs
     # but no binary exists — the shape of an installer that landed off PATH.
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>&1 | Out-String
     $out | Should -Match "isn't installed, so there's nothing to open yet"
     $out | Should -Not -Match "Run 'claude' in"
   }
 
   It 'records the launch rather than running it inside the value read as the exit code' {
     # The launch branch had no coverage at all. Running the agent inside the
-    # assignment `$rc = Invoke-VibeSetup ...` puts whatever it printed on the
+    # assignment `$rc = Invoke-BumpSetup ...` puts whatever it printed on the
     # success stream beside the return code, and `exit @('chatter', 1)` exits 0 -
     # so a printing agent masked a failed setup. (On a real console it is worse:
     # a native command in a captured pipeline gets a pipe, not the terminal.)
@@ -324,10 +324,10 @@ Describe 'apply.ps1 (Windows spine)' {
     Mock Wait-Enter { }
     $cwd = (Get-Location).Path
     try {
-      Invoke-VibeSetup -Yes -Ids @('claude-cli') 6>$null | Out-Null
+      Invoke-BumpSetup -Yes -Ids @('claude-cli') 6>$null | Out-Null
       (Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG) | Should -Not -Match 'LAUNCHED claude'
-      $script:VibeLaunch | Should -Be 'claude'
-      ($script:VibeLaunchDir -replace '\\', '/') | Should -Match 'git/first-project$'
+      $script:BumpLaunch | Should -Be 'claude'
+      ($script:BumpLaunchDir -replace '\\', '/') | Should -Match 'git/first-project$'
       (Get-Location).Path | Should -Be $cwd
     } finally {
       Remove-Item Function:claude -ErrorAction SilentlyContinue
@@ -337,8 +337,8 @@ Describe 'apply.ps1 (Windows spine)' {
   It 'records no launch under -NoLaunch' {
     function global:claude { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' }
     try {
-      Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
-      $script:VibeLaunch | Should -BeNullOrEmpty
+      Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
+      $script:BumpLaunch | Should -BeNullOrEmpty
     } finally {
       Remove-Item Function:claude -ErrorAction SilentlyContinue
     }
@@ -346,13 +346,13 @@ Describe 'apply.ps1 (Windows spine)' {
 
   It 'a non-Windows OS redirects to the mac paste before any effect' {
     $env:BUMP_OS = 'mac'
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude') 6>&1 | Out-String
     $out | Should -Match 'macOS paste'
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude.json') | Should -BeFalse
   }
 
   It 'unknown id fails at plan time and applies nothing' {
-    $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('bogus') 6>&1 | Out-String
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('bogus') 6>&1 | Out-String
     $out | Should -Match 'unknown block: bogus'
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
   }

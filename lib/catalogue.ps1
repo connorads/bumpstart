@@ -70,7 +70,7 @@ function Show-Block {
   $axis = Get-Meta $dir 'AXIS'
   $desc = Get-Meta $dir 'DESC'
   $inc = Get-Meta $dir 'INCLUDE'
-  $target = Get-Meta $dir ("TARGET_" + (Get-VibeOsKey))
+  $target = Get-Meta $dir ("TARGET_" + (Get-BumpOsKey))
   if (-not $target) { $target = Get-Meta $dir 'TARGET' }
 
   Write-Host ("`n  {0}{1}{2}  {3}[{4}]{2}" -f $script:Bold, $Id, $script:Reset, $script:Dim, $kind)
@@ -89,7 +89,7 @@ function Show-Block {
     }
   }
   if ($target) {
-    Write-Host ("    {0}instructions written to:{1} {2}" -f $script:Dim, $script:Reset, (Expand-VibeHome $target))
+    Write-Host ("    {0}instructions written to:{1} {2}" -f $script:Dim, $script:Reset, (Expand-BumpHome $target))
   }
   if (Test-BlockHasContent $dir) {
     Write-Host ("    {0}adds agent guidance{1}" -f $script:Dim, $script:Reset)

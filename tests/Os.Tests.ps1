@@ -6,22 +6,22 @@
 
 BeforeAll { . "$PSScriptRoot/../lib/os.ps1" }
 
-Describe 'Get-VibeOs' {
+Describe 'Get-BumpOs' {
   AfterEach { Remove-Item Env:BUMP_OS -ErrorAction SilentlyContinue }
 
   It 'honours the BUMP_OS override: <token>' -ForEach @(
     @{ token = 'mac' }, @{ token = 'win' }, @{ token = 'linux' }
   ) {
     $env:BUMP_OS = $token
-    Get-VibeOs | Should -Be $token
+    Get-BumpOs | Should -Be $token
   }
 
   It 'returns a valid token on the host with no override' {
-    Get-VibeOs | Should -BeIn @('mac', 'win', 'linux')
+    Get-BumpOs | Should -BeIn @('mac', 'win', 'linux')
   }
 }
 
-Describe 'Get-VibeOsKey' {
+Describe 'Get-BumpOsKey' {
   AfterEach { Remove-Item Env:BUMP_OS -ErrorAction SilentlyContinue }
 
   It 'is the uppercase OS token: <token> -> <key>' -ForEach @(
@@ -30,6 +30,6 @@ Describe 'Get-VibeOsKey' {
     @{ token = 'linux'; key = 'LINUX' }
   ) {
     $env:BUMP_OS = $token
-    Get-VibeOsKey | Should -Be $key
+    Get-BumpOsKey | Should -Be $key
   }
 }

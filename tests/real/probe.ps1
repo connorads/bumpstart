@@ -51,7 +51,7 @@ $tab = [char]9
 # driver compares manifests across runs, across entry points and across guests. The
 # hostname is pinned by the adapter rather than normalised here.
 
-function Format-VibeText {
+function Format-BumpText {
   param([string]$Value)
   if ($null -eq $Value) { return '' }
   $v = $Value -replace "`t", ' '
@@ -71,20 +71,20 @@ function Format-VibeText {
   return $v.TrimEnd()
 }
 
-function Format-VibePath {
+function Format-BumpPath {
   param([string]$Value)
   if ($null -eq $Value) { return '' }
-  return (Format-VibeText ($Value -replace '\\', '/'))
+  return (Format-BumpText ($Value -replace '\\', '/'))
 }
 
 function Emit {
   param([string]$Key, $Value)
-  $null = $lines.Add("$Key$tab" + (Format-VibeText ([string]$Value)))
+  $null = $lines.Add("$Key$tab" + (Format-BumpText ([string]$Value)))
 }
 
 function Emit-Path {
   param([string]$Key, $Value)
-  $null = $lines.Add("$Key$tab" + (Format-VibePath ([string]$Value)))
+  $null = $lines.Add("$Key$tab" + (Format-BumpPath ([string]$Value)))
 }
 
 function Emit-Bool {
@@ -197,7 +197,7 @@ foreach ($d in $probeDirs) {
   if (Test-Path -LiteralPath $d) { $env:PATH = "$d$sep$($env:PATH)" }
 }
 
-$tools = Get-VibeMeasureTool
+$tools = Get-BumpMeasureTool
 foreach ($t in $tools) {
   $ran = $false
   $ver = 'absent'
@@ -229,18 +229,18 @@ $env:PATH = $savedPath
 
 $regScopeDirs = @{}
 $regDirs = @()
-foreach ($scope in (Get-VibeMeasureScope)) {
-  $d = @(Get-VibeRegPathDir $scope)
+foreach ($scope in (Get-BumpMeasureScope)) {
+  $d = @(Get-BumpRegPathDir $scope)
   $regScopeDirs[$scope] = $d
   $regDirs += $d
 }
 
 Emit 'shell.kind' 'registry'
 foreach ($t in $tools) {
-  foreach ($scope in (Get-VibeMeasureScope)) {
-    Emit-Bool ("shell.regpath." + $scope.ToLower() + ".$t") (Test-VibeRegPathResolves $t $regScopeDirs[$scope])
+  foreach ($scope in (Get-BumpMeasureScope)) {
+    Emit-Bool ("shell.regpath." + $scope.ToLower() + ".$t") (Test-BumpRegPathResolves $t $regScopeDirs[$scope])
   }
-  Emit-Bool "shell.regpath.$t" (Test-VibeRegPathResolves $t $regDirs)
+  Emit-Bool "shell.regpath.$t" (Test-BumpRegPathResolves $t $regDirs)
 }
 
 # -- The one PATH edit vibe makes here, and whether anything duplicated it ----
@@ -269,7 +269,7 @@ $ownedDirs = @(
 # persists. What varies, and is measured below, is whether it did.
 Emit 'rc.file' 'registry:HKCU\Environment\Path'
 
-$userRawPath = Get-VibeUserRegPathRaw
+$userRawPath = Get-BumpUserRegPathRaw
 $userPathKeys = @()
 foreach ($e in ($userRawPath -split ';')) {
   if ([string]::IsNullOrWhiteSpace($e)) { continue }
@@ -372,12 +372,12 @@ if (Test-Path -LiteralPath $canon) {
 }
 Emit-Bool 'instructions.canonical.nonempty' (-not [string]::IsNullOrWhiteSpace($canonText))
 
-function Get-VibeHash {
+function Get-BumpHash {
   param([string]$Path)
   if (-not (Test-Path -LiteralPath $Path)) { return 'absent' }
   return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
 }
-Emit 'instructions.canonical.sha256' (Get-VibeHash $canon)
+Emit 'instructions.canonical.sha256' (Get-BumpHash $canon)
 
 # Claude: a single bare `@<canonical>` line (a path inside a code fence is not
 # imported, which is why the whole file has to be that one line).
@@ -387,9 +387,9 @@ if (Test-Path -LiteralPath $claudeTarget) {
   $t = (Get-Content -Encoding UTF8 -LiteralPath $claudeTarget -Raw)
   if ($null -eq $t) { $t = '' }
   if ($t.Trim() -eq "@$canon") {
-    $claudeState = 'import:' + (Format-VibePath $canon)
+    $claudeState = 'import:' + (Format-BumpPath $canon)
   } else {
-    $claudeState = 'file:' + (Get-VibeHash $claudeTarget)
+    $claudeState = 'file:' + (Get-BumpHash $claudeTarget)
   }
 }
 Emit 'instructions.link.claude' $claudeState
@@ -415,7 +415,7 @@ function Get-PathState {
   if (-not (Test-Path -LiteralPath $Path)) { return 'absent' }
   $item = Get-Item -LiteralPath $Path -Force
   if ($item.PSIsContainer) { return 'dir' }
-  return 'file:' + (Get-VibeHash $Path)
+  return 'file:' + (Get-BumpHash $Path)
 }
 
 $owned = @(

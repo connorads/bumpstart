@@ -34,7 +34,7 @@ function Assemble-Instructions {
   $script:InstructionsWrote = $false
   $script:InstructionsBackedOff = $false
 
-  $osTok = Get-VibeOs
+  $osTok = Get-BumpOs
   $sections = @()
   foreach ($pass in 1, 2) {
     foreach ($id in $Plan.StepIds) {
@@ -66,7 +66,7 @@ function Assemble-Instructions {
   # Only reachable under -Force (the no-force path backed off above), and the
   # confirm gate promises "backing up any existing one to .bak" - so make good on
   # it before the clobber. The canonical is the file the user edits.
-  if (Test-Path -LiteralPath $canon) { Backup-VibeFile $canon }
+  if (Test-Path -LiteralPath $canon) { Backup-BumpFile $canon }
   Set-Content -LiteralPath $canon -Value $buf -NoNewline
   Add-Content -LiteralPath $canon -Value ''   # trailing newline, matching bash printf '%s\n'
   $script:InstructionsWrote = $true
@@ -81,7 +81,7 @@ function Assemble-Instructions {
 function Link-Harness {
   param([string]$TargetLiteral, [string]$Method, [bool]$Force)
   $canon = Get-CanonicalPath
-  $target = Expand-VibeHome $TargetLiteral
+  $target = Expand-BumpHome $TargetLiteral
   New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
 
   if ($Method -eq 'import') {
@@ -92,7 +92,7 @@ function Link-Harness {
       $existing = (Get-Content -LiteralPath $target -Raw)
       if ($existing.Trim() -eq $line) { return }           # already our import line
       if (-not $Force) { $script:LinkBackoffs += $target; return }
-      Backup-VibeFile $target
+      Backup-BumpFile $target
     }
     Set-Content -LiteralPath $target -Value $line
     Success "Pointed $target at your instructions file"
@@ -106,8 +106,8 @@ function Link-Harness {
     if (Test-Path -LiteralPath $target) {
       $existing = (Get-Content -LiteralPath $target -Raw)
       if ($existing -eq $content) { return }               # already a current copy
-      if ($Force) { Backup-VibeFile $target }
-      elseif (-not (Test-VibeCopyOwned $target)) {          # foreign file, no force
+      if ($Force) { Backup-BumpFile $target }
+      elseif (-not (Test-BumpCopyOwned $target)) {          # foreign file, no force
         $script:LinkBackoffs += $target; return
       }
       # else: our own stale copy -> overwrite in place
@@ -118,20 +118,20 @@ function Link-Harness {
   }
 }
 
-# Test-VibeCopyOwned <target>: a heuristic - a Codex copy target we own starts
+# Test-BumpCopyOwned <target>: a heuristic - a Codex copy target we own starts
 # with one of the canonical section headers ("## "). A truly foreign AGENTS.md is
 # left alone unless -Force. Conservative: unknown -> foreign.
-function Test-VibeCopyOwned {
+function Test-BumpCopyOwned {
   param([string]$Target)
   if (-not (Test-Path -LiteralPath $Target)) { return $true }
   $first = (Get-Content -LiteralPath $Target -TotalCount 1)
   return ($first -like '## *' -or [string]::IsNullOrWhiteSpace($first))
 }
 
-# Backup-VibeFile <path>: move a file to <path>.bak (timestamp-suffixed if taken).
+# Backup-BumpFile <path>: move a file to <path>.bak (timestamp-suffixed if taken).
 # The wall-clock stamp mirrors _backup_file in instructions.sh, so the same
 # scenario names the same .bak on both spines.
-function Backup-VibeFile {
+function Backup-BumpFile {
   param([string]$Path)
   $bak = "$Path.bak"
   if (Test-Path -LiteralPath $bak) {

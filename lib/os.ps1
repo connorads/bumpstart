@@ -8,7 +8,7 @@
 # (Desktop => Windows PowerShell => win) before touching those automatics. This is
 # the ONLY file allowed to reference them (the lint-ps grep enforces that).
 
-function Get-VibeOs {
+function Get-BumpOs {
   # Test seam: an explicit override wins (parity with os.sh's $BUMP_OS). Required
   # here - it's how the mac-hosted Windows e2e forces the win token set.
   if ($env:BUMP_OS) { return $env:BUMP_OS }
@@ -21,8 +21,8 @@ function Get-VibeOs {
   return 'linux'
 }
 
-function Get-VibeOsKey {
-  switch (Get-VibeOs) {
+function Get-BumpOsKey {
+  switch (Get-BumpOs) {
     'mac'   { 'MAC' }
     'win'   { 'WIN' }
     'linux' { 'LINUX' }
@@ -36,9 +36,9 @@ function Get-VibeOsKey {
 # the resolver, the catalogue and the plan. Mirrors block_has_content in os.sh.
 #
 # Lives here, not in run.ps1, because it takes a block DIR and needs only
-# Get-VibeOs: Contract.Tests.ps1 dot-sources os + meta + resolve alone.
+# Get-BumpOs: Contract.Tests.ps1 dot-sources os + meta + resolve alone.
 function Test-BlockHasContent {
   param([string]$BlockDir)
-  if (Test-Path -LiteralPath (Join-Path $BlockDir ("content." + (Get-VibeOs) + '.md'))) { return $true }
+  if (Test-Path -LiteralPath (Join-Path $BlockDir ("content." + (Get-BumpOs) + '.md'))) { return $true }
   return (Test-Path -LiteralPath (Join-Path $BlockDir 'content.md'))
 }

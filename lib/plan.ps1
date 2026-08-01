@@ -32,8 +32,8 @@ function Test-StepSatisfied {
   param([string]$Root, [string]$Id)
   $dir = Get-BlockDir $Root $Id
   if (-not $dir) { return 2 }
-  $cell = Get-Meta $dir ("SATISFIED_" + (Get-VibeOsKey))
-  if (-not $cell) { $cell = Get-Meta $dir ("CHECK_" + (Get-VibeOsKey)) }
+  $cell = Get-Meta $dir ("SATISFIED_" + (Get-BumpOsKey))
+  if (-not $cell) { $cell = Get-Meta $dir ("CHECK_" + (Get-BumpOsKey)) }
   if (-not $cell) { return 2 }
   # Read by the TRUTHINESS OF WHAT THE CELL RETURNS, not by an exit status - the
   # same model Test-BlockCheck uses, and the opposite of plan.sh's _step_satisfied.
@@ -123,7 +123,7 @@ function Show-Plan {
   if ($Full -and $Plan.Targets.Count -gt 0) {
     Write-Host ("  Instructions file: {0}" -f (Get-CanonicalPath))
     Write-Host '  linked from:'
-    foreach ($t in $Plan.Targets) { Write-Host ("    {0}" -f (Expand-VibeHome $t)) }
+    foreach ($t in $Plan.Targets) { Write-Host ("    {0}" -f (Expand-BumpHome $t)) }
   }
 
   if ($Full) {
@@ -192,10 +192,10 @@ function Show-Expectations {
   # discovered later - the same deal plan.sh strikes for the rc line. State-aware for
   # the same reason too: an account PATH that already carries the dirs is left alone,
   # and "adds" there would promise a change that will not happen.
-  if (Test-VibePersistedPath) {
+  if (Test-BumpPersistedPath) {
     Add-Expectation "Your account's PATH already has vibe's install folders - it is left as-is."
   } else {
-    $dirs = (Get-VibeOwnedPathDir) -join ' and '
+    $dirs = (Get-BumpOwnedPathDir) -join ' and '
     Add-Expectation "Adds $dirs to your account's PATH so a NEW terminal window still finds the tools it installs."
   }
 
