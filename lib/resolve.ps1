@@ -47,8 +47,14 @@ function _Expand {
 }
 
 # Resolve-Plan <root> <ids...> - a [pscustomobject] Plan (StepIds, StepKinds,
-# StepDescs, DefaultHarness, Targets, Error). On failure every list is empty and
-# Error carries the identical domain-error string bash produces.
+# StepDescs, DefaultHarness, Targets, TargetMethods, Error). On failure every list
+# is empty and Error carries the identical domain-error string bash produces.
+#
+# TargetMethods is index-aligned with Targets, in the StepIds/StepKinds/StepDescs
+# idiom: the applier needs a linking method per target and the plan is what it
+# reads, so the plan carries it. It is pwsh-only - link_harness on the bash spine
+# has one mechanism (ln -s), so a PLAN_TARGET_METHODS[] nothing reads would be
+# dead code there.
 function Resolve-Plan {
   param([string]$Root, [string[]]$Ids)
 
@@ -60,6 +66,7 @@ function Resolve-Plan {
       StepDescs      = @()
       DefaultHarness = ''
       Targets        = @()
+      TargetMethods  = @()
       Error          = $msg
     }
   }
@@ -114,8 +121,10 @@ function Resolve-Plan {
   # Instruction targets = the OS-native TARGET of each harness present, deduped in
   # order - only meaningful when some step ships content (content.md or a per-OS
   # content.<os>.md), since that is what the canonical file is assembled from.
-  $targetField = @{ MAC = 'TARGET'; WIN = 'TARGET_WIN'; LINUX = 'TARGET_LINUX' }[(Get-VibeOsKey)]
+  $osKey = Get-VibeOsKey
+  $targetField = @{ MAC = 'TARGET'; WIN = 'TARGET_WIN'; LINUX = 'TARGET_LINUX' }[$osKey]
   $targets = @()
+  $targetMethods = @()
   $writes = $false
   foreach ($id in $stepIds) {
     if (Test-BlockHasContent (Get-BlockDir $Root $id)) {
@@ -133,7 +142,15 @@ function Resolve-Plan {
         # at all, so a harness with only a plain TARGET would silently link nothing.
         $t = Get-Meta $dir $targetField
         if (-not $t) { $t = Get-Meta $dir 'TARGET' }
-        if ($t -and $seenT.Add($t)) { $targets += $t }
+        if ($t -and $seenT.Add($t)) {
+          $targets += $t
+          # How to link it, read alongside the path it belongs to. 'copy' is the
+          # default HERE rather than at the applier's call site so exactly one
+          # place decides, and so a plan is answerable for what it promises.
+          $m = Get-Meta $dir ("LINK_" + $osKey)
+          if (-not $m) { $m = 'copy' }
+          $targetMethods += $m
+        }
       }
     }
   }
@@ -144,6 +161,7 @@ function Resolve-Plan {
     StepDescs      = $stepDescs
     DefaultHarness = $harness
     Targets        = $targets
+    TargetMethods  = $targetMethods
     Error          = ''
   }
 }

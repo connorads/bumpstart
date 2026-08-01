@@ -5,4 +5,5 @@ AGENT=claude
 ACCOUNT="Claude"
 TARGET="$HOME/.claude/CLAUDE.md"
 TARGET_WIN='$HOME/.claude/CLAUDE.md'
+LINK_WIN=import
 INSTALL_MAC='true'

@@ -162,18 +162,17 @@ function Invoke-VibeSetup {
 
   # Instructions: assemble the canonical file, then link each harness to it via
   # its per-OS method (import for Claude, copy for Codex).
+  #
+  # Straight off the Plan, as apply.sh reads PLAN_TARGETS. Re-walking the steps
+  # here instead re-derived the list and lost both of the resolver's rules doing
+  # it: the content gate (no content in the plan -> nothing to point at) and the
+  # TARGET_<OS>-then-TARGET fallback. Net effect on Windows: `-Ids claude-cli`
+  # wrote ~/.claude/CLAUDE.md importing a canonical the assembler had returned
+  # early rather than create.
   $script:LinkBackoffs = @()
   Assemble-Instructions -Plan $resolved -Root $root -Force:$Force
-  $key = Get-VibeOsKey
-  $linked = New-Object System.Collections.Generic.HashSet[string]
-  for ($i = 0; $i -lt $resolved.StepIds.Count; $i++) {
-    if ($resolved.StepKinds[$i] -ne 'harness') { continue }
-    $dir = Get-BlockDir $root $resolved.StepIds[$i]
-    $target = Get-Meta $dir ("TARGET_" + $key)
-    if (-not $target -or -not $linked.Add($target)) { continue }
-    $method = Get-Meta $dir ("LINK_" + $key)
-    if (-not $method) { $method = 'copy' }
-    Link-Harness -TargetLiteral $target -Method $method -Force:$Force
+  for ($i = 0; $i -lt $resolved.Targets.Count; $i++) {
+    Link-Harness -TargetLiteral $resolved.Targets[$i] -Method $resolved.TargetMethods[$i] -Force:$Force
   }
 
   # The other central persistent effect, beside the instructions file: make the dirs

@@ -164,6 +164,24 @@ Describe 'apply.ps1 (Windows spine)' {
     (Get-Content -Raw -LiteralPath $toml) | Should -Match '\[projects\.'
   }
 
+  It "a codex-only plan does not touch Claude's path" {
+    # The missing analogue of the e2e.bats case: a plan that installs one agent
+    # must not leave the other one's config file behind pointing at anything.
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>$null | Out-Null
+    Test-Path -LiteralPath (Join-Path $script:testHome '.codex/AGENTS.md')  | Should -BeTrue
+    Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
+  }
+
+  It 'a harness with nothing to say writes no instructions file and links nothing at it' {
+    # claude-cli alone carries no content, so the resolver ships no targets and
+    # the assembler has nothing to write. The applier used to re-derive the
+    # targets from the steps, losing that gate: it wrote ~/.claude/CLAUDE.md
+    # importing a canonical that does not exist.
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
+    Test-Path -LiteralPath (Join-Path $script:testHome '.agents/AGENTS.md')  | Should -BeFalse
+    Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
+  }
+
   It 'a second run leaves the canonical identical and backs off' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-Null
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'

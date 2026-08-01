@@ -84,6 +84,28 @@ mg() { run bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "$1" "$2"' _ "$@"; 
   done
 }
 
+@test "a harness that declares TARGET_WIN declares LINK_WIN too" {
+  # LINK_WIN says HOW the Windows applier points that path at the canonical file:
+  # 'import' (a single @<path> line, what Claude reads) or 'copy' (a physical
+  # copy, because Codex has no import). The resolver defaults to 'copy' for a
+  # block that omits it, which is the safe default but the wrong answer for an
+  # import harness — and the failure is silent: the file is written, it just
+  # holds the wrong thing. So the default may never apply to a real block.
+  for f in "$REPO_ROOT"/blocks/*/meta; do
+    grep -q '^TARGET_WIN=' "$f" || continue
+    if ! grep -q '^LINK_WIN=' "$f"; then
+      printf 'TARGET_WIN without LINK_WIN: %s\n' "$f" >&2
+      printf 'declare LINK_WIN=import or LINK_WIN=copy\n' >&2
+      return 1
+    fi
+    method="$(bash -c '. "'"$REPO_ROOT"'/lib/meta.sh"; meta_get "$1" LINK_WIN' _ "$(dirname "$f")")"
+    case "$method" in
+      import|copy) : ;;
+      *) printf 'LINK_WIN=%s is neither import nor copy (%s)\n' "$method" "$f" >&2; return 1 ;;
+    esac
+  done
+}
+
 @test "no distro knowledge in a meta cell or anywhere under lib/" {
   # The rule the Linux support encodes: a PORTABLE command is a cell; anything that
   # differs by machine is an apply.sh; anything that cannot be done honestly is
