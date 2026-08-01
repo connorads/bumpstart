@@ -1,8 +1,12 @@
 #!/usr/bin/env pwsh
 # bootstrap.ps1: install the pinned PowerShell test/lint modules (Pester +
-# PSScriptAnalyzer) to the CurrentUser scope. Idempotent — a module already at
+# PSScriptAnalyzer) to the CurrentUser scope. Idempotent - a module already at
 # the pinned version is left untouched. Run once locally before the pwsh tasks;
-# CI runs the identical command so local green ⇒ CI green.
+# CI runs the identical command, so local green means CI green.
+#
+# ASCII only, like every lib/*.ps1 (which encode their glyphs as [char]0x203A):
+# non-ASCII bytes without a BOM are what PSUseBOMForUnicodeEncodedFile flags, and
+# a BOM is the worse fix - 5.1 and pwsh 7 disagree about writing them.
 #
 # Versions are pinned here (queried from PSGallery at authoring time, not
 # hardcoded from memory). Bump deliberately.

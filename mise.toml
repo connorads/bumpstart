@@ -141,8 +141,14 @@ run = "pwsh -File scripts/check-ps-suite.ps1"
 description = "PSScriptAnalyzer (5.1-floor compat gate) + the OS-automatic-var grep"
 run = [
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path lib -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  # The block tails run on the same Windows as the spine, so they are held to the
+  # same floor — the mirror of `lint` including blocks/*/apply.sh, and for the same
+  # reason: a directory of scripts must not be able to join the repo and silently
+  # escape the gate.
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path blocks -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path vibe.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path install.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path bootstrap.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   # The real-install probe runs under powershell.exe 5.1 in the guest, so it is held
   # to the same floor as the spine — it would otherwise escape every gate.
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path tests/real -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",

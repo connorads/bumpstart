@@ -34,9 +34,14 @@ if ($signedIn) {
     if (-not $name) { $name = $login }
   }
 
+  # Read once into a variable, rather than `if (git ... 2>$null)` with a second
+  # identical call in the message. A redirection inside an `if` condition also
+  # reads to PSScriptAnalyzer as a mistyped comparison operator, so hoisting it
+  # is what lets this file join the 5.1 lint floor.
   if ($name) {
-    if (git config --global --get user.name 2>$null) {
-      Success "git already knows you as $(git config --global --get user.name)"
+    $haveName = (git config --global --get user.name 2>$null)
+    if ($haveName) {
+      Success "git already knows you as $haveName"
     } else {
       git config --global user.name $name
       if ($LASTEXITCODE -eq 0) { Success "Set your git name to $name" }
@@ -44,8 +49,9 @@ if ($signedIn) {
     }
   }
   if ($email) {
-    if (git config --global --get user.email 2>$null) {
-      Success "git already uses $(git config --global --get user.email) for you"
+    $haveEmail = (git config --global --get user.email 2>$null)
+    if ($haveEmail) {
+      Success "git already uses $haveEmail for you"
     } else {
       git config --global user.email $email
       if ($LASTEXITCODE -eq 0) { Success "Set your git email to $email" }
@@ -56,7 +62,8 @@ if ($signedIn) {
   Info 'Not signed into GitHub yet - sign in (gh auth login), then re-run to set your git name/email.'
 }
 
-if (-not (git config --global --get init.defaultBranch 2>$null)) {
+$haveBranch = (git config --global --get init.defaultBranch 2>$null)
+if (-not $haveBranch) {
   git config --global init.defaultBranch main
   if ($LASTEXITCODE -eq 0) {
     Success "New git projects will start on 'main'"
