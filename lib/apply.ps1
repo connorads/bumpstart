@@ -262,6 +262,8 @@ function Invoke-VibeSetup {
     Info "Run '$($resolved.DefaultHarness)' in $starter to start (you'll sign in on first launch)."
     if ($script:StarterPromptCopied) {
       Info 'A starter message is on your clipboard - press Ctrl+V at the agent prompt, then Enter.'
+    } elseif ($script:StarterPromptFile) {
+      Info "A starter message is saved in $($script:StarterPromptFile) - paste it in as your first message."
     }
   }
   return 0

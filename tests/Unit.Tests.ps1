@@ -55,6 +55,58 @@ Describe 'Test-VibeCopyOwned' {
   }
 }
 
+Describe 'Copy-StarterPrompt' {
+  # The pwsh twin of the trust.bats cases. trust.sh explicitly REJECTS printing the
+  # starter message - the agent's full-screen TUI wipes the scrollback moments
+  # later, so the text the novice was told to copy is gone before they can - and
+  # writes first-message.txt instead. trust.ps1 did exactly the rejected thing.
+  BeforeEach {
+    $script:origHome = $HOME
+    $script:testHome = Join-Path $TestDrive ('home-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $script:testHome -Force | Out-Null
+    Set-Variable -Name HOME -Scope Global -Value $script:testHome -Force
+    $script:repoRoot = (Resolve-Path "$PSScriptRoot/..").Path
+  }
+  AfterEach {
+    Set-Variable -Name HOME -Scope Global -Value $script:origHome -Force
+    Remove-Item Function:Set-Clipboard -ErrorAction SilentlyContinue
+  }
+
+  It 'writes the starter message to a file, always' {
+    # A clipboard survives the browser sign-in but not a reboot, a second
+    # terminal, or a clipboard manager that drops it.
+    function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) }
+    Copy-StarterPrompt $script:repoRoot 6>$null | Out-Null
+    $script:StarterPromptCopied | Should -BeTrue
+    (Get-Content -Raw -LiteralPath (Join-Path (Get-StarterDir) 'first-message.txt')) |
+      Should -Match 'build it together'
+  }
+
+  It 'names the file rather than printing text that gets wiped, when there is no clipboard' {
+    function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) throw 'no clipboard' }
+    $out = Copy-StarterPrompt $script:repoRoot 6>&1 | Out-String
+    $script:StarterPromptCopied | Should -BeFalse
+    $out | Should -Match 'first-message\.txt'
+    (Get-Content -Raw -LiteralPath (Join-Path (Get-StarterDir) 'first-message.txt')) |
+      Should -Match 'build it together'
+  }
+
+  It 'points Show-LoginFrame at the file when the clipboard is unavailable' {
+    function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) throw 'no clipboard' }
+    Copy-StarterPrompt $script:repoRoot 6>$null | Out-Null
+    $out = Show-LoginFrame 'claude' 6>&1 | Out-String
+    $out | Should -Match 'first-message\.txt'
+    $out | Should -Not -Match 'on your clipboard'
+  }
+
+  It 'points Show-LoginFrame at the clipboard when there is one' {
+    function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) }
+    Copy-StarterPrompt $script:repoRoot 6>$null | Out-Null
+    $out = Show-LoginFrame 'claude' 6>&1 | Out-String
+    $out | Should -Match 'on your clipboard'
+  }
+}
+
 Describe 'The wizard fold over axes' {
   BeforeAll {
     . "$PSScriptRoot/../lib/resolve.ps1"

@@ -114,22 +114,45 @@ function Set-VibeTrust {
   }
 }
 
-# Copy-StarterPrompt <root> - put the friendly first message on the clipboard so
-# it survives the browser sign-in. Reads <root>/starter-prompt.txt (no-op if
-# missing/empty). Falls back to printing it when no clipboard is available.
+# Copy-StarterPrompt <root> - put the friendly first message where the novice can
+# retrieve it after the browser sign-in, and paste into the empty agent prompt.
+# Reads <root>/starter-prompt.txt (no-op if missing/empty). Never fatal.
+#
+# Written to first-message.txt in the starter dir either way, exactly as
+# copy_starter_prompt does. Printing it is not a fallback at all: the agent is
+# launched moments later and its full-screen TUI wipes the scrollback, so the
+# message the novice was told to copy is gone before they can. A file survives
+# that, and Show-LoginFrame points at it. A clipboard survives the sign-in but
+# not a reboot, a second terminal, or a clipboard manager that drops it.
+#
+# Outputs read by the applier + Show-LoginFrame:
+#   $script:StarterPromptCopied  the clipboard holds it
+#   $script:StarterPromptFile    where it was written ('' if that failed too)
 function Copy-StarterPrompt {
   param([string]$Root)
   $script:StarterPromptCopied = $false
+  $script:StarterPromptFile = ''
   $file = Join-Path $Root 'starter-prompt.txt'
   if (-not (Test-Path -LiteralPath $file)) { return }
   $text = (Get-Content -LiteralPath $file -Raw)
   if ([string]::IsNullOrWhiteSpace($text)) { return }
-  if (Copy-ToClipboard $text) {
-    $script:StarterPromptCopied = $true
-  } else {
+
+  if (Copy-ToClipboard $text) { $script:StarterPromptCopied = $true }
+
+  $starter = Get-StarterDir
+  $dest = Join-Path $starter 'first-message.txt'
+  try {
+    New-Item -ItemType Directory -Path $starter -Force | Out-Null
+    Set-Content -LiteralPath $dest -Value $text
+    $script:StarterPromptFile = $dest
+  } catch {
+    $script:StarterPromptFile = ''
+  }
+
+  if (-not $script:StarterPromptCopied -and $script:StarterPromptFile) {
     Write-Host ''
-    Info 'Copy this and paste it as your first message to the agent:'
-    Write-Host "`n$text`n"
+    Info 'Your first message to the agent is saved here:'
+    Write-Host "    $($script:StarterPromptFile)"
   }
 }
 
@@ -143,6 +166,11 @@ function Show-LoginFrame {
   if ($script:StarterPromptCopied) {
     Info "I've put a starter message on your clipboard to get you going."
     Info "When you're back and see the empty prompt box, press Ctrl+V to paste it, then Enter."
+  } elseif ($script:StarterPromptFile) {
+    # No clipboard here, and the agent's full-screen TUI is about to wipe the
+    # screen - so point at the file, which is still there afterwards.
+    Info 'Your first message is saved in first-message.txt, in the folder the agent opens.'
+    Info 'Ask the agent to read it, or copy it in yourself.'
   }
   Write-Host ''
 }
