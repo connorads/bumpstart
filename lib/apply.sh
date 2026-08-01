@@ -262,9 +262,21 @@ fi
 # One editable source of truth at canonical_path; each installed harness's own
 # path becomes a symlink to it, so today's agents (which read their native path)
 # follow the link. Back off from anything the user already owns.
+#
+# Linked only when the canonical actually EXISTS. The resolver gates targets on
+# "some block in the plan carries content"; the assembler additionally drops a
+# non-instruction block that does no work on this OS — so a plan whose only
+# content belongs to a block that doesn't run here resolves a target and writes
+# no file, and the link became a symlink to nothing. `-e` follows the link, so
+# the harness then looked configured while its agent read an unreadable path.
+#
+# `-e "$(canonical_path)"` rather than $INSTRUCTIONS_WROTE: the back-off branch
+# returns without setting WROTE, and it is only reachable when a canonical
+# already exists. So "exists" covers the fresh write, the back-off, and a
+# canonical left by an earlier run, and excludes exactly the broken case.
 LINK_BACKOFFS=""
 assemble_instructions "$ROOT" "$FORCE"
-if [ ${#PLAN_TARGETS[@]} -gt 0 ]; then
+if [ ${#PLAN_TARGETS[@]} -gt 0 ] && [ -e "$(canonical_path)" ]; then
   for _t in "${PLAN_TARGETS[@]}"; do
     link_harness "$_t" "$FORCE"
   done

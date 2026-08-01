@@ -169,10 +169,23 @@ function Invoke-VibeSetup {
   # TARGET_<OS>-then-TARGET fallback. Net effect on Windows: `-Ids claude-cli`
   # wrote ~/.claude/CLAUDE.md importing a canonical the assembler had returned
   # early rather than create.
+  #
+  # Linked only when the canonical actually EXISTS. The resolver gates targets on
+  # "some block in the plan carries content"; the assembler additionally drops a
+  # non-instruction block that does no work on this OS - so a plan whose only
+  # content belongs to a block that doesn't run here resolves a target and writes
+  # no file, and Claude's CLAUDE.md became an @import of a path that isn't there.
+  #
+  # Test-Path on the canonical rather than $script:InstructionsWrote: the back-off
+  # branch returns without setting Wrote, and it is only reachable when a
+  # canonical already exists. So "exists" covers the fresh write, the back-off,
+  # and a canonical left by an earlier run, and excludes exactly the broken case.
   $script:LinkBackoffs = @()
   Assemble-Instructions -Plan $resolved -Root $root -Force:$Force
-  for ($i = 0; $i -lt $resolved.Targets.Count; $i++) {
-    Link-Harness -TargetLiteral $resolved.Targets[$i] -Method $resolved.TargetMethods[$i] -Force:$Force
+  if (Test-Path -LiteralPath (Get-CanonicalPath)) {
+    for ($i = 0; $i -lt $resolved.Targets.Count; $i++) {
+      Link-Harness -TargetLiteral $resolved.Targets[$i] -Method $resolved.TargetMethods[$i] -Force:$Force
+    }
   }
 
   # The other central persistent effect, beside the instructions file: make the dirs

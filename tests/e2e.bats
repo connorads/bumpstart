@@ -80,6 +80,23 @@ apply() { run env VIBE_OS="${VIBE_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   [ ! -e "$HOME/.claude/CLAUDE.md" ]
 }
 
+@test "a harness is not linked at an instructions file that was never written" {
+  # The resolver gates targets on "some block carries content"; the assembler
+  # additionally drops a non-instruction block that does no work on this OS. The
+  # fixture plan's only content belongs to os-guidance, a [tool] with no cell for
+  # any OS - so a target resolved, nothing was written, and the harness ended up
+  # symlinked at a file that does not exist.
+  #
+  # `! -e` alone passes on a dangling symlink, because -e follows the link. `! -L`
+  # is the assertion that bites.
+  run env VIBE_OS=mac VIBE_ROOT="$REPO_ROOT/tests/fixtures" \
+    bash "$REPO_ROOT/lib/apply.sh" claude-cli os-guidance --yes --no-launch
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME/.agents/AGENTS.md" ]
+  [ ! -L "$HOME/.claude/CLAUDE.md" ]
+  [ ! -e "$HOME/.claude/CLAUDE.md" ]
+}
+
 @test "a tool block's guidance lands in the canonical file" {
   apply claude node --yes --no-launch
   [ "$status" -eq 0 ]

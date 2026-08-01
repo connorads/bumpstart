@@ -182,6 +182,17 @@ Describe 'apply.ps1 (Windows spine)' {
     Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
   }
 
+  It 'does not link a harness at an instructions file that was never written' {
+    # blocks/mise carries content.md but has no INSTALL_WIN and no apply.ps1, so
+    # on Windows it does no work and the assembler drops its section - leaving
+    # nothing to write. The resolver still resolves Claude's target, because the
+    # plan does carry content. Without the guard, ~/.claude/CLAUDE.md was written
+    # as an @import of a canonical that is not there.
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli', 'mise') 6>$null | Out-Null
+    Test-Path -LiteralPath (Join-Path $script:testHome '.agents/AGENTS.md')  | Should -BeFalse
+    Test-Path -LiteralPath (Join-Path $script:testHome '.claude/CLAUDE.md') | Should -BeFalse
+  }
+
   It 'a second run leaves the canonical identical and backs off' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'concise') 6>&1 | Out-Null
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'
