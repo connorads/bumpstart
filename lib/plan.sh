@@ -35,7 +35,11 @@ _step_satisfied() {
   _ss_cell="$(meta_get "$_ss_dir" "SATISFIED_$(vibe_os_key)")"
   [ -n "$_ss_cell" ] || _ss_cell="$(meta_get "$_ss_dir" "CHECK_$(vibe_os_key)")"
   [ -n "$_ss_cell" ] || return 2
-  if eval "$_ss_cell"; then return 0; else return 1; fi
+  # Redirected, because this one evals the probe INLINE while rendering: a cell
+  # that forgot its own >/dev/null printed between the rows of the consent gate,
+  # in the middle of the one screen the whole design asks a beginner to read.
+  # The contract here is the exit status; the output is never wanted.
+  if eval "$_ss_cell" >/dev/null 2>&1; then return 0; else return 1; fi
 }
 
 # render_plan [full]: print the ordered steps, the agent that will launch, and a

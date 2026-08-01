@@ -20,11 +20,17 @@ _block_label() {
 # skip predicate. 0 = satisfied (install can be skipped), 1 = not satisfied,
 # 2 = no cell (unmapped). ALWAYS via if/else, never a bare eval — a failing
 # predicate under the applier's set -e would otherwise abort the caller.
+#
+# The POSIX contract is the EXIT STATUS, so a cell's output is noise on the way to
+# it. Every real cell already ends in >/dev/null 2>&1; redirecting here makes the
+# caller enforce the silence rather than trusting each cell to remember. (The
+# opposite of the Windows contract, which reads the output's truthiness — see
+# Test-BlockCheck in run.ps1.)
 block_check() {
   _bc_dir="$(block_dir "$1" "$2")" || return 2
   _bc_cell="$(meta_get "$_bc_dir" "CHECK_$(vibe_os_key)")"
   [ -n "$_bc_cell" ] || return 2
-  if eval "$_bc_cell"; then return 0; else return 1; fi
+  if eval "$_bc_cell" >/dev/null 2>&1; then return 0; else return 1; fi
 }
 
 # run_cell <root> <id> — the declarative install for the current OS. Read

@@ -57,6 +57,17 @@ drive() { run bash "$REPO_ROOT/tests/helpers/run_driver.sh" "$REPO_ROOT/lib" "$@
   [ "$status" -eq 2 ]
 }
 
+@test "a CHECK cell that prints does not leak its output" {
+  # The POSIX contract is the EXIT STATUS, so a cell's output is noise on the way
+  # to it. Every real cell already ends in >/dev/null 2>&1; the caller enforcing
+  # it is what stops the one that forgets from printing mid-run.
+  mk_block noisy 'KIND=tool' "CHECK_MAC='echo LEAK-STDOUT; echo LEAK-STDERR >&2'"
+  drive block_check "$ROOT" noisy
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"LEAK-STDOUT"* ]]
+  [[ "$output" != *"LEAK-STDERR"* ]]
+}
+
 @test "run_cell skips the install when the block is already satisfied" {
   make_fake brew
   mk_block sat 'KIND=tool' 'LABEL=thing' "CHECK_MAC='true'" "INSTALL_MAC='brew install thing'"
