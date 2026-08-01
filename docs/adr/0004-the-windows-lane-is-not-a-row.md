@@ -22,8 +22,8 @@ maximum distance from each other:
 
 - **No precheck at all.** Every other lane measures the machine before the run, so
   the judge can assert a delta. The Windows lane wrote one hand-made line
-  (`precheck.vibe_marker absent`) and nothing else - so `shell.regpath.git 1` was a
-  fact about the runner image, not about vibe. The runner images ship Git, Node and
+  (`precheck.bumpstart_marker absent`) and nothing else - so `shell.regpath.git 1` was a
+  fact about the runner image, not about bumpstart. The runner images ship Git, Node and
   gh on the Machine PATH, so `INSTALL_WIN` for `Git.Git`, `OpenJS.NodeJS.LTS` and
   `GitHub.cli` is executed by no lane in the project.
 - **It ran once.** Against `ci.yml`'s own "Every lane runs twice", against 0003, and

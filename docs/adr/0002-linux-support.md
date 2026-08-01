@@ -1,6 +1,6 @@
 # 0002 - Linux support, with no distro knowledge in the spine
 
-vibe runs on Linux: Ubuntu, Debian, Fedora, Arch and their derivatives, on x86-64
+bumpstart runs on Linux: Ubuntu, Debian, Fedora, Arch and their derivatives, on x86-64
 and arm64, in WSL 2 and in containers. It is added with **no new key dimension** -
 the pre-declared `CHECK_LINUX`/`INSTALL_LINUX`/`SATISFIED_LINUX` cells only - and one
 rule about where knowledge is allowed to live.
@@ -137,9 +137,9 @@ is someone who has never opened a terminal.
 - **An agent-only Linux plan installs a version manager it never uses** (~10MB,
   root-free), because `ensure_mise` is unconditional. Disclosed at the confirm gate.
   It is the same trade macOS already makes, installing Homebrew for a CLI-only plan.
-- **"vibe never edits your shell config" stops being true.** It was already false in
+- **"bumpstart never edits your shell config" stops being true.** It was already false in
   effect - the Codex installer writes a marked block into `~/.bashrc`/`~/.zshrc`
-  today, keyed on `$SHELL`, with no fish branch. Now vibe owns one marked line
+  today, keyed on `$SHELL`, with no fish branch. Now bumpstart owns one marked line
   instead, discloses it, and the README says how to remove it. `fixup_path` moving
   before the block loop is what makes Codex skip its own edit.
 - **"Setup complete." now means it.** The finish message names what failed when

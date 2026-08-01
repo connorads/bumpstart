@@ -1,8 +1,8 @@
 # 0003 - Real installs, on pristine machines
 
-vibe's whole claim is that one paste turns a machine nobody has touched into a working
+bumpstart's whole claim is that one paste turns a machine nobody has touched into a working
 agent setup. Every test asserts that against fakes. This adds four lanes that run the
-**real** installers against machines that have never seen vibe, driven by
+**real** installers against machines that have never seen bumpstart, driven by
 `mise run vm-test` locally and by CI, with **one pair of guest-side verify scripts** as
 the contract and **no orchestration framework at all**.
 
@@ -27,7 +27,7 @@ What no fake can prove:
 1. **The vendor installers still exist and still work.** Every `INSTALL_*` cell is a URL
    someone else controls. A fake asserts we invoked it, never that it succeeded.
 2. **The bootstrap.** `tests/e2e.bats` targets `lib/apply.sh` directly, by design. The
-   `vibe` / `vibe.ps1` fetch path - tarball, `BUMP_REF` pin, wget fallback, layout check
+   `bumpstart` / `bumpstart.ps1` fetch path - tarball, `BUMP_REF` pin, wget fallback, layout check
    - is only unit-tested. The thing people actually paste has never run end to end.
 3. **PATH persistence into a *new* shell** - and *which* new shell, see below. POSIX
    only: the PowerShell spine persists no PATH at all (there is no `shellpath.ps1`;
@@ -66,7 +66,7 @@ already exists when it runs.)
 - **Nothing built on Apple's Virtualization.framework can run Windows** - no vTPM for
   non-macOS guests, and ARM WinPE ships no virtio disk driver, so the guest cannot read
   the disk it booted from. That rules out Tart and Lima-vz for Windows entirely.
-- **`vibe-setup` is public**, so GitHub's macOS and Windows runners are free and
+- **`bumpstart` is public**, so GitHub's macOS and Windows runners are free and
   unlimited - including **`windows-11-arm`, the only Windows 11 *client* image available
   from any CI vendor**, hosted or otherwise. Everyone else sells Server 2022/2025.
 - **There is no clean hosted macOS and GitHub says there never will be**
@@ -111,7 +111,7 @@ invocations above rather than picking one - `bash -lc` as a `# TODO`, so the kno
 is documented and breaks loudly if it changes.
 
 **macOS uses `-vanilla`, never `-base`.** `macos-tahoe-base` preinstalls brew, mise,
-node, git, gh and yarn - nearly the exact set vibe installs. Testing against it is a
+node, git, gh and yarn - nearly the exact set bumpstart installs. Testing against it is a
 guaranteed false pass.
 
 **The vanilla image is pristine w.r.t. Homebrew, NOT w.r.t. Gatekeeper.** Its Packer
@@ -135,7 +135,7 @@ absent there), and append `%LOCALAPPDATA%\Microsoft\WinGet\Links` to `$GITHUB_PA
 **The Desktop gap is synthesised, not virtualised.** `apt-get remove -y curl` (and a
 no-git leg) as a matrix axis on the existing container lanes. It reaches the actual code
 path for minutes of work; a real Desktop ISO costs a day and gigabytes to additionally
-reach snapd and a session bus, which nothing in vibe touches yet.
+reach snapd and a session bus, which nothing in bumpstart touches yet.
 
 **The password prompt is asserted through an askpass helper, not a TTY driver.** A
 non-root user with a password-required sudoers entry, and a stub that logs the prompt
@@ -208,7 +208,7 @@ preference: it is built on `setup_isolated_env` plus PATH-shadow fakes and asser
 **The do-nothing option** is genuinely close, and it prices the rest. Three greps would
 catch the single most valuable thing - a fresh shell finding the tools - and on a
 one-afternoon budget that is what to build. It loses because it cannot tell a vendor
-installer regression from a vibe bug, and cannot see the desktop-app or rc-line failures
+installer regression from a bumpstart bug, and cannot see the desktop-app or rc-line failures
 at all.
 
 So: a deliberately **small** hand-written expectation set covering only what a fake
@@ -252,7 +252,7 @@ third we already solved in fifteen lines of `docker run`. Earthly is unmaintaine
 
 **Nix VM tests (`testers.runNixOSTest`).** Superficially perfect for this repo's
 neighbours. Rejected hardest of all: the guest is **NixOS**, with no FHS, no `/usr/bin`,
-a read-only store and no apt or dnf. vibe would fail for reasons that say nothing about
+a read-only store and no apt or dnf. bumpstart would fail for reasons that say nothing about
 Ubuntu - and 0002 already rejected Nix as a substrate for the same class of reason.
 
 **A local UTM Windows guest as well.** `utmctl start --disposable` is the cleanest reset
@@ -301,7 +301,7 @@ guest honest.
 
 - **A new local prerequisite:** Tart, plus a 23 GB pull and ~30-43 GB resident. Documented
   in the README's Development section, never auto-installed - a harness that silently
-  installs a hypervisor has the same manners problem vibe exists to avoid. Note nixpkgs
+  installs a hypervisor has the same manners problem bumpstart exists to avoid. Note nixpkgs
   currently supplies tart 2.30.6 against 2.34.0 upstream.
 - **One macOS guest at a time**, at 6 GB. Apple's floor is 4 GB and Tart hard-codes it
   because guests freeze below it; the macOS and Windows lanes could never have run
@@ -328,18 +328,18 @@ guest honest.
   kernel).
 - **The Arch lane is CI-primary.** `archlinux:base` publishes no arm64 image, so on Apple
   Silicon it runs emulated x86_64 and the vendors' x64 builds die on missing CPU features
-  (Claude Code's Bun binary wants AVX). That is classified as infrastructure, not as vibe
+  (Claude Code's Bun binary wants AVX). That is classified as infrastructure, not as bumpstart
   being wrong. `ubuntu-latest` is x86_64, so CI runs it natively; the password axis was
   moved onto Ubuntu so the one lane covering the sudo prompt also runs on a contributor's
   Mac.
 - **The first real run found a product gap the faked suite cannot see.** On a genuinely
-  minimal Fedora, `pnpm` installs, vibe reports "pnpm installed", and the binary cannot
+  minimal Fedora, `pnpm` installs, bumpstart reports "pnpm installed", and the binary cannot
   execute at all (`libatomic.so.1`). Asserting `--version` exits 0 rather than
   `command -v` is exactly what caught it, and it is the shape of finding these lanes
   exist for: a step that succeeds and leaves nothing usable.
 - **Runs will fail for reasons that are not our bug** - a vendor URL moving, an installer
   changing, GitHub's `winget` hang. That is the entire value of the lane, so the failure
-  output has to distinguish "vibe is wrong" from "upstream moved", or the lane gets muted.
+  output has to distinguish "bumpstart is wrong" from "upstream moved", or the lane gets muted.
 - **`mise run check` is unchanged** and stays the commit-time gate. `vm-test` is invoked
   explicitly and is expected to take 30-60 minutes.
 - Prerequisite landed separately: the repo now has a `mise.lock`. `bats = "1"` had floated

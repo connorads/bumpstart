@@ -1,4 +1,4 @@
-# vibe-setup
+# bumpstart
 
 One-paste setup for agentic / "vibe" coding. Gets someone who may never
 have used a terminal from nothing to happily talking to a coding agent - with
@@ -23,13 +23,13 @@ instructions).
 If you use **Claude**:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
 ```
 
 If you use **ChatGPT**:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ codex starter
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ codex starter
 ```
 
 ### Linux (Terminal)
@@ -38,13 +38,13 @@ Same ids, and the line carries a `wget` fallback because Ubuntu Desktop ships no
 `curl`. If you use **Claude**:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
 ```
 
 If you use **ChatGPT**:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ codex starter
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ codex starter
 ```
 
 Tested on Ubuntu, Debian, Fedora and Arch, on x86-64 and arm64, and inside **WSL 2**
@@ -53,7 +53,7 @@ by name, so they generally work too. Your login password is asked for once, and 
 if `git` needs installing.
 
 **Not supported:** Alpine and other musl systems (the tools we install publish no
-musl builds), NixOS (the vendor binaries need `/lib64`), and **WSL 1** — vibe refuses
+musl builds), NixOS (the vendor binaries need `/lib64`), and **WSL 1** — bumpstart refuses
 that one and prints the single command that upgrades it to WSL 2.
 
 ### Windows (PowerShell)
@@ -61,13 +61,13 @@ that one and prints the single command that upgrades it to WSL 2.
 Open **PowerShell** (the one already on your PC). If you use **Claude**:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1))) claude starter
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1))) claude starter
 ```
 
 If you use **ChatGPT**:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1))) codex starter
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1))) codex starter
 ```
 
 The Windows install needs no admin for the coding agents themselves (Claude Code
@@ -79,17 +79,17 @@ winget and each ask permission once.
 With no ids at all you get `claude starter`, the same beginner setup on Claude:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/install.sh)"
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe.ps1 | iex
+irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1 | iex
 ```
 
 Or compose your own setup from any list of block ids:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude gh-auth node concise
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude gh-auth node concise
 ```
 
 The `$(...)` form downloads the script first so your terminal stays the input -
@@ -97,7 +97,7 @@ needed because `gh auth login` and the agent CLIs are interactive. `curl | bash`
 would break those prompts. (Homebrew uses the same trick.) The `_ a b` after the
 paste sets the block list; `_` is a throwaway `$0`.
 
-Downloading needs **either `curl` or `wget`** - vibe uses whichever is there. macOS
+Downloading needs **either `curl` or `wget`** - bumpstart uses whichever is there. macOS
 always has curl. If a paste prints nothing at all, you have neither: install one
 (`sudo apt install curl`) and paste again.
 
@@ -247,7 +247,7 @@ skill or MCP block ships yet - better none than a redundant one.
    stays.
 
 Everything is idempotent: run it again and already-done steps are skipped; a
-symlink already pointing at the canonical file is left alone. vibe never scribbles
+symlink already pointing at the canonical file is left alone. bumpstart never scribbles
 in files you own - if the canonical file or a real agent config already exists, it
 backs off and points you at it (use `--force` to replace: real files are moved to
 `.bak` first). The one exception is the PATH line in step 6, which is appended and
@@ -258,25 +258,25 @@ only ever printed when nothing warned.
 
 ### Removing it
 
-The PATH edit is the only change vibe makes outside its own config paths.
+The PATH edit is the only change bumpstart makes outside its own config paths.
 
 On **macOS and Linux** it is a line in a file you own, wrapped in markers, so
 removing it is mechanical - delete these three lines from `~/.bashrc`, `~/.zshrc` or
 `~/.config/fish/config.fish`:
 
 ```text
-# >>> vibe-setup >>>
+# >>> bumpstart >>>
 export PATH="$HOME/.local/bin:$HOME/.codex/bin:${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$PATH"
-# <<< vibe-setup <<<
+# <<< bumpstart <<<
 ```
 
 On **Windows** it is your account's PATH (the per-user environment, `HKCU\Environment`),
 because the CLI agents install into your home folder and their installers persist
 nothing. A registry value has nowhere to put a comment marker, so removal means
-deleting the two folders vibe added, by name: `%USERPROFILE%\.local\bin` and
+deleting the two folders bumpstart added, by name: `%USERPROFILE%\.local\bin` and
 `%USERPROFILE%\.codex\bin`. Search for "Edit environment variables for your account",
 select each one under **Path**, and delete it. Anything else on that PATH was put
-there by an installer, not by vibe.
+there by an installer, not by bumpstart.
 
 Everything else lives under `~/.agents/`, `~/.claude*`, `~/.codex/`, `~/.local/`
 and `~/git/first-project`.
@@ -300,7 +300,7 @@ an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
 `~/.codex/AGENTS.md` (Codex has no import). PATH is persisted to your account's
 environment rather than to a startup file: everything winget installs is put on PATH
 by its own installer, but the CLI agents install into your home folder and persist
-nothing, so vibe adds those two folders itself. The clipboard paste is Ctrl+V.
+nothing, so bumpstart adds those two folders itself. The clipboard paste is Ctrl+V.
 
 ## Flags
 
@@ -317,7 +317,7 @@ nothing, so vibe adds those two folders itself. The clipboard paste is Ctrl+V.
 Preview a setup without touching anything:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter --plan
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter --plan
 ```
 
 ## Composing a bundle (workshop leaders)
@@ -326,9 +326,9 @@ Whoever hands out the paste can discover and assemble it in the CLI rather than
 recalling ids from the table above.
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --list       # what blocks exist
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --show node  # one block's detail
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ --build      # wizard
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ --list       # what blocks exist
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ --show node  # one block's detail
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ --build      # wizard
 ```
 
 `--build` asks **one question per axis**, in the order the axes declare: start
@@ -348,7 +348,7 @@ An unpinned run uses `main`. For a reproducible workshop, pin the whole repo to 
 commit SHA with `BUMP_REF` - vetted source is the audit layer:
 
 ```bash
-BUMP_REF=<sha> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude starter
+BUMP_REF=<sha> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
 ```
 
 Vendor CLI versions (Claude, Codex, mise, ...) sit outside the pin - they always
@@ -368,7 +368,7 @@ install the latest.
   yet - [agents.md](https://agents.md) is repo-scoped.
 - **Set up before this moved?** Earlier versions wrote the canonical file to
   `~/.config/agents/AGENTS.md`. A re-run writes the new path but will **not**
-  relink: `~/.claude/CLAUDE.md` still points at the old file, so vibe sees a
+  relink: `~/.claude/CLAUDE.md` still points at the old file, so bumpstart sees a
   foreign symlink and backs off, and your agent keeps reading the old file. Move
   your edits into `~/.agents/AGENTS.md`, delete the old file, and re-run - or
   re-run with `--force`, which backs the old links up to `.bak` and relinks.
@@ -442,7 +442,7 @@ pwsh pure core), `windows-latest` (the PowerShell spine on real Windows), and
 Fakes cannot reach **acquisition**: whether a vendor installer still exists and still
 works, whether the thing people actually paste runs end to end, whether a desktop app
 really installs, whether the sudo password prompt fires. So a separate set of lanes
-really installs from vendor URLs into machines that have never seen vibe. Rationale
+really installs from vendor URLs into machines that have never seen bumpstart. Rationale
 and rejected alternatives: [docs/adr/0003](docs/adr/0003-real-installs-on-pristine-machines.md).
 
 ```bash
@@ -453,7 +453,7 @@ mise run vm-clean         # reap leftover guests and log bundles
 ```
 
 Prerequisites, never auto-installed - a harness that silently installs a hypervisor
-has the same manners problem vibe exists to avoid:
+has the same manners problem bumpstart exists to avoid:
 
 - **colima** running (`colima start`) for the container lanes.
 - **tart** and **sshpass** for the macOS lanes, plus `mise run vm-image-macos` once for
@@ -468,14 +468,14 @@ local driver **and** by CI, so both run the same thing:
 | `ubuntu-base` | `ubuntu:24.04` | the Claude desktop app from Anthropic's apt repository, signing key and all |
 | `ubuntu-no-curl` | `ubuntu:24.04` minus curl | the wget fallback the Linux paste is shaped around |
 | `ubuntu-no-git` | `ubuntu:24.04` minus git | installing git through the system package manager |
-| `ubuntu-paste` | `ubuntu:24.04` | the **real paste** on Linux: the `vibe` bootstrap, the tarball fetch, and the `BUMP_REF` pin - and the apply-vs-paste differential against `ubuntu-base` |
+| `ubuntu-paste` | `ubuntu:24.04` | the **real paste** on Linux: the `bumpstart` bootstrap, the tarball fetch, and the `BUMP_REF` pin - and the apply-vs-paste differential against `ubuntu-base` |
 | `debian-codex` | `debian:12` | Codex, and its sandbox diagnostic on a restricted-userns kernel |
 | `debian-install-sh` | `debian:12` | the legacy `install.sh` entry point with no ids |
 | `fedora-safer` | `fedora:42` | a non-apt distro, pnpm, and the `safer-installs` config |
 | `ubuntu-password` | `ubuntu:24.04`, password sudo | the **sudo password prompt** - every other lane is NOPASSWD or root |
 | `arch-base` | `archlinux:base` | `pacman` as the manager that installs git. x86-only upstream, so it reports class 2 on Apple Silicon |
 | `macos-vanilla` | Tart, vanilla Tahoe | the only genuinely first-time Mac: Homebrew, the Xcode CLT, casks |
-| `macos-vanilla-paste` | Tart, vanilla Tahoe | the real paste, fetching `vibe` from the commit under test |
+| `macos-vanilla-paste` | Tart, vanilla Tahoe | the real paste, fetching `bumpstart` from the commit under test |
 | `macos-drift` | `macos-latest`, de-brewed | CI only, weekly. **Drift detection, not a pristine Mac** |
 | Windows | `windows-2025` + `windows-11-arm` | CI only: winget, and PATH via the registry rather than any rc file. Twice, like every other lane - but hand-rolled in the workflow rather than a row here, which is a standing drift risk: [docs/adr/0004](docs/adr/0004-the-windows-lane-is-not-a-row.md) |
 
@@ -495,7 +495,7 @@ cross-lane half runs locally through `drive.sh` and in CI through a job that
 collects the manifests every lane uploaded.
 
 Three exit classes, not pass/fail, because a lane that reports "upstream moved" as
-"vibe is broken" is a lane that gets muted: **1** an assertion failed, **2**
+"bumpstart is broken" is a lane that gets muted: **1** an assertion failed, **2**
 infrastructure (a guest, an image, a vendor URL), **3** a harness bug. No retries
 anywhere. A class-1 failure keeps the guest alive and prints how to reattach; every
 non-zero class leaves a log bundle.

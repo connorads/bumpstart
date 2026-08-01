@@ -1,6 +1,6 @@
 # 0005 - Windows persists PATH too, in the registry rather than a startup file
 
-vibe's promise is that after one paste you open a **new** terminal and your tools are
+bumpstart's promise is that after one paste you open a **new** terminal and your tools are
 there. The bash spine keeps that promise with one marker-wrapped line in the login
 shell's rc file (`lib/shellpath.sh`). The PowerShell spine kept it only by accident:
 whatever winget installed was persisted by winget's own installer, and the two CLI
@@ -44,7 +44,7 @@ nothing.** `lib/shellpath.ps1` owns it, `lib/apply.ps1` calls it where `apply.sh
 `persist_path`, and `Show-Expectations` discloses it at the confirm gate.
 
 That last part is the load-bearing half. The rule this project holds itself to is that
-vibe writes its own config paths and **one** thing outside them, and that one thing is
+bumpstart writes its own config paths and **one** thing outside them, and that one thing is
 named before it happens. Windows now has such a thing, so it gets the same treatment:
 disclosed at the gate, state-aware (a PATH that already carries the dirs is left alone
 and says so), and documented for removal.
@@ -55,13 +55,13 @@ The mechanics, each chosen against a plausible wrong answer:
   `(Get-Item HKCU:\Environment).GetValue('Path', '', 'DoNotExpandEnvironmentNames')`
   and `Set-ItemProperty -Type ExpandString`. The obvious accessor,
   `[Environment]::GetEnvironmentVariable('Path', 'User')`, **expands** `%USERPROFILE%`
-  -style entries, so writing its result back bakes today's expansion into entries vibe
+  -style entries, so writing its result back bakes today's expansion into entries bumpstart
   did not author - a silent, permanent change to somebody else's PATH.
 - **Not `setx`.** It truncates the value at 1024 characters. On a machine with a long
-  PATH that destroys entries vibe does not own, which is the worst outcome available.
+  PATH that destroys entries bumpstart does not own, which is the worst outcome available.
 - **Appended, not prepended.** The effective PATH is the Machine value followed by the
   User one, so nothing written to the User scope can precede a machine-wide entry.
-  Prepending buys no ordering guarantee and would put vibe ahead of choices the person
+  Prepending buys no ordering guarantee and would put bumpstart ahead of choices the person
   made in their own account.
 - **`WM_SETTINGCHANGE` broadcast afterwards**, via `SendMessageTimeout` to
   `HWND_BROADCAST`. Explorer keeps its own copy of the environment and hands it to
@@ -85,7 +85,7 @@ The mechanics, each chosen against a plausible wrong answer:
 | approach | what it costs | what it buys |
 | --- | --- | --- |
 | **User registry PATH** (chosen) | no marker, so removal is "delete these two dirs" rather than "delete the marked block" | a new terminal finds the agents; the same promise on all three OSes |
-| Leave it to the vendors | the closing line stays wrong, and run 2 reinstalls the CLI every time | nothing vibe has to own |
+| Leave it to the vendors | the closing line stays wrong, and run 2 reinstalls the CLI every time | nothing bumpstart has to own |
 | A line in the PowerShell `$PROFILE` | only PowerShell sees it - not cmd, not a GUI launcher, not VS Code's task runner - and it is a *second* mechanism to keep in step with the rc line | markers, and a mechanical removal story |
 | `setx` | truncation at 1024 characters, i.e. data loss on exactly the machines with the most to lose | one line of code |
 | Machine-scope PATH | a UAC prompt on the critical path, which is currently UAC-free, and an edit affecting every account | ordering ahead of machine entries |
