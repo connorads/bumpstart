@@ -128,6 +128,13 @@ function Invoke-VibeSetup {
   Write-Host ("`n  {0}{1}[.]{2} {0}Preparing Windows{2}" -f $script:Bold, $script:Cyan, $script:Reset)
   Ensure-Winget
 
+  # Before the loop, not after it, for the reason common.ps1 states and apply.sh
+  # already honours: a block's CHECK cell has to be able to see what an earlier
+  # block installed. Concretely on Windows, npm arrives with node's winget MSI
+  # (%ProgramFiles%\nodejs) and blocks/pnpm's cell is `npm install -g pnpm`, so
+  # run post-loop this fixed up a PATH nothing was left to use.
+  Set-VibePath
+
   # Per-run state, reset here rather than at load: the tests dot-source this file
   # once and drive Invoke-VibeSetup repeatedly, so a load-time-only ledger would
   # carry one run's failures into the next.
@@ -228,7 +235,6 @@ function Invoke-VibeSetup {
   Set-VibeTrust $resolved.DefaultHarness $starter
   if ($resolved.StepIds -contains 'git') { Initialize-StarterRepo $starter }
 
-  Set-VibePath
   Copy-StarterPrompt $root
 
   # Three outcomes, not two. 'Chose not to launch' and 'could not launch' both

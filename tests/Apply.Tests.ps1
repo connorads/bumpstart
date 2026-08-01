@@ -151,6 +151,28 @@ Describe 'apply.ps1 (Windows spine)' {
     $script:regPath.Kind | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
   }
 
+  It 'fixes up this run PATH before the install loop, not after it' {
+    # The reason common.ps1 gives for the fixup, and the reason apply.sh calls its
+    # mirror pre-loop: a block's CHECK cell has to see what an earlier block
+    # installed. On Windows npm arrives with node's winget MSI and blocks/pnpm's
+    # cell is `npm install -g pnpm`, so run after the loop this fixed up a PATH
+    # nothing was left to use.
+    #
+    # Order is the assertion, not effect - what Set-VibePath actually prepends is
+    # its own business, and asserting it here would just restate common.ps1.
+    Mock Set-VibePath { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'PATHFIX' }
+    Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
+
+    $log = @(Get-Content -LiteralPath $env:VIBE_FAKE_LOG)
+    $fix = [array]::IndexOf($log, 'PATHFIX')
+    $firstInstall = -1
+    for ($i = 0; $i -lt $log.Count; $i++) {
+      if ($log[$i] -like 'winget install*') { $firstInstall = $i; break }
+    }
+    $fix | Should -BeGreaterThan -1
+    $firstInstall | Should -BeGreaterThan $fix
+  }
+
   It 'codex copies instructions (no import) and writes the trust TOML' {
     Invoke-VibeSetup -Yes -NoLaunch -Ids @('codex', 'concise') 6>&1 | Out-Null
 
