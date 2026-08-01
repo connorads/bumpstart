@@ -6,6 +6,11 @@
 # (Apple Silicon or Intel prefix). If brew is already on PATH we leave PATH
 # alone — re-running shellenv would re-prepend the brew prefix and could shadow
 # earlier PATH entries.
+#
+# Non-fatal on failure, and it ALWAYS returns 0: it is the mac substrate, called
+# bare under the applier's set -e, and the same warn-and-record policy every
+# block step lives under has to cover it too. Mirrors ensure_mise (lib/mise.sh),
+# the Linux half of the same slot.
 ensure_brew() {
   if command -v brew >/dev/null 2>&1; then
     success "Homebrew already installed"
@@ -25,8 +30,27 @@ ensure_brew() {
     # first-timer it reads as "broken" otherwise. This is the canonical copy for
     # the password moment (the confirm gate only foreshadows it).
     info "macOS wants the password you use to log in to this Mac. Nothing appears as you type - that is normal. Press Return when you're done."
-    [ -t 0 ] && sudo -v
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # Split out of an AND-list rather than `[ -t 0 ] && sudo -v`. `set -e` ignores
+    # a failing LEFT operand, so a non-tty run always survived that line — but a
+    # wrong password with a tty present is a failing RIGHT operand, which ended
+    # the whole setup wordlessly. Warn and let the installer ask again itself.
+    if [ -t 0 ] && ! sudo -v; then
+      warn "couldn't confirm your password — Homebrew will ask again if it needs to"
+    fi
+    # Fetch first, run second. `bash -c "$(curl ...)"` hands bash an EMPTY script
+    # when the download fails (offline, a 404, a proxy's empty 200), and bash
+    # exits 0 — so the run reported an install that never happened. The whole
+    # chain sits in an `if` condition, which set -e exempts. Still `bash -c
+    # "$script"` and not a pipe, so the installer's own sudo/CLT prompts keep stdin.
+    if _eb_script="$(vibe_fetch https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
+       [ -n "$_eb_script" ] &&
+       NONINTERACTIVE=1 /bin/bash -c "$_eb_script"; then
+      success "Homebrew installed"
+    else
+      warn "couldn't install Homebrew — the tools that need it may be skipped"
+      record_warning "Homebrew"
+      return 0
+    fi
   fi
 
   # Brew is installed but not yet on this shell's PATH — add it.

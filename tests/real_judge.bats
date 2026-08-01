@@ -122,7 +122,7 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q "^not ok .* clean 'Setup complete.'$" || { echo "$output"; false; }
 }
 
-@test "an aborted run fails (ensure_brew has no failure handling, so there is no verdict line)" {
+@test "an aborted run fails (a run that ends under set -e prints no verdict line)" {
   mani mac-casks.manifest
   mset transcript.verdict aborted
   mset transcript.exit 1

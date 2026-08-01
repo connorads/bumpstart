@@ -159,9 +159,11 @@ fi
 
 LOG="$STATE/transcript.log"
 if [ -f "$LOG" ]; then
-  # Three outcomes, not two. `ensure_brew` has no failure handling, so under set -e a
-  # failed Homebrew install aborts the applier with NO verdict line at all — that is
-  # its own outcome, not a variant of "warned".
+  # Three outcomes, not two. An effect that ends the applier under set -e leaves NO
+  # verdict line at all — that is its own outcome, not a variant of "warned". Every
+  # effect vibe owns is inside the warn-and-record policy, so what this catches now
+  # is a step that escapes it: a vendor installer that kills its parent, a block
+  # tail that exits non-zero outside run_block, a machine that dies mid-run.
   if grep -Fq 'Setup complete.' "$LOG"; then
     emit transcript.verdict clean
   elif grep -Fq 'Setup finished, but' "$LOG"; then
