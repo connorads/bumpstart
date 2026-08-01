@@ -20,7 +20,7 @@ set -uo pipefail
 #
 # THREE exit classes, not pass/fail. This is the structural answer to "the lane will
 # get muted": a class 2 can be reported without going red, a class 1 never can.
-#   1  an assertion failed          — vibe is wrong. The interesting case.
+#   1  an assertion failed          — bumpstart is wrong. The interesting case.
 #   2  infrastructure failed        — the guest would not boot, a vendor URL 404'd,
 #                                     the tarball would not fetch. Upstream moved.
 #   3  harness bug                  — the probe crashed, the block list disagrees,
@@ -79,7 +79,7 @@ mkdir -p "$OUT" || exit "$CLASS_HARNESS"
 # Cleared, not merely created. do_run writes run$n.manifest only on success, and the
 # differentials below and in drive.sh key on the files being there — so a lane that
 # now dies during run 2 would otherwise diff this run's run1 against LAST week's
-# run2, from a different guest, and report the disagreement as a vibe failure.
+# run2, from a different guest, and report the disagreement as a bumpstart failure.
 # Named artefacts rather than `rm -rf "$OUT"`, because --out points wherever the
 # caller says.
 rm -f "$OUT"/run[0-9]*.transcript "$OUT"/run[0-9]*.manifest "$OUT"/run[0-9]*.tap \
@@ -113,7 +113,7 @@ IDS="$PASTE"
 # ── The expected block list, from the REAL resolver ──────────────────────────
 #
 # Derived, never a column in the TSV: a hand-maintained expectation would be free to
-# disagree with what vibe actually resolves, and nothing would notice. The resolver
+# disagree with what bumpstart actually resolves, and nothing would notice. The resolver
 # is OS-neutral (tests/fixtures/contract/resolve-cases.tsv already locks it), so the
 # host can answer for the guest.
 
@@ -260,7 +260,7 @@ esac
 
 # ── Precheck: the BASELINE, measured before the run, once ───────────────────
 #
-# Written once and left in place for both runs, so `precheck.vibe_marker absent`
+# Written once and left in place for both runs, so `precheck.bumpstart_marker absent`
 # keeps meaning "the guest was pristine when we started" rather than "run 2 found
 # what run 1 wrote". It stops an axis going vacuous — a base image that starts
 # shipping curl cannot silently turn the no-curl leg into a second base leg — and it
@@ -302,17 +302,17 @@ fi
 
 # ── The entry point ─────────────────────────────────────────────────────────
 #
-# Four exist across the project (vibe, install.sh, vibe.ps1, install.ps1). `apply`
+# Four exist across the project (bumpstart, install.sh, bumpstart.ps1, install.ps1). `apply`
 # and `install` run from the read-only clone; `paste` is the thing people actually
-# paste, and it fetches `vibe` itself from the COMMIT UNDER TEST — the README's paste
+# paste, and it fetches `bumpstart` itself from the COMMIT UNDER TEST — the README's paste
 # and install.sh:47 both hardcode `main` for the bootstrap and let BUMP_REF pin only
-# the tarball, so pinning alone would test main's `vibe` and hand back a false green
+# the tarball, so pinning alone would test main's `bumpstart` and hand back a false green
 # on any change to it.
 
 #
 # Every entry point is invoked from $HOME, by absolute path, NEVER with the mounted
 # repo as the working directory. Two reasons, one of them measured the hard way:
-# nobody pastes from inside a clone of vibe-setup, and mise refuses to run at all
+# nobody pastes from inside a clone of bumpstart, and mise refuses to run at all
 # under a directory holding an untrusted mise.toml — which this repo's own is, in the
 # guest. Running from /src silently broke every mise shim.
 # shellcheck disable=SC2016  # "$HOME" and $(…) must be evaluated in the GUEST
@@ -324,8 +324,8 @@ entry_command() {
       if [ -z "$REF" ]; then return 1; fi
       printf 'cd "$HOME" && BUMP_REF=%s /bin/bash -c "$(curl -fsSL %s || wget -qO- %s)" _ %s --yes --no-launch' \
         "$REF" \
-        "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
-        "https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe" \
+        "https://raw.githubusercontent.com/connorads/bumpstart/$REF/bumpstart" \
+        "https://raw.githubusercontent.com/connorads/bumpstart/$REF/bumpstart" \
         "$IDS" ;;
     *) return 2 ;;
   esac
@@ -348,10 +348,10 @@ esac
 # For the paste, check from the HOST that the ref is fetchable before running anything.
 # Not belt-and-braces: `$(curl … || wget …)` around an unreachable url yields an EMPTY
 # script, so `bash -c ""` exits 0 having done nothing and the lane would report
-# "aborted" - class 1, vibe is wrong - for a ref that was simply never pushed. This is a
+# "aborted" - class 1, bumpstart is wrong - for a ref that was simply never pushed. This is a
 # precondition, not a retry.
 if [ "$ENTRY" = paste ]; then
-  _boot_url="https://raw.githubusercontent.com/connorads/vibe-setup/$REF/vibe"
+  _boot_url="https://raw.githubusercontent.com/connorads/bumpstart/$REF/bumpstart"
   if ! curl -fsSL -o /dev/null "$_boot_url" 2>/dev/null; then
     fail_infra "the bootstrap script is not fetchable at ref '$REF' — push the commit first"
     note "$_boot_url"
@@ -429,7 +429,7 @@ do_run() {
     return "$CLASS_HARNESS"
   fi
 
-  # Is this transcript a story about vibe, or about the world around it?
+  # Is this transcript a story about bumpstart, or about the world around it?
   # lib/triage.sh owns the rule and is unit-tested over transcripts; the one thing
   # worth repeating here is that a run which printed its own clean verdict is NEVER
   # triaged away, however much transport wording it survived on the way.

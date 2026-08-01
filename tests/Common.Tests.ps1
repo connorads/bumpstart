@@ -73,7 +73,7 @@ Describe 'Add-BumpWarning' {
   It 'lists one thing once, however many times it was attempted' {
     # The twin of the e2e.bats case: a tool can be attempted twice in one run by
     # design (the substrate and its own block cell), and the same name listed
-    # twice reads as a bug in vibe rather than as one thing that didn't work.
+    # twice reads as a bug in bumpstart rather than as one thing that didn't work.
     Add-BumpWarning 'mise'
     Add-BumpWarning 'mise'
     $script:BumpWarnCount | Should -Be 1

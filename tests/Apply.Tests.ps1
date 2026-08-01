@@ -125,8 +125,8 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Not -Match 'instead\?'
   }
 
-  It 'discloses the PATH edit at the gate, because it is the one thing outside vibe own paths' {
-    # The deal the project holds itself to: vibe writes its own config paths, plus ONE
+  It 'discloses the PATH edit at the gate, because it is the one thing outside bumpstart own paths' {
+    # The deal the project holds itself to: bumpstart writes its own config paths, plus ONE
     # thing outside them, and that one thing is NAMED before it happens. On Windows it
     # is the account PATH (lib/shellpath.ps1) rather than an rc line, and the promise
     # does not get to be OS-dependent. Asserted at the gate, where Ctrl-C is still
@@ -281,7 +281,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It "runs warn-and-continue whichever bootstrap branch invoked it" {
-    # vibe.ps1 sets 'Stop', then spawns a pwsh 7 process when one is on PATH (which
+    # bumpstart.ps1 sets 'Stop', then spawns a pwsh 7 process when one is on PATH (which
     # resets the preference) but invokes the applier in the SAME runspace when there
     # isn't - and that is the fresh-Windows branch, the beginner's path. Every test
     # regime and CI lane has pwsh 7, so 'Stop' was the one condition nothing covered,

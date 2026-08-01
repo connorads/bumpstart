@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# Transcript triage: is this a story about vibe, or about the world around it?
+# Transcript triage: is this a story about bumpstart, or about the world around it?
 #
 # Pure - a transcript file in, an exit class out - which is the point of lifting it
 # out of the lane runner. The rule decides whether CI goes red, and it used to be
@@ -31,7 +31,7 @@ DONE='  Setup complete.'
   [ "$TRIAGE_CLASS" = 0 ] || { echo "class $TRIAGE_CLASS: $TRIAGE_REASON"; false; }
 }
 
-@test "a DNS failure with no install to judge is infrastructure, not a vibe failure" {
+@test "a DNS failure with no install to judge is infrastructure, not a bumpstart failure" {
   # The observed case: a lane went red for "Couldn't install Node.js" when one DNS
   # lookup failed inside the container. Reporting that as class 1 is how a lane
   # earns a mute.
@@ -74,8 +74,8 @@ DONE='  Setup complete.'
   printf '%s\n' "$TRIAGE_HINT" | grep -q "INSTALL cell's url" || { echo "$TRIAGE_HINT"; false; }
 }
 
-@test "a bootstrap that could not deliver vibe names the ref" {
-  log '  x could not fetch vibe-setup at ref deadbee'
+@test "a bootstrap that could not deliver bumpstart names the ref" {
+  log '  x could not fetch bumpstart at ref deadbee'
   triage "$T" deadbee
   [ "$TRIAGE_CLASS" = 2 ]
   printf '%s\n' "$TRIAGE_REASON" | grep -q "deadbee" || { echo "$TRIAGE_REASON"; false; }
@@ -97,7 +97,7 @@ DONE='  Setup complete.'
       '  ! the PATH line was not written' \
       '  Setup finished, but some steps need your attention.'
   triage "$T"
-  [ "$TRIAGE_CLASS" = 0 ] || { echo "a vibe failure was excused as class $TRIAGE_CLASS"; false; }
+  [ "$TRIAGE_CLASS" = 0 ] || { echo "a bumpstart failure was excused as class $TRIAGE_CLASS"; false; }
 }
 
 @test "no transcript at all is a harness bug, not an infrastructure excuse" {

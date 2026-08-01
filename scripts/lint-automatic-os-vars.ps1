@@ -12,7 +12,7 @@
 # Allow-listed, both because they read the automatics ONLY after a
 # $PSVersionTable.PSEdition test (which is the correct 5.1-safe order):
 #   lib/os.ps1  the OS decision itself, the seam every other module reads
-#   vibe.ps1    the bootstrap's Windows guard, before anything is fetched
+#   bumpstart.ps1    the bootstrap's Windows guard, before anything is fetched
 #
 # Written in pwsh (not shell grep) so it runs identically on macOS and
 # windows-latest.
@@ -20,10 +20,10 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $pattern = '\$IsWindows|\$IsMacOS|\$IsLinux'
-$allowed = @('os.ps1', 'vibe.ps1')
+$allowed = @('os.ps1', 'bumpstart.ps1')
 # tests/ and scripts/ are excluded: neither ships to a Windows 5.1 machine.
 $scanDirs = @('lib', 'blocks') | ForEach-Object { Join-Path $root $_ }
-$scanFiles = @('vibe.ps1', 'install.ps1', 'bootstrap.ps1') | ForEach-Object { Join-Path $root $_ }
+$scanFiles = @('bumpstart.ps1', 'install.ps1', 'bootstrap.ps1') | ForEach-Object { Join-Path $root $_ }
 
 $hits = @(
   (Get-ChildItem -LiteralPath $scanDirs -Filter '*.ps1' -Recurse)

@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# triage.sh: is this transcript a story about vibe, or about the world around it?
+# triage.sh: is this transcript a story about bumpstart, or about the world around it?
 #
 #   triage <transcript> [ref]   — sets TRIAGE_CLASS, TRIAGE_REASON, TRIAGE_HINT
 #
@@ -8,7 +8,7 @@
 # same reason. This is a decision over text that used to be entangled with the
 # imperative flow of one lane, so it could only be exercised by running that lane;
 # as a function it gets a bats table, and it is a rule that has earned one. A lane
-# reporting "upstream moved" as "vibe is broken" is a lane that gets muted, and a
+# reporting "upstream moved" as "bumpstart is broken" is a lane that gets muted, and a
 # lane reporting the reverse is worse.
 #
 # TRANSPORT failures only, matched on the vendor tools' own wording — AND only while
@@ -51,22 +51,22 @@ triage() {
     return 0
   fi
 
-  # The bootstrap failing to DELIVER vibe is infrastructure, not a vibe assertion:
+  # The bootstrap failing to DELIVER bumpstart is infrastructure, not a bumpstart assertion:
   # there is no install to judge.
   if grep -Fq 'could not fetch' "$_t_log" 2>/dev/null ||
      grep -Fq 'unexpected tarball layout' "$_t_log" 2>/dev/null; then
     TRIAGE_CLASS="$CLASS_INFRA"
     if [ -n "$_t_ref" ]; then
-      TRIAGE_REASON="the bootstrap could not fetch vibe (ref '$_t_ref')"
+      TRIAGE_REASON="the bootstrap could not fetch bumpstart (ref '$_t_ref')"
     else
-      TRIAGE_REASON="the bootstrap could not fetch vibe"
+      TRIAGE_REASON="the bootstrap could not fetch bumpstart"
     fi
     return 0
   fi
 
   # So is the network being unreachable. Observed the hard way: a lane went red for
   # "Couldn't install Node.js" when the real cause was one DNS lookup failing inside
-  # the container. Reporting that as "vibe is wrong" is how a lane earns a mute.
+  # the container. Reporting that as "bumpstart is wrong" is how a lane earns a mute.
   #
   # A 404 is included because a vendor deleting an installer is the single most
   # likely thing these lanes exist to catch — with the caveat spelled out, since a
@@ -83,7 +83,7 @@ triage() {
 
   # And so is a guest whose CPU cannot execute the vendor's binary. archlinux:base
   # publishes no arm64 image, so on Apple Silicon that lane runs emulated x86_64 and
-  # Claude Code's x64 build dies on missing AVX. That says nothing about vibe.
+  # Claude Code's x64 build dies on missing AVX. That says nothing about bumpstart.
   _t_cpu="$(grep -oE 'CPU lacks AVX support|Illegal instruction|exec format error|cannot execute binary file|Exec format error' \
     "$_t_log" 2>/dev/null | head -1)"
   if [ -n "$_t_cpu" ]; then

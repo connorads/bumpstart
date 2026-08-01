@@ -9,13 +9,13 @@
 #
 # Why a baseline exists at all: judge.sh asserts END STATE ("git runs", "git resolves
 # in a fresh shell"), and on a machine that shipped git those were already true
-# before vibe ran. An assertion with no baseline is not an assertion. So this
+# before bumpstart ran. An assertion with no baseline is not an assertion. So this
 # measures the SAME things probe.sh measures afterwards, through the same
 # lib/measure.sh, and the judge asserts the difference: a tool that did not resolve
-# before and does now resolves BECAUSE OF vibe. Where the delta is empty — git on
+# before and does now resolves BECAUSE OF bumpstart. Where the delta is empty — git on
 # ubuntu-base — the judge says so instead of claiming credit.
 #
-# Run ONCE, before run 1, and left in place for every later run: `precheck.vibe_marker
+# Run ONCE, before run 1, and left in place for every later run: `precheck.bumpstart_marker
 # absent` has to keep meaning "the guest was pristine when we started" rather than
 # "run 2 found what run 1 wrote". It runs AFTER the axis mutation, so an axis that
 # went vacuous (a base image that starts shipping curl) is visible rather than
@@ -48,10 +48,10 @@ done
 if sudo -n true >/dev/null 2>&1; then emit nopasswd present; else emit nopasswd absent; fi
 
 _rc="$(measure_rc_file)"
-if [ -n "$_rc" ] && [ -f "$_rc" ] && grep -Fq '# >>> vibe-setup >>>' "$_rc"; then
-  emit vibe_marker present
+if [ -n "$_rc" ] && [ -f "$_rc" ] && grep -Fq '# >>> bumpstart >>>' "$_rc"; then
+  emit bumpstart_marker present
 else
-  emit vibe_marker absent
+  emit bumpstart_marker absent
 fi
 
 # ── The baseline the fresh-shell assertions are a delta against ──────────────

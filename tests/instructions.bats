@@ -29,8 +29,8 @@ link()     { run bash "$DRIVER" "$REPO_ROOT/lib" link "$@"; }
   [ -f "$CANON" ]
   grep -Fq "## Be concise" "$CANON"
   grep -Fq "## Tools via mise" "$CANON"
-  # no vibe markers, no novice scaffold/preamble
-  ! grep -Fq "<!-- vibe" "$CANON"
+  # no bumpstart markers, no novice scaffold/preamble
+  ! grep -Fq "<!-- bumpstart" "$CANON"
   ! grep -Fq "coding-agent instructions" "$CANON"
 }
 

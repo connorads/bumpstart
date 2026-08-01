@@ -217,7 +217,7 @@ assert_plan_matches() {
 # ubuntu lane whether or not persist_path ever ran, and the judge counted it as a
 # pass. Nothing here can be vacuous now without the baseline saying so out loud.
 
-@test "a tool that already resolved before the run is credited to the image, not to vibe" {
+@test "a tool that already resolved before the run is credited to the image, not to bumpstart" {
   # ubuntu:24.04 ships git, so its fresh-shell pass is a fact about the image. The
   # assertion still runs — it just says whose doing it was.
   mani linux-ubuntu-base.manifest
@@ -231,7 +231,7 @@ assert_plan_matches() {
     || { echo "$output"; false; }
 }
 
-@test "a tool vibe was supposed to install, on a guest that already had it, is not a pass for vibe" {
+@test "a tool bumpstart was supposed to install, on a guest that already had it, is not a pass for bumpstart" {
   # The vacuity, made visible: pretend the image shipped claude too. The end state is
   # identical and the old judge could not tell the difference; the delta reports it.
   mani linux-ubuntu-base.manifest
@@ -246,7 +246,7 @@ assert_plan_matches() {
 }
 
 @test "a tool that resolved before the run and does not now is a regression" {
-  # The failure mode no end-state assertion could ever see: vibe BREAKING a machine.
+  # The failure mode no end-state assertion could ever see: bumpstart BREAKING a machine.
   mani linux-ubuntu-base.manifest
   mset shell.lic.git 0
   judge
@@ -277,7 +277,7 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q 'pre-run baseline' || { echo "$output"; false; }
 }
 
-@test "windows tells a machine-PATH preinstall apart from something vibe installed" {
+@test "windows tells a machine-PATH preinstall apart from something bumpstart installed" {
   # The whole Windows finding in one case: the runner images carry git, node and gh
   # on the Machine PATH, so INSTALL_WIN for those never runs. Only claude is a delta.
   mani win-registry.manifest
@@ -318,7 +318,7 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q '^not ok .* marker appears exactly once$' || { echo "$output"; false; }
 }
 
-@test "a vendor-authored PATH edit beside vibe's fails" {
+@test "a vendor-authored PATH edit beside bumpstart's fails" {
   mani linux-ubuntu-base.manifest
   mset rc.vendor_path_lines 1
   judge
@@ -390,12 +390,12 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q '^ok .* really removed Homebrew' || { echo "$output"; false; }
 }
 
-@test "a guest that already carried the vibe marker is not pristine" {
+@test "a guest that already carried the bumpstart marker is not pristine" {
   mani linux-ubuntu-base.manifest
-  mset precheck.vibe_marker present
+  mset precheck.bumpstart_marker present
   judge
   [ "$status" -eq 1 ]
-  printf '%s\n' "$output" | grep -q '^not ok .* no vibe PATH marker before' || { echo "$output"; false; }
+  printf '%s\n' "$output" | grep -q '^not ok .* no bumpstart PATH marker before' || { echo "$output"; false; }
 }
 
 # ── The sudo password prompt ──────────────────────────────────────────────────
@@ -533,7 +533,7 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q '^not ok .* Node.js guidance is in the file$' || { echo "$output"; false; }
 }
 
-# ── Harness bugs are exit class 3, never a silent pass or a vibe failure ──────
+# ── Harness bugs are exit class 3, never a silent pass or a bumpstart failure ──────
 
 @test "no manifest is a harness bug (class 3)" {
   run bash "$REAL/judge.sh" "$BATS_TEST_TMPDIR/nope" claude-cli
@@ -553,7 +553,7 @@ assert_plan_matches() {
   printf '%s\n' "$output" | grep -q 'disagree with the expected list' || { echo "$output"; false; }
 }
 
-@test "a manifest from an older probe is a harness bug, not a page of vibe failures" {
+@test "a manifest from an older probe is a harness bug, not a page of bumpstart failures" {
   # Without this, a probe/judge skew fails every delta closed — dozens of "nothing
   # was measured" lines, which read as class 1. The version says "wrong shape".
   mani linux-ubuntu-base.manifest

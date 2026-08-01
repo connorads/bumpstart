@@ -72,8 +72,8 @@ manifest_state_subset() {
 # these keys are stable and worth asserting.
 #
 # Exactly one key today, and it is measured rather than assumed: Claude Code's own
-# installer writes ~/.claude.json before vibe looks at it, carrying firstStartTime,
-# machineID and userID. vibe's preseed_claude_trust then leaves it alone by design
+# installer writes ~/.claude.json before bumpstart looks at it, carrying firstStartTime,
+# machineID and userID. bumpstart's preseed_claude_trust then leaves it alone by design
 # ("never edit an existing config"), so the hash differs between any two machines
 # and is identical between two runs on one - which is precisely the split below.
 manifest_entry_subset() {
@@ -116,7 +116,7 @@ manifest_invariant_subset() {
 # awk, NOT `diff`. `diff` is not in archlinux:base (the `base` metapackage carries no
 # diffutils), and its absence arrived here as a NON-ZERO STATUS - which manifest_diff
 # read as "the manifests disagree", while the `sed -n '3,$p'` that stripped diff's
-# header deleted the only line in the file. Eleven cases reported "vibe is wrong" and
+# header deleted the only line in the file. Eleven cases reported "bumpstart is wrong" and
 # named no key. A missing tool is a harness bug; the way to stop misclassifying it is
 # to stop depending on it, and this was the only `diff` in the test tree.
 #

@@ -3,7 +3,7 @@
 #
 # Applier end-to-end with everything faked. Exercises composition, instructions
 # landing where each agent actually reads them, idempotence, and plan-time
-# failure. Targets lib/apply.sh directly — the `vibe` bootstrap's network fetch
+# failure. Targets lib/apply.sh directly — the `bumpstart` bootstrap's network fetch
 # is covered by a manual VM smoke, not here.
 
 load helpers/common
@@ -31,7 +31,7 @@ setup() {
 # Linux cases below select their own lane.
 apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@"; }
 
-@test "vibe claude codex: installs both, launches the last (codex)" {
+@test "bumpstart claude codex: installs both, launches the last (codex)" {
   apply claude codex --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agent to launch: codex"* ]]
@@ -65,7 +65,7 @@ apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   [ "$status" -eq 0 ]
   canon="$HOME/.agents/AGENTS.md"
   grep -Fq "## Be concise" "$canon"
-  ! grep -Fq "<!-- vibe" "$canon"
+  ! grep -Fq "<!-- bumpstart" "$canon"
   [ -L "$HOME/.claude/CLAUDE.md" ]
   [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
 }
@@ -271,7 +271,7 @@ apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
   grep -Fq "## Be concise" "$canon"
   [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$canon" ]
   # and the PATH line, so a new terminal finds all of it
-  grep -Fq '# >>> vibe-setup >>>' "$HOME/.bashrc"
+  grep -Fq '# >>> bumpstart >>>' "$HOME/.bashrc"
 }
 
 @test "a Linux run tells you the Linux things and none of the Mac ones" {
@@ -324,7 +324,7 @@ apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
 @test "one thing that failed is listed once, however many times it was attempted" {
   # mise is attempted twice by design on Linux — the pre-loop substrate and the block
   # cell, mirroring Homebrew on macOS. Listed twice, the ending reads as a bug in
-  # vibe rather than as one thing that didn't work. (Seen for real in an offline
+  # bumpstart rather than as one thing that didn't work. (Seen for real in an offline
   # container before the ledger deduped.)
   export BUMP_OS=linux
   export SHELL=/bin/bash
@@ -368,7 +368,7 @@ apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
 @test "the instructions back-off is disclosed on a re-run" {
   apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
-  # second run: the canonical file exists, so vibe backs off and says so
+  # second run: the canonical file exists, so bumpstart backs off and says so
   apply claude concise --yes --no-launch
   [ "$status" -eq 0 ]
   [[ "$output" == *"leaves it as-is"* ]]

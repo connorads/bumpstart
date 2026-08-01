@@ -158,7 +158,7 @@ fi
 # ── Apply ─────────────────────────────────────────────────────────────────────
 
 # A modest branded header as the real work begins (colour-gated via common.sh).
-printf "\n  %s✦ vibe-setup%s\n" "$BOLD$CYAN" "$RESET"
+printf "\n  %s✦ bumpstart%s\n" "$BOLD$CYAN" "$RESET"
 printf "  %slet's get you building%s\n" "$DIM" "$RESET"
 
 # One substrate per OS, in place before any block step: Homebrew underpins the mac
@@ -180,7 +180,7 @@ esac
 # Before the loop, not after it: a block's CHECK cell has to be able to see what an
 # earlier block installed (mise writes shims that node's own check then looks for),
 # and the Codex installer skips writing its own rc block when its bin dir is
-# already on PATH — so vibe owns that edit instead of two tools both making it.
+# already on PATH — so bumpstart owns that edit instead of two tools both making it.
 fixup_path
 
 # An INSTALL cell runs in a `bash -c` child (run_cell), which inherits functions
@@ -284,7 +284,7 @@ fi
 
 # The other central persistent effect, beside the instructions file: make the dirs
 # we installed into outlive this terminal window. A block cannot own this — every
-# block would want it, and the edit is one line about vibe's own install dirs.
+# block would want it, and the edit is one line about bumpstart's own install dirs.
 persist_path
 
 CANON="$(canonical_path)"

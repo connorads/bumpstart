@@ -28,7 +28,7 @@ emit_paste_command() {
   _e_ref="${BUMP_REF:-main}"
   _e_prefix=""
   [ "$_e_ref" != "main" ] && _e_prefix="BUMP_REF=$_e_ref "
-  _e_url="https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe"
+  _e_url="https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart"
   if [ "$(bump_os)" = linux ]; then
     _e_get="curl -fsSL $_e_url 2>/dev/null || wget -qO- $_e_url"
   else
@@ -104,7 +104,7 @@ _ask_one() {
   printf "\n  Choose %s[%s]%s: " "$YELLOW" "$_q1_num" "$RESET"
   if ! IFS= read -r _q1_choice; then
     printf "\n"
-    error "No answers on stdin — the wizard needs a terminal. Run '--list' to browse blocks, then paste 'vibe _ <id>...'."
+    error "No answers on stdin — the wizard needs a terminal. Run '--list' to browse blocks, then paste 'bumpstart _ <id>...'."
     return 1
   fi
   case "$_q1_choice" in

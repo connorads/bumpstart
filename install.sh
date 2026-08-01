@@ -3,9 +3,9 @@ set -euo pipefail
 #
 # Legacy one-paste entry point. Maps the old --agent flag to a block id and
 # delegates to the applier — locally when run from a clone, otherwise via the
-# `vibe` bootstrap (which fetches the repo). Keeps the README one-liner working:
+# `bumpstart` bootstrap (which fetches the repo). Keeps the README one-liner working:
 #
-#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/install.sh)"
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/install.sh)"
 #
 # Any other flags (--no-launch, --yes, --plan, extra ids) pass straight through
 # to the applier.
@@ -36,7 +36,7 @@ fetch() {
   elif command -v wget >/dev/null 2>&1; then
     wget -qO- "$1"
   else
-    printf 'vibe: need curl or wget to download anything — install one and re-run.\n' >&2
+    printf 'bumpstart: need curl or wget to download anything — install one and re-run.\n' >&2
     return 1
   fi
 }
@@ -44,5 +44,5 @@ fetch() {
 if [ -n "$dir" ] && [ -f "$dir/lib/apply.sh" ]; then
   exec bash "$dir/lib/apply.sh" ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
 else
-  exec /bin/bash -c "$(fetch https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
+  exec /bin/bash -c "$(fetch https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ ${AGENT:+"$AGENT"} ${ARGS[@]+"${ARGS[@]}"}
 fi

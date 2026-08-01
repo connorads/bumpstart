@@ -13,13 +13,13 @@
 #
 # Two Windows differences the manifest has to carry, both real:
 #   - Persistence is a REGISTRY value here, not an rc line: each installer's own edit,
-#     plus vibe's two install dirs (lib/shellpath.ps1). So the
+#     plus bumpstart's two install dirs (lib/shellpath.ps1). So the
 #     fresh-shell measurement reads the registry PATH, NEVER $env:PATH - the
 #     harness's own $GITHUB_PATH additions live in the process environment, where
 #     they would mask a missing entry. BOTH scopes, kept apart as well as combined:
 #     "a new terminal finds it" is the union, but the runner images ship Git, Node
 #     and gh on the MACHINE PATH, so the union alone is a fact about the image. What
-#     makes it a fact about vibe is precheck.ps1's baseline and the judge's delta.
+#     makes it a fact about bumpstart is precheck.ps1's baseline and the judge's delta.
 #   - There are no symlinks here. Claude gets an `@<canonical>` import line, Codex a
 #     physical copy (Link-Harness in lib/instructions.ps1), so instructions.link.* is
 #     `import:<path>` / `copy:current` rather than `symlink:<target>`.
@@ -94,13 +94,13 @@ function Emit-Bool {
 
 # -- What only the runner knows ------------------------------------------------
 
-$null = $lines.Add('# vibe real-install state manifest')
+$null = $lines.Add('# bumpstart real-install state manifest')
 # 2 added the precheck's baseline, which the judge's delta assertions require.
 Emit 'manifest_version' 2
 
 # Non-empty, not merely present: the runner truncates before it fills, so a precheck
 # that died part-way leaves an EMPTY file - no marker, no keys, and a harness failure
-# reported as a page of "nothing was measured", which reads as a vibe failure. An
+# reported as a page of "nothing was measured", which reads as a bumpstart failure. An
 # empty measurement is a missing one.
 foreach ($pass in @('lane', 'precheck')) {
   $f = Join-Path $StateDir "$pass.tsv"
@@ -178,7 +178,7 @@ if (Test-Path -LiteralPath $log) {
 
 # -- Every installed tool's binary really RUNS --------------------------------
 #
-# On the run's own PATH plus vibe's install dirs, because this asks "did
+# On the run's own PATH plus bumpstart's install dirs, because this asks "did
 # acquisition work" - a different question from "does a new terminal find it".
 # `--version` rather than Get-Command: the faked suite's claude IS a stub, so a
 # binary that executes is the whole point, and it catches a wrong-arch install.
@@ -243,11 +243,11 @@ foreach ($t in $tools) {
   Emit-Bool "shell.regpath.$t" (Test-BumpRegPathResolves $t $regDirs)
 }
 
-# -- The one PATH edit vibe makes here, and whether anything duplicated it ----
+# -- The one PATH edit bumpstart makes here, and whether anything duplicated it ----
 #
 # There is no rc file on this spine: lib/shellpath.ps1 persists into the per-user
 # registry environment instead, so `rc.file` names that value and `rc.persists_path`
-# asks whether BOTH dirs vibe owns are on it. Measured, not hardcoded - these two keys
+# asks whether BOTH dirs bumpstart owns are on it. Measured, not hardcoded - these two keys
 # used to be literal `none` / `0`, which is how a spine that persisted nothing and a
 # spine whose persistence broke read identically.
 #
@@ -256,7 +256,7 @@ foreach ($t in $tools) {
 # what to look for cannot catch the product changing it.
 #
 # rc.vendor_path_lines is the POSIX key's analogue - there, a vendor-authored PATH edit
-# sitting beside vibe's; here, a DUPLICATE entry, which is what it would look like if a
+# sitting beside bumpstart's; here, a DUPLICATE entry, which is what it would look like if a
 # vendor installer started persisting these dirs itself, or if a second run appended
 # again. Zero on a correct machine either way.
 $ownedDirs = @(
@@ -408,7 +408,7 @@ Emit 'instructions.link.codex' $codexState
 Emit-Bool 'instructions.section.git' ($canonText.Contains('## Saving your work (git)'))
 Emit-Bool 'instructions.section.node' ($canonText.Contains('## Node.js'))
 
-# -- Every vibe-owned path: the differential's raw material ------------------
+# -- Every bumpstart-owned path: the differential's raw material ------------------
 
 function Get-PathState {
   param([string]$Path)

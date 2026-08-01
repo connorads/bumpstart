@@ -14,7 +14,7 @@
 # as "(pulls in: …)"; preset rows show their expansion.
 render_catalogue() {
   _c_root="$1"
-  printf "\n  Blocks you can compose — paste %svibe _ <id>...%s\n" "$BOLD" "$RESET"
+  printf "\n  Blocks you can compose — paste %sbumpstart _ <id>...%s\n" "$BOLD" "$RESET"
 
   # Decorate each id with "<axis-order> <axis> <preset-rank> <id>" so one sort
   # groups by axis, orders the axes by ORDER, and leads each group with presets.

@@ -1,11 +1,11 @@
-# vibe real-install state manifest — a clean ubuntu:24.04 base lane, run 1.
+# bumpstart real-install state manifest — a clean ubuntu:24.04 base lane, run 1.
 # REGENERATED FROM A REAL RUN (tests/real/lanes/run.sh ubuntu-base), never
 # hand-edited: this file is a golden produced by the probe under test, so a value
 # invented to make a case pass is a fiction the whole suite then rests on. The
 # hand-written NEGATIVE cases in real_judge.bats are the real assertions.
 #
 # The line to read twice: `precheck.shell.lc.git 1`. git resolved in a fresh login
-# shell BEFORE vibe ran, because `env -i bash -lc` substitutes a compiled-in default
+# shell BEFORE bumpstart ran, because `env -i bash -lc` substitutes a compiled-in default
 # PATH containing /usr/bin. That is why the fresh-shell assertions are a delta.
 manifest_version	2
 lane	ubuntu-base
@@ -21,7 +21,7 @@ precheck.git	present
 precheck.gpg	present
 precheck.brew	absent
 precheck.nopasswd	present
-precheck.vibe_marker	absent
+precheck.bumpstart_marker	absent
 precheck.shell.kind	bash
 precheck.shell.lic.claude	0
 precheck.shell.lic.codex	0

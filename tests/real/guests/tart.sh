@@ -5,7 +5,7 @@
 # which one it is driving. See that file for the port's rationale.
 #
 # `ghcr.io/cirruslabs/macos-tahoe-vanilla`, never `-base`: the base image preinstalls
-# brew, mise, node, git, gh and yarn — very nearly the exact set vibe installs — so
+# brew, mise, node, git, gh and yarn — very nearly the exact set bumpstart installs — so
 # testing against it would be a guaranteed false pass. Reset is `tart clone`, an APFS
 # clonefile and therefore instant.
 #
@@ -74,7 +74,7 @@ guest_start() {
   # STOP first, then delete. A class-1 failure keeps the guest and exits without
   # cleanup - by design, so the corpse can be looked at - so the next run finds it
   # RUNNING, and `tart delete` refuses while it is. The clone then fails and the lane
-  # reports class 2, "not a vibe failure", permanently: one real assertion failure
+  # reports class 2, "not a bumpstart failure", permanently: one real assertion failure
   # silently demoting itself to not-red is the exact shape these three classes exist
   # to prevent.
   _tart_stop_and_delete "$GUEST_NAME" || return 1

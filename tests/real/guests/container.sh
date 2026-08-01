@@ -88,14 +88,14 @@ guest_provision() {
   fi
   guest_exec_root "chmod 0440 /etc/sudoers.d/bumpstart-test" || return 1
 
-  # Outside $HOME on purpose: the probe hashes vibe-owned paths under the home dir,
+  # Outside $HOME on purpose: the probe hashes bumpstart-owned paths under the home dir,
   # and harness scratch living there would show up as a state difference.
   guest_exec_root "mkdir -p $GUEST_STATE && chmod 1777 $GUEST_STATE" || return 1
 }
 
 # su, not `docker exec -u`: -u leaves HOME pointing at the image's (usually /root)
 # and never sets SHELL, and both are load-bearing here — persist_path reads $SHELL
-# and everything vibe writes lands under $HOME. Plain `su` (not `su -`) resets
+# and everything bumpstart writes lands under $HOME. Plain `su` (not `su -`) resets
 # HOME/SHELL/USER from /etc/passwd while preserving the rest of the environment, so
 # SUDO_ASKPASS and NO_COLOR still reach the run.
 guest_exec() {

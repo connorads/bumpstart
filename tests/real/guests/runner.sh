@@ -58,7 +58,7 @@ guest_start() {
   # privilege is the lane's. Two properties die under root, both silently:
   #   - "the repo is read-only to the run" is enforced here with `chmod -R a-w`,
   #     which root bypasses - so the port contract fails for a reason that is not
-  #     about vibe, on the one leg where the assertion is also vacuous.
+  #     about bumpstart, on the one leg where the assertion is also vacuous.
   #   - every sudo path in the product becomes a no-op, which is exactly what
   #     judge.sh's "the run was NOT root" check exists to catch. On the macOS drift
   #     lane that would leave `git`'s password step asserting nothing at all.
@@ -78,7 +78,7 @@ guest_start() {
   case "$(basename "${GUEST_SHELL:-none}")" in
     bash|zsh) : ;;
     *)
-      printf 'guest: the login shell here is [%s], and vibe persists PATH only into\n' "${GUEST_SHELL:-unset}" >&2
+      printf 'guest: the login shell here is [%s], and bumpstart persists PATH only into\n' "${GUEST_SHELL:-unset}" >&2
       printf '       bash or zsh - so this lane would assert nothing about persistence.\n' >&2
       return 1 ;;
   esac

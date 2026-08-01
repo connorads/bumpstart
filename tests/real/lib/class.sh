@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # class.sh: the three exit classes, and the ONE ordering over them.
 #
-#   1  an assertion failed   — vibe is wrong. Never tolerable.
+#   1  an assertion failed   — bumpstart is wrong. Never tolerable.
 #   3  a harness bug         — the lanes proved nothing until it is fixed.
 #   2  infrastructure        — upstream moved. Reportable without going red.
 #

@@ -22,7 +22,7 @@
 # skip. The plan line is emitted first, from a check list built before any check
 # runs, so a truncated judgement cannot read as a pass.
 #
-# Exit: 0 all assertions passed · 1 an assertion failed (vibe is wrong) ·
+# Exit: 0 all assertions passed · 1 an assertion failed (bumpstart is wrong) ·
 #       3 harness bug (no manifest, no checks, blocks disagree with the manifest).
 #
 # bash-3.2-clean: no associative arrays, no mapfile. No `set -e` — every assertion
@@ -75,7 +75,7 @@ mhas()    { _lookup "$1" >/dev/null 2>&1; }
 mderive() { ALL="$ALL
 $1$TAB$2"; }
 
-# ── Harness self-check (exit class 3 — the harness, not vibe) ─────────────────
+# ── Harness self-check (exit class 3 — the harness, not bumpstart) ─────────────────
 
 if mhas blocks; then
   if [ "$(mget blocks)" != "$BLOCK_LIST" ]; then
@@ -92,7 +92,7 @@ case "$OS" in
 esac
 
 # A manifest from a probe that predates the current key set would fail every delta
-# closed — a page of "nothing was measured", which reads as a vibe failure. The
+# closed — a page of "nothing was measured", which reads as a bumpstart failure. The
 # version says "wrong shape", which is a harness bug.
 MANIFEST_VERSION="$(mget manifest_version)"
 if [ "$MANIFEST_VERSION" != "$JUDGE_MANIFEST_VERSION" ]; then
@@ -236,8 +236,8 @@ add_check() {
 }
 
 # 1. Pristine, and the axis is not vacuous ------------------------------------
-add_check eq precheck.vibe_marker absent \
-  "the guest had no vibe PATH marker before the first run"
+add_check eq precheck.bumpstart_marker absent \
+  "the guest had no bumpstart PATH marker before the first run"
 case "$AXIS" in
   *no-curl*) add_check eq precheck.curl absent \
     "the no-curl axis really has no curl (else the wget fallback is untested)" ;;
@@ -281,7 +281,7 @@ for _t in "$@"; do
   add_check eq "tool.$_t.runs" 1 "$_t --version runs"
 done
 
-# 4. A FRESH shell finds them, BECAUSE OF VIBE --------------------------------
+# 4. A FRESH shell finds them, BECAUSE OF BUMPSTART ---------------------------
 #
 # The single most valuable assertion in the harness, and the one that was vacuous:
 # the installing shell is green either way (fixup_path put the dirs on PATH for the
@@ -293,7 +293,7 @@ done
 # So the assertion is a DELTA against precheck.sh's baseline, taken before the run
 # through the same lib/measure.sh. Four outcomes, all named, because "it resolves" is
 # three different findings depending on what was true before:
-#   installed     0 → 1  vibe did this. The claim the lane exists to make.
+#   installed     0 → 1  bumpstart did this. The claim the lane exists to make.
 #   preinstalled  1 → 1  already true. Asserted, but credited to the image.
 #   lost          1 → 0  a regression the end-state assertion could never see.
 #   absent        0 → 0  the install did not reach a new terminal.
@@ -326,7 +326,7 @@ _add_shell_delta() {
   [ "$_sd_state" = lost ] && _sd_op=eq
   if [ "$(mget "precheck.$_sd_key")" = 1 ]; then
     add_check "$_sd_op" "derived.$_sd_key" preinstalled \
-      "$_sd_tool $_sd_what (it did before the run too — the image's doing, not vibe's)"
+      "$_sd_tool $_sd_what (it did before the run too — the image's doing, not bumpstart's)"
   else
     add_check "$_sd_op" "derived.$_sd_key" installed \
       "$_sd_tool $_sd_what, and did not before the run"
@@ -344,22 +344,22 @@ else
     _add_shell_delta eq shell.lic "$_t" "resolves in a fresh interactive login shell"
     _add_shell_delta eq shell.ic "$_t" "resolves in a fresh interactive shell"
     # A documented gap: Debian/Ubuntu's ~/.bashrc returns early for a non-interactive
-    # shell, so vibe's line is invisible to `bash -lc`. eq_todo in BOTH branches —
-    # including preinstalled, where the honest answer is still "vibe did not do this".
+    # shell, so bumpstart's line is invisible to `bash -lc`. eq_todo in BOTH branches —
+    # including preinstalled, where the honest answer is still "bumpstart did not do this".
     _add_shell_delta eq_todo shell.lc "$_t" "resolves in a non-interactive login shell"
   done
 fi
 
-# 5. vibe is the ONLY thing that wrote to PATH -------------------------------
+# 5. bumpstart is the ONLY thing that wrote to PATH -------------------------------
 # A design claim nothing else covers: fixup_path runs before the block loop so
 # Codex's installer skips its own rc block, and ensure_mise passes
 # MISE_INSTALL_HELP=0 to suppress mise's epilogue. Two tools both claiming the edit
 # is how a beginner ends up with the line twice.
 if [ "$OS" != win ]; then
-  add_check eq rc.marker_count 1 "the vibe PATH marker appears exactly once"
+  add_check eq rc.marker_count 1 "the bumpstart PATH marker appears exactly once"
   add_check eq rc.vendor_path_lines 0 \
-    "no vendor-authored PATH edit sits beside vibe's"
-  add_check match rc.block '*mise/shims*' "the persisted line carries vibe's install dirs"
+    "no vendor-authored PATH edit sits beside bumpstart's"
+  add_check match rc.block '*mise/shims*' "the persisted line carries bumpstart's install dirs"
 fi
 
 # 6. The desktop apps are really there ---------------------------------------

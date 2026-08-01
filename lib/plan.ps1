@@ -182,25 +182,25 @@ function Show-Expectations {
     if ($Force) {
       Add-Expectation "Rebuilds your one instructions file, backing up any existing one to .bak."
     } elseif ($InstrBackoff) {
-      Add-Expectation "You already have an instructions file - vibe leaves it as-is and won't merge in new guidance (re-run with --force to rebuild it)."
+      Add-Expectation "You already have an instructions file - bumpstart leaves it as-is and won't merge in new guidance (re-run with --force to rebuild it)."
     } else {
       Add-Expectation "Creates one instructions file that your agent reads every session."
     }
   }
 
-  # The one edit vibe makes outside its own config paths, named here rather than
+  # The one edit bumpstart makes outside its own config paths, named here rather than
   # discovered later - the same deal plan.sh strikes for the rc line. State-aware for
   # the same reason too: an account PATH that already carries the dirs is left alone,
   # and "adds" there would promise a change that will not happen.
   if (Test-BumpPersistedPath) {
-    Add-Expectation "Your account's PATH already has vibe's install folders - it is left as-is."
+    Add-Expectation "Your account's PATH already has bumpstart's install folders - it is left as-is."
   } else {
     $dirs = (Get-BumpOwnedPathDir) -join ' and '
     Add-Expectation "Adds $dirs to your account's PATH so a NEW terminal window still finds the tools it installs."
   }
 
   if ($Plan.DefaultHarness -eq 'claude' -and (Test-Path -LiteralPath (Join-Path $HOME '.claude.json'))) {
-    Add-Expectation "You already have a Claude config, so vibe won't change its trust settings - you may see a one-time 'trust this folder?' prompt."
+    Add-Expectation "You already have a Claude config, so bumpstart won't change its trust settings - you may see a one-time 'trust this folder?' prompt."
   } else {
     Add-Expectation "Marks your first-project folder as trusted, so $acct won't keep asking permission to work there."
   }
@@ -234,7 +234,7 @@ function Show-Expectations {
   }
 
   if ($Actionable -gt 0 -and $Done -eq $Actionable) {
-    Add-Expectation "Everything installable is already in place - vibe will just link things up and drop you into $acct."
+    Add-Expectation "Everything installable is already in place - bumpstart will just link things up and drop you into $acct."
   }
   Add-Expectation ("The agent works in {0} and asks before changing files or running commands." -f (Get-StarterDir))
 }

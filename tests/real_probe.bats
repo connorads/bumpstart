@@ -37,7 +37,7 @@ mval() { printf '%s\n' "$output" | awk -F'\t' -v k="$1" '$1 == k { print $2; exi
 @test "a precheck that died half-way is reported as missing, not as a measurement" {
   # run.sh writes precheck.tsv through a .part file for exactly this reason, but the
   # probe is the last line: an EMPTY file used to satisfy `[ -f ]`, so the manifest
-  # carried no marker and no keys, and the judge blamed vibe for it.
+  # carried no marker and no keys, and the judge blamed bumpstart for it.
   : > "$S/precheck.tsv"
   probe
   [ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -50,7 +50,7 @@ mval() { printf '%s\n' "$output" | awk -F'\t' -v k="$1" '$1 == k { print $2; exi
 }
 
 @test "a real precheck is carried into the manifest and not reported missing" {
-  printf 'precheck.curl\tpresent\nprecheck.vibe_marker\tabsent\n' > "$S/precheck.tsv"
+  printf 'precheck.curl\tpresent\nprecheck.bumpstart_marker\tabsent\n' > "$S/precheck.tsv"
   probe
   [ -z "$(mval probe.missing.precheck)" ] || { echo "a populated precheck read as missing"; false; }
   [ "$(mval precheck.curl)" = present ] || { echo "$output"; false; }

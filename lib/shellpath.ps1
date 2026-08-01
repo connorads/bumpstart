@@ -1,4 +1,4 @@
-# shellpath.ps1: make the dirs vibe installs into survive the terminal window, on
+# shellpath.ps1: make the dirs bumpstart installs into survive the terminal window, on
 # Windows. The mirror of lib/shellpath.sh, and of the same promise.
 #
 # Set-BumpPath (common.ps1) fixes PATH for THIS process only - it is fixup_path's
@@ -11,7 +11,7 @@
 # %USERPROFILE%\.codex\bin, from vendor scripts that persist nothing - while the
 # run's own closing line tells the reader to type `claude`.
 #
-# This is the ONLY thing outside vibe's own config paths that the Windows spine
+# This is the ONLY thing outside bumpstart's own config paths that the Windows spine
 # changes, and it is disclosed at the confirm gate (Show-Expectations in plan.ps1),
 # exactly as the POSIX rc line is. A registry value has nowhere to put a comment
 # marker, so removal is not "delete the marked block" but "delete these two dirs" -
@@ -45,7 +45,7 @@ function Get-BumpUserEnvKey {
   }
 }
 
-# Get-BumpOwnedPathDir: the dirs vibe installs into that nothing else persists.
+# Get-BumpOwnedPathDir: the dirs bumpstart installs into that nothing else persists.
 #
 # Exactly two, and deliberately NOT all of Set-BumpPath's candidates: %AppData%\npm
 # and %ProgramFiles%\nodejs are put on PATH by Node's own MSI, so adding them here
@@ -64,7 +64,7 @@ function Get-BumpOwnedPathDir {
 # Expanded for the COMPARISON ONLY. A PATH already carrying %USERPROFILE%\.local\bin
 # holds that dir, and appending the literal path beside it is precisely the duplicate
 # this file exists not to create; but the entries written back are untouched, because
-# expanding somebody else's entry into the value is a change vibe was not asked to
+# expanding somebody else's entry into the value is a change bumpstart was not asked to
 # make.
 function Get-BumpPathKey {
   param([string]$Entry)
@@ -72,13 +72,13 @@ function Get-BumpPathKey {
   return ($e.TrimEnd('\', '/')).ToLowerInvariant()
 }
 
-# Get-BumpPathUpdate -Current <raw PATH> -Dirs <dirs vibe owns>: the pure core.
+# Get-BumpPathUpdate -Current <raw PATH> -Dirs <dirs bumpstart owns>: the pure core.
 # Returns @{ Value = <new raw PATH>; Changed = <bool>; Added = @(<dirs>) }.
 #
 # APPENDED, not prepended, and the reason is worth stating because shellpath.sh
 # prepends: on Windows the effective PATH is the Machine value followed by the User
 # one, so nothing written here can come before a machine-wide entry anyway. Prepending
-# would buy no ordering guarantee and would put vibe ahead of choices the person made
+# would buy no ordering guarantee and would put bumpstart ahead of choices the person made
 # in their own account PATH.
 function Get-BumpPathUpdate {
   param([string]$Current, [string[]]$Dirs)
@@ -127,7 +127,7 @@ function Test-BumpUserEnvironment {
 #
 # NOT [Environment]::GetEnvironmentVariable('Path', 'User'): that accessor EXPANDS
 # %USERPROFILE%-style entries, so writing its result back bakes today's expansion into
-# a PATH vibe did not author - a silent, permanent change to somebody else's entries.
+# a PATH bumpstart did not author - a silent, permanent change to somebody else's entries.
 # DoNotExpandEnvironmentNames is how you read the value that was actually written.
 function Get-BumpUserPathRaw {
   $key = Get-BumpUserEnvKey
@@ -185,13 +185,13 @@ function Test-BumpPersistedPath {
   return (-not $upd.Changed)
 }
 
-# Set-BumpPersistedPath: persist vibe's install dirs on the User PATH, so a new
+# Set-BumpPersistedPath: persist bumpstart's install dirs on the User PATH, so a new
 # terminal finds them. Sets $script:BumpPathPersisted to what was written (empty when
 # nothing was). Never fatal: a PATH we cannot write warns and the setup continues,
 # exactly as persist_path does.
 #
 # RegistryValueKind.ExpandString, never `setx`: setx TRUNCATES the value at 1024
-# characters, which on a machine with a long PATH quietly destroys entries vibe does
+# characters, which on a machine with a long PATH quietly destroys entries bumpstart does
 # not own. ExpandString because that is what a PATH holding %USERPROFILE% has to be,
 # and rewriting the kind would break every reference in it.
 function Set-BumpPersistedPath {
@@ -200,7 +200,7 @@ function Set-BumpPersistedPath {
 
   $upd = Get-BumpPathUpdate -Current (Get-BumpUserPathRaw) -Dirs (Get-BumpOwnedPathDir)
   if (-not $upd.Changed) {
-    Success 'Your account already knows where vibe installs things'
+    Success 'Your account already knows where bumpstart installs things'
     return
   }
 

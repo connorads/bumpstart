@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 #
-# The `vibe` bootstrap — the script a pasting user hits FIRST, and until now the
-# only executable in the repo that nothing ran (catalogue.bats' `vibe()` helper
+# The `bumpstart` bootstrap — the script a pasting user hits FIRST, and until now the
+# only executable in the repo that nothing ran (catalogue.bats' `bumpstart()` helper
 # calls lib/apply.sh; the real bootstrap was shellcheck'd and no more).
 #
 # It matters because its platform guard is deliberately duplicated from
@@ -23,7 +23,7 @@ setup() {
   mkdir -p "$TMPDIR"
 }
 
-# A tar fake that extracts the layout `vibe` globs for: <-C dir>/vibe-setup-main/
+# A tar fake that extracts the layout `bumpstart` globs for: <-C dir>/bumpstart-main/
 # with lib/apply.sh inside. BUMP_TAR_BAD=1 omits the apply.sh, which is the
 # unexpected-layout path. It drains stdin so the fetcher upstream of the pipe
 # never takes a SIGPIPE.
@@ -37,17 +37,17 @@ for a in "$@"; do
   prev="$a"
 done
 cat >/dev/null
-mkdir -p "$dest/vibe-setup-main/lib"
+mkdir -p "$dest/bumpstart-main/lib"
 if [ -z "${BUMP_TAR_BAD:-}" ]; then
   printf '%s\n%s\n' '#!/bin/bash' 'printf "APPLY %s\n" "$*" >> "$BUMP_FAKE_LOG"' \
-    > "$dest/vibe-setup-main/lib/apply.sh"
+    > "$dest/bumpstart-main/lib/apply.sh"
 fi
 exit 0
 TAR
   chmod +x "$FAKES/tar"
 }
 
-boot() { run bash "$REPO_ROOT/vibe" "$@"; }
+boot() { run bash "$REPO_ROOT/bumpstart" "$@"; }
 
 # boot_curlless <id>... — run the bootstrap with ONLY the fakes dir on PATH, so
 # "curl absent" is real rather than shadowed by /usr/bin/curl. The few real
@@ -58,7 +58,7 @@ boot_curlless() {
   # mktemp/rm for the bootstrap itself; cat/mkdir for the tar fake's own body.
   for _b in mktemp rm cat mkdir; do ln -sf "$(command -v "$_b")" "$FAKES/$_b"; done
   _wide_path="$PATH"
-  PATH="$FAKES" run bash "$REPO_ROOT/vibe" "$@"
+  PATH="$FAKES" run bash "$REPO_ROOT/bumpstart" "$@"
   export PATH="$_wide_path"
 }
 
@@ -68,7 +68,7 @@ boot_curlless() {
   make_fake_tar
   boot claude starter
   [ "$status" -eq 0 ]
-  fake_logged "curl -fsSL https://codeload.github.com/connorads/vibe-setup/tar.gz/main"
+  fake_logged "curl -fsSL https://codeload.github.com/connorads/bumpstart/tar.gz/main"
   fake_logged "APPLY claude starter"
 }
 
@@ -88,7 +88,7 @@ boot_curlless() {
   boot claude
   [ "$status" -eq 0 ]
   [[ "$output" == *"On Windows, open PowerShell"* ]]
-  [[ "$output" == *"vibe.ps1"* ]]
+  [[ "$output" == *"bumpstart.ps1"* ]]
   # the redirect is the point: nothing was downloaded and nothing was applied
   refute_fake_logged "curl"
   refute_fake_logged "APPLY"
@@ -135,7 +135,7 @@ boot_curlless() {
   make_fake_tar
   boot_curlless claude
   [ "$status" -eq 0 ]
-  fake_logged "wget -qO- https://codeload.github.com/connorads/vibe-setup/tar.gz/main"
+  fake_logged "wget -qO- https://codeload.github.com/connorads/bumpstart/tar.gz/main"
   fake_logged "APPLY claude"
 }
 
@@ -170,7 +170,7 @@ boot_curlless() {
 }
 
 @test "the bootstrap and the applier reach the same verdict for the same machine" {
-  # The drift guard. vibe's guard cannot call bump_os() (it must answer before the
+  # The drift guard. bumpstart's guard cannot call bump_os() (it must answer before the
   # fetch that delivers lib/os.sh), so the two are hand-kept in step — and a
   # supported OS still refused at the paste is invisible to every test that drives
   # lib/apply.sh directly.
@@ -180,7 +180,7 @@ boot_curlless() {
     make_fake uname "printf '$_sys\n'"
 
     : > "$BUMP_FAKE_LOG"
-    run bash "$REPO_ROOT/vibe" claude --plan
+    run bash "$REPO_ROOT/bumpstart" claude --plan
     if fake_logged "APPLY"; then _boot=proceed; else _boot=refuse; fi
 
     # --plan is after the guard and has no effects, so this asks the applier the

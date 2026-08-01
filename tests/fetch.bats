@@ -62,10 +62,10 @@ fetch() {
   [[ "$output" == *BODY* ]]
 }
 
-@test "the vibe bootstrap and install.sh carry the same fallback inline" {
+@test "the bumpstart bootstrap and install.sh carry the same fallback inline" {
   # Both run before lib/common.sh exists, so they cannot use bump_fetch. The
   # duplication is deliberate; this keeps it from silently becoming curl-only.
-  for f in "$REPO_ROOT/vibe" "$REPO_ROOT/install.sh"; do
+  for f in "$REPO_ROOT/bumpstart" "$REPO_ROOT/install.sh"; do
     grep -Fq 'wget -qO-' "$f"
     grep -Fq 'curl -fsSL' "$f"
   done

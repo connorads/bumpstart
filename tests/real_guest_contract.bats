@@ -19,7 +19,7 @@
 #                                                so the runner adapter, whose lane
 #                                                user IS the caller, refuses root
 #                                                rather than asserting less
-#   ...with the target user's HOME               everything vibe writes lands there
+#   ...with the target user's HOME               everything bumpstart writes lands there
 #   ...with a bash or zsh $SHELL                 persist_path keys on it; an `sh`
 #                                                $SHELL makes the probe report
 #                                                `rc.file none` and every rc
@@ -96,7 +96,7 @@ assert_guest_port() {
   run guest_exec 'test -d "$HOME" && test -w "$HOME"'
   [ "$status" -eq 0 ] || { echo "HOME ($home) is not a writable directory"; false; }
 
-  # $SHELL, which persist_path keys on. Not merely set: set to a shell vibe
+  # $SHELL, which persist_path keys on. Not merely set: set to a shell bumpstart
   # persists into, or the lane asserts nothing about persistence.
   run guest_exec 'printf "%s\n" "${SHELL:-unset}"'
   case "$(basename "$output")" in
@@ -252,7 +252,7 @@ assert_guest_port() {
 @test "a kept tart guest is stopped before the next run deletes it" {
   # A class-1 failure keeps the guest alive on purpose, so the NEXT run finds it
   # running - and `tart delete` refuses while it is, so the clone fails and the lane
-  # reports class 2, "not a vibe failure", from then on. One real assertion failure
+  # reports class 2, "not a bumpstart failure", from then on. One real assertion failure
   # silently demoting itself to not-red.
   command -v tart >/dev/null 2>&1 || skip "tart not installed"
   tart list 2>/dev/null | grep -q 'macos-tahoe-vanilla' || skip "the macos-tahoe-vanilla image is not pulled"

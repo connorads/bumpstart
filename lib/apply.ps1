@@ -81,7 +81,7 @@ function Invoke-BumpSetup {
 
   # Pinned, because the applier's whole design is warn-and-continue and a
   # non-terminating error outside an Invoke-Spin try/catch would otherwise end the
-  # setup. vibe.ps1 sets 'Stop' and then invokes this two ways: through a spawned
+  # setup. bumpstart.ps1 sets 'Stop' and then invokes this two ways: through a spawned
   # pwsh 7 process (which resets the preference) when pwsh 7 is on PATH, and in
   # the SAME runspace when it isn't. The second is the fresh-Windows branch - the
   # beginner's path, and the only one that ever ran under 'Stop', since every test
@@ -122,7 +122,7 @@ function Invoke-BumpSetup {
     if (-not (Confirm-Plan)) { Err 'Aborted.'; return 1 }
   }
 
-  Write-Host ("`n  {0}{1}vibe-setup{2}" -f $script:Bold, $script:Cyan, $script:Reset)
+  Write-Host ("`n  {0}{1}bumpstart{2}" -f $script:Bold, $script:Cyan, $script:Reset)
   Write-Host ("  {0}let's get you building{1}" -f $script:Dim, $script:Reset)
 
   Write-Host ("`n  {0}{1}[.]{2} {0}Preparing Windows{2}" -f $script:Bold, $script:Cyan, $script:Reset)
@@ -207,7 +207,7 @@ function Invoke-BumpSetup {
 
   # The other central persistent effect, beside the instructions file: make the dirs
   # we installed into outlive this terminal. A block cannot own it - every block would
-  # want it, and the edit is one claim about vibe's own install dirs. Mirrors
+  # want it, and the edit is one claim about bumpstart's own install dirs. Mirrors
   # apply.sh:276, which calls persist_path in the same place for the same reason.
   Set-BumpPersistedPath
 

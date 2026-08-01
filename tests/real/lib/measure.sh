@@ -3,12 +3,12 @@
 #
 # The judge asserts a DELTA, not an end state. "git resolves in a fresh shell" is
 # true on a machine that shipped git, so asserting it there is a claim about the
-# image rather than about vibe — and `env -i "$SHELL" -lc` is NOT an empty PATH:
+# image rather than about bumpstart — and `env -i "$SHELL" -lc` is NOT an empty PATH:
 # bash and zsh substitute a compiled-in default containing /usr/bin when PATH is
 # unset, and -l sources /etc/profile on top. That is why `shell.lc.git` reads 1
 # beside `shell.lc.gh 0` on a Debian lane whether or not persist_path ever ran.
 #
-# The only way to say "vibe did this" is to have measured the same thing before the
+# The only way to say "bumpstart did this" is to have measured the same thing before the
 # run, which means precheck.sh and probe.sh have to measure it the SAME way. Hence
 # one file: a delta between two subtly different questions is not a delta.
 #
@@ -24,7 +24,7 @@ MEASURE_TOOLS="claude codex gh git node pnpm mise"
 #   lic  login + interactive  → ~/.profile, which sources ~/.bashrc
 #   ic   interactive          → ~/.bashrc
 #   lc   login only           → ~/.profile, and Debian/Ubuntu's ~/.bashrc returns
-#                               early for a non-interactive shell, so vibe's line is
+#                               early for a non-interactive shell, so bumpstart's line is
 #                               invisible here. Reported, not fixed.
 MEASURE_SHELL_MODES="lic ic lc"
 
@@ -36,7 +36,7 @@ MEASURE_USER="$(id -un)"
 # measure_fresh <mode> <tool> — 1 when a shell started that way resolves <tool>.
 #
 # `env -i` so the guest's own startup files are the only source of PATH: inheriting
-# ours would make the measurement vacuous, since fixup_path put vibe's dirs on PATH
+# ours would make the measurement vacuous, since fixup_path put bumpstart's dirs on PATH
 # for the run.
 measure_fresh() {
   case "$MEASURE_SHELL_KIND" in bash|zsh) : ;; *) printf '0'; return 0 ;; esac
@@ -55,7 +55,7 @@ measure_fresh() {
 }
 
 # measure_rc_file — the rc file persist_path would write, found the same way it
-# writes it. Empty for a shell vibe does not persist into.
+# writes it. Empty for a shell bumpstart does not persist into.
 measure_rc_file() {
   case "$MEASURE_SHELL_KIND" in
     zsh)  printf '%s' "${ZDOTDIR:-$HOME}/.zshrc" ;;

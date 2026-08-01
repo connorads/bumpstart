@@ -94,12 +94,12 @@ verdicts() { run bash "$REAL/verdicts.sh" "$D" "$@"; }
   [ "$status" -eq 3 ]
 }
 
-@test "the verdict never reports a lane failure as a vibe failure" {
-  # Exit 1 means "vibe is wrong" everywhere else in this harness. Nothing here is a
-  # claim about vibe, so nothing here may exit 1 - the per-lane job already went red.
+@test "the verdict never reports a lane failure as a bumpstart failure" {
+  # Exit 1 means "bumpstart is wrong" everywhere else in this harness. Nothing here is a
+  # claim about bumpstart, so nothing here may exit 1 - the per-lane job already went red.
   verdict ubuntu-base 1 33 4
   verdicts ubuntu-base
-  [ "$status" -ne 1 ] || { echo "verdicts.sh claimed vibe is wrong"; false; }
+  [ "$status" -ne 1 ] || { echo "verdicts.sh claimed bumpstart is wrong"; false; }
   printf '%s\n' "$output" | grep -q '4 failed' || { echo "$output"; false; }
 }
 

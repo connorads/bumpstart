@@ -77,7 +77,7 @@ Describe 'Get-BumpPathUpdate' {
 
   It 'leaves an environment reference it did not author unexpanded' {
     # The value written back must not bake in today's expansion of somebody else's
-    # entry: that is a permanent change to a PATH vibe was not asked to touch, and it
+    # entry: that is a permanent change to a PATH bumpstart was not asked to touch, and it
     # is why the raw registry value is read rather than the expanding accessor.
     $env:BUMP_TEST_PROFILE = 'C:\Users\me'
     try {
@@ -159,7 +159,7 @@ Describe 'the effect half, where there is a user registry' {
     Mock Send-BumpEnvironmentChange { }
   }
 
-  It 'reads the account PATH back before it has anything of vibe own in it' {
+  It 'reads the account PATH back before it has anything of bumpstart own in it' {
     Test-BumpUserEnvironment | Should -BeTrue
     Get-BumpUserPathRaw | Should -Be 'C:\Windows'
     # The confirm gate is state-aware, so "already there" has to be false here or the
@@ -190,7 +190,7 @@ Describe 'the effect half, where there is a user registry' {
 
   It 'leaves an entry it did not author unexpanded in what it writes' {
     # The reason the raw value is read rather than the expanding accessor: writing back
-    # today's expansion of somebody else's %VAR% is a permanent change to a PATH vibe
+    # today's expansion of somebody else's %VAR% is a permanent change to a PATH bumpstart
     # was not asked to touch. Asserted end to end here, not only on the pure core.
     $script:reg.Value = '%BUMP_TEST_PROFILE%\bin'
     $env:BUMP_TEST_PROFILE = 'C:\Users\me'

@@ -24,7 +24,7 @@
 #
 # The lane runner hands us what only it knows, in $BUMP_REAL_DIR:
 #   lane.tsv      lane / adapter / guest / axis / mode / run / blocks
-#   precheck.tsv  facts measured BEFORE the run (curl absent, no vibe marker, …)
+#   precheck.tsv  facts measured BEFORE the run (curl absent, no bumpstart marker, …)
 #   transcript.log  the run's combined stdout AND stderr — warn() writes to stderr
 #                   only, and lib/apply.sh exits 0 even when steps warned, so the
 #                   verdict has to come from the text, not the status
@@ -64,10 +64,10 @@ emit() { printf '%s\t%s\n' "$1" "$(_norm "$2")"; }
 
 # ── What only the runner knows ────────────────────────────────────────────────
 
-printf '# vibe real-install state manifest\n'
+printf '# bumpstart real-install state manifest\n'
 # 2 added the precheck's fresh-shell baseline, which the judge's delta assertions
 # require. A manifest from an older probe is refused as a harness bug rather than
-# failing every delta closed, which would read as a vibe failure.
+# failing every delta closed, which would read as a bumpstart failure.
 emit manifest_version 2
 
 # `-s`, not `-f`: run.sh truncates before it fills, so a precheck that died part-way
@@ -98,7 +98,7 @@ done
 
 # ── The PATH everything below looks on ───────────────────────────────────────
 #
-# vibe's own install dirs ahead of the login PATH, because the question these
+# bumpstart's own install dirs ahead of the login PATH, because the question these
 # measurements ask is "did acquisition work" — a different question from "does a new
 # terminal find it", which the fresh-shell delta answers.
 
@@ -161,7 +161,7 @@ LOG="$STATE/transcript.log"
 if [ -f "$LOG" ]; then
   # Three outcomes, not two. An effect that ends the applier under set -e leaves NO
   # verdict line at all — that is its own outcome, not a variant of "warned". Every
-  # effect vibe owns is inside the warn-and-record policy, so what this catches now
+  # effect bumpstart owns is inside the warn-and-record policy, so what this catches now
   # is a step that escapes it: a vendor installer that kills its parent, a block
   # tail that exits non-zero outside run_block, a machine that dies mid-run.
   if grep -Fq 'Setup complete.' "$LOG"; then
@@ -207,7 +207,7 @@ fi
 
 # ── Every installed tool's binary really RUNS ────────────────────────────────
 #
-# On vibe's own PATH, not a fresh shell's: this asks "did acquisition work", which
+# On bumpstart's own PATH, not a fresh shell's: this asks "did acquisition work", which
 # is a different question from "does a new terminal find it" below. `--version`
 # rather than `command -v`, because the faked suite's `claude` IS a stub — a binary
 # that executes is the whole point here, and it catches a wrong-arch install too.
@@ -243,7 +243,7 @@ for _m in $MEASURE_SHELL_MODES; do
   done
 done
 
-# ── vibe is the only thing that wrote to PATH ────────────────────────────────
+# ── bumpstart is the only thing that wrote to PATH ────────────────────────────────
 #
 # persist_path keys on `basename $SHELL`, so the rc file is found the same way it
 # was written. The marker must appear exactly once, and no VENDOR-authored PATH edit
@@ -251,23 +251,23 @@ done
 # skips its own rc block, and ensure_mise passes MISE_INSTALL_HELP=0 to suppress
 # mise's epilogue. A distro's own /etc/skel PATH lines (Fedora's ~/.bashrc has one)
 # are NOT vendor edits and must not count — hence signature matching on the dirs
-# vibe's tools install into, not on the word PATH.
+# bumpstart's tools install into, not on the word PATH.
 
 RC="$(measure_rc_file)"
 emit rc.file "${RC:-none}"
 
 if [ -n "$RC" ] && [ -f "$RC" ]; then
-  _markers="$(grep -Fc '# >>> vibe-setup >>>' "$RC" 2>/dev/null)"
+  _markers="$(grep -Fc '# >>> bumpstart >>>' "$RC" 2>/dev/null)"
   [ -n "$_markers" ] || _markers=0
   emit rc.marker_count "$_markers"
   emit rc.block "$(awk '
-    /^# >>> vibe-setup >>>$/ { inblock = 1; next }
-    /^# <<< vibe-setup <<<$/ { inblock = 0; next }
+    /^# >>> bumpstart >>>$/ { inblock = 1; next }
+    /^# <<< bumpstart <<<$/ { inblock = 0; next }
     inblock && !done { print; done = 1 }' "$RC")"
 
   _vendor="$(awk '
-    /^# >>> vibe-setup >>>$/ { inblock = 1; next }
-    /^# <<< vibe-setup <<<$/ { inblock = 0; next }
+    /^# >>> bumpstart >>>$/ { inblock = 1; next }
+    /^# <<< bumpstart <<<$/ { inblock = 0; next }
     inblock { next }
     /mise activate|mise\/shims|\.codex\/bin|\.local\/share\/mise/ { print }' "$RC")"
   _n=0
@@ -407,11 +407,11 @@ else
   emit instructions.section.node 0
 fi
 
-# ── Every vibe-owned path, hashed: the differential's raw material ──────────
+# ── Every bumpstart-owned path, hashed: the differential's raw material ──────────
 #
 # Narrow and explicit, not a sweep of $HOME: mise and the agent CLIs write caches
 # and state that change on every run, and a differential over those would be red
-# forever. These are the paths vibe itself creates or edits.
+# forever. These are the paths bumpstart itself creates or edits.
 
 _path_state() {
   if [ -L "$1" ]; then

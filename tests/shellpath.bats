@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# persist_path (shellpath.sh) — the one edit vibe makes to a file the user owns
+# persist_path (shellpath.sh) — the one edit bumpstart makes to a file the user owns
 # outside its own config paths, so it has to be exact: the right file for the login
 # shell, written once, marker-wrapped so it can be removed, and never joined onto a
 # line the user wrote. Driven under /bin/bash (3.2) in an isolated HOME.
@@ -19,8 +19,8 @@ persist() { run env SHELL="$1" bash "$DRIVER" "$REPO_ROOT/lib"; }
   persist /bin/zsh
   [ "$status" -eq 0 ]
   rc="$HOME/.zshrc"
-  grep -Fxq '# >>> vibe-setup >>>' "$rc"
-  grep -Fxq '# <<< vibe-setup <<<' "$rc"
+  grep -Fxq '# >>> bumpstart >>>' "$rc"
+  grep -Fxq '# <<< bumpstart <<<' "$rc"
   grep -Fq '$HOME/.local/bin' "$rc"
   grep -Fq 'mise/shims' "$rc"
   [[ "$output" == *"New terminals will find your tools"* ]]
@@ -31,7 +31,7 @@ persist() { run env SHELL="$1" bash "$DRIVER" "$REPO_ROOT/lib"; }
   mkdir -p "$ZDOTDIR"
   persist /bin/zsh
   [ "$status" -eq 0 ]
-  grep -Fxq '# >>> vibe-setup >>>' "$ZDOTDIR/.zshrc"
+  grep -Fxq '# >>> bumpstart >>>' "$ZDOTDIR/.zshrc"
   [ ! -e "$HOME/.zshrc" ]
 }
 
@@ -56,7 +56,7 @@ persist() { run env SHELL="$1" bash "$DRIVER" "$REPO_ROOT/lib"; }
 
   [ "$(cat "$canary/.zshrc")" = 'alias ll="ls -l"' ]
   [ ! -e "$canary/.config" ]
-  grep -Fxq '# >>> vibe-setup >>>' "$HOME/.zshrc"
+  grep -Fxq '# >>> bumpstart >>>' "$HOME/.zshrc"
 }
 
 @test "bash: writes to ~/.bashrc" {
@@ -90,7 +90,7 @@ persist() { run env SHELL="$1" bash "$DRIVER" "$REPO_ROOT/lib"; }
   [ "$status" -eq 0 ]
   grep -Fxq 'alias ll="ls -l"' "$HOME/.zshrc"
   grep -Fxq 'export EDITOR=vim' "$HOME/.zshrc"
-  grep -Fxq '# >>> vibe-setup >>>' "$HOME/.zshrc"
+  grep -Fxq '# >>> bumpstart >>>' "$HOME/.zshrc"
 }
 
 @test "an unfamiliar login shell is told the line instead of having a file guessed" {

@@ -30,7 +30,7 @@ set -uo pipefail
 # assertion in CI is a flake generator, and this is a pointer to a transcript.
 #
 # Exit: 0 the suite reached a judgement · 3 it did not, or a declared lane vanished.
-# Never 1: nothing here is a claim about vibe, only about the harness.
+# Never 1: nothing here is a claim about bumpstart, only about the harness.
 #
 # bash-3.2-clean. Deliberately not `set -e`: every missing lane is reported, not just
 # the first.

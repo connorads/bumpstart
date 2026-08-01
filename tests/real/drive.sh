@@ -9,11 +9,11 @@ set -uo pipefail
 #
 # Serially, always. One macOS guest at 6 GB plus colima's own VM does not fit twice
 # on 16 GB, and a lane that swaps is a lane that times out for a reason unrelated to
-# vibe.
+# bumpstart.
 #
 # The exit class is the worst thing that happened, ordered by how much it should
 # bother a reader rather than numerically:
-#   1  an assertion failed   — vibe is wrong. Never tolerable.
+#   1  an assertion failed   — bumpstart is wrong. Never tolerable.
 #   3  a harness bug         — fix the harness, then you learn nothing until you do.
 #   2  infrastructure        — upstream moved. Reportable without going red.
 #
@@ -70,7 +70,7 @@ if [ -z "$LANES" ]; then
   fi
 fi
 
-# The paste entry point cannot see an unpushed tree, and it must fetch `vibe` itself
+# The paste entry point cannot see an unpushed tree, and it must fetch `bumpstart` itself
 # from the commit under test rather than from main — so HEAD is the default ref, and a
 # ref that is not on a remote is called out rather than silently testing main.
 if [ -z "$REF" ]; then
@@ -109,14 +109,14 @@ if [ "$NEEDS_REF" = 1 ]; then
   # the working tree and macos-vanilla-paste fetches a tarball of HEAD, so any
   # uncommitted change to what the blocks assemble makes
   # instructions.canonical.sha256 differ - and the apply-vs-paste differential goes
-  # class 1, "vibe is wrong", on the most expensive lane pair in the matrix after
+  # class 1, "bumpstart is wrong", on the most expensive lane pair in the matrix after
   # forty minutes. Refused rather than warned, because that is a false RED, and the
   # remedy is one commit.
   if [ "$ALLOW_DIRTY" != 1 ] && [ -n "$(git -C "$REPO" status --porcelain 2>/dev/null)" ]; then
     printf '\ndrive.sh: the working tree is dirty, and a paste lane fetches %s from GitHub.\n' "${REF:0:12}" >&2
     printf '          apply.sh would see your uncommitted changes and the paste would not,\n' >&2
     printf '          so the entry-point differential would disagree about them and report\n' >&2
-    printf '          a vibe failure that is not one. Commit and push, run --group linux,\n' >&2
+    printf '          a bumpstart failure that is not one. Commit and push, run --group linux,\n' >&2
     printf '          or pass --allow-dirty if you know why this run is worth it.\n' >&2
     exit 3
   fi
@@ -168,8 +168,8 @@ printf '\n  === lanes ===%s\n' "$SUMMARY"
 
 case "$WORST" in
   0) printf '\n  all lanes passed\n' ;;
-  1) printf '\n  FAILED: an assertion failed — vibe is wrong. Log bundles under %s\n' "$OUT" >&2 ;;
-  2) printf '\n  COULD NOT RUN: infrastructure (a guest, an image, or a vendor URL). Not a vibe failure.\n' >&2 ;;
+  1) printf '\n  FAILED: an assertion failed — bumpstart is wrong. Log bundles under %s\n' "$OUT" >&2 ;;
+  2) printf '\n  COULD NOT RUN: infrastructure (a guest, an image, or a vendor URL). Not a bumpstart failure.\n' >&2 ;;
   3) printf '\n  HARNESS BUG: the harness itself is broken, so the lanes proved nothing.\n' >&2 ;;
 esac
 exit "$WORST"

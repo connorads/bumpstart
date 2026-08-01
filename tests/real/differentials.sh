@@ -20,7 +20,7 @@ set -uo pipefail
 # CI job reconstructs from its artifacts. A lane with no manifest did not run — that
 # is data, not a failure here; verdicts.sh is what refuses a suite where nothing did.
 #
-# Exit: 0 they agree · 1 a differential disagrees (vibe is wrong) · 3 there was
+# Exit: 0 they agree · 1 a differential disagrees (bumpstart is wrong) · 3 there was
 # nothing to compare at all, which is not the same thing as agreement.
 #
 # bash-3.2-clean. Deliberately not `set -e`: every differential is taken, not just
@@ -113,7 +113,7 @@ for _paste in $(lane_names "$LANES_TSV" container tart runner); do
     PAIRED=$((PAIRED + 1))
     # manifest_entry_subset, not manifest_state_subset: these are two different
     # GUESTS, and Claude Code's installer seeds ~/.claude.json with a machineID and
-    # a userID before vibe ever looks at it. Comparing that hash across machines is
+    # a userID before bumpstart ever looks at it. Comparing that hash across machines is
     # a class-1 report of a vendor's randomness. Idempotence still compares it, on
     # the one guest where it is stable.
     if manifest_diff "$_apply (apply.sh)" "$DIR/$_apply/run1.manifest" \

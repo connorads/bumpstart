@@ -100,7 +100,7 @@ mset() {
 
 @test "the differential needs no tool beyond awk, which the subsets already need" {
   # archlinux:base carries no diffutils, and `diff` reporting "command not found" as
-  # a non-zero status made eleven cases claim "vibe is wrong" while naming no key -
+  # a non-zero status made eleven cases claim "bumpstart is wrong" while naming no key -
   # the empty finding body was the header-stripping sed deleting the only line there
   # was. A harness bug must not be able to arrive as a differential finding, so the
   # dependency is gone rather than managed.
@@ -195,11 +195,11 @@ mset() {
 # ── One guest or two: the same question has two right answers ─────────────────
 
 @test "the entry-point subset leaves out what a vendor seeds with per-install randomness" {
-  # Claude Code's own installer writes ~/.claude.json before vibe looks at it -
-  # firstStartTime, machineID, userID - and vibe's preseed_claude_trust then leaves
+  # Claude Code's own installer writes ~/.claude.json before bumpstart looks at it -
+  # firstStartTime, machineID, userID - and bumpstart's preseed_claude_trust then leaves
   # it alone by design. Its hash therefore differs between any two machines, so the
   # apply-vs-paste differential (two GUESTS) would report a vendor's randomness as
-  # class 1, "vibe is wrong", on the most expensive lane pair in the matrix.
+  # class 1, "bumpstart is wrong", on the most expensive lane pair in the matrix.
   mani linux-ubuntu-base.manifest
   cp "$M" "$BATS_TEST_TMPDIR/other"
   mset path.claude-json 'file:deadbeef'

@@ -7,10 +7,10 @@
 #   powershell.exe -File tests\real\precheck.ps1 -Baseline precheck.tsv
 #
 # Why it exists: the runner images ship Git, Node and gh on the Machine PATH, so
-# vibe's SATISFIED_WIN cells find them and the INSTALL_WIN cells for Git.Git,
+# bumpstart's SATISFIED_WIN cells find them and the INSTALL_WIN cells for Git.Git,
 # OpenJS.NodeJS.LTS and GitHub.cli never run - while the probe reported
 # `shell.regpath.git 1` and the judge counted that as a pass. Measuring the same
-# thing before the run is what tells "vibe installed it" apart from "the image had
+# thing before the run is what tells "bumpstart installed it" apart from "the image had
 # it".
 #
 # Windows PowerShell 5.1-clean, run under powershell.exe deliberately: the runner's
@@ -61,7 +61,7 @@ foreach ($t in @('curl', 'wget', 'git', 'gpg', 'brew')) {
 # judge fails closed on an absent key and "there is no such thing on Windows" is a
 # different fact from "nobody measured it".
 Emit-Precheck 'nopasswd' 'absent'
-Emit-Precheck 'vibe_marker' 'absent'
+Emit-Precheck 'bumpstart_marker' 'absent'
 Emit-Precheck 'shell.kind' 'registry'
 
 # -- The baseline the registry-PATH assertions are a delta against -------------
@@ -82,7 +82,7 @@ foreach ($t in (Get-BumpMeasureTool)) {
 
 # The User PATH itself, raw, beside those booleans. They say whether a lookup now
 # succeeds; this says what the value WAS, so a delta can name what changed rather than
-# only that something did - and it is the User scope because that is the one vibe
+# only that something did - and it is the User scope because that is the one bumpstart
 # writes. Tabs out, because the value lands in a TSV manifest verbatim.
 Emit-Precheck 'regpath.user.raw' ((Get-BumpUserRegPathRaw) -replace "`t", ' ')
 

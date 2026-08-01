@@ -36,8 +36,8 @@ setup() {
   # macos-vanilla mounts the working tree; macos-vanilla-paste fetches a tarball of
   # the ref. Any uncommitted change to what the blocks assemble makes
   # instructions.canonical.sha256 differ, so the entry-point differential goes class
-  # 1 - "vibe is wrong" - on the most expensive lane pair in the matrix, after forty
-  # minutes, for a reason that is not a vibe failure.
+  # 1 - "bumpstart is wrong" - on the most expensive lane pair in the matrix, after forty
+  # minutes, for a reason that is not a bumpstart failure.
   : > "$R/uncommitted"
   run bash "$DRIVE" macos-vanilla-paste
   [ "$status" -eq 3 ] || { echo "status $status: $output"; false; }

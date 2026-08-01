@@ -9,7 +9,7 @@ lane	adapter	image	axis	entry	paste	deps
 # ubuntu-paste mirrors ubuntu-base cell for cell except the entry point, which is
 # what makes the apply-vs-paste differential meaningful: same image, same ids, so
 # any disagreement is the entry point. It is also the only lane anywhere that runs
-# the `vibe` bootstrap - the untested thing ADR 0003 exists to fix.
+# the `bumpstart` bootstrap - the untested thing ADR 0003 exists to fix.
 ubuntu-base	container	ubuntu:24.04	base	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 ubuntu-no-curl	container	ubuntu:24.04	no-curl	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git
 ubuntu-no-git	container	ubuntu:24.04	no-git	apply	claude starter	apt-get update -qq && apt-get install -y -qq wget ca-certificates sudo gnupg curl git

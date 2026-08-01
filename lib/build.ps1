@@ -11,7 +11,7 @@
 # required numbered pick, multi = per-row y/N) and, for a single-select, DEFAULT
 # (the pre-selected id). A block or preset joins a question by declaring AXIS.
 
-$script:BumpRepo = 'connorads/vibe-setup'
+$script:BumpRepo = 'connorads/bumpstart'
 
 # Show-PasteCommands <ids...> - print the README one-liners for these ids (mac +
 # Windows) and copy the Windows one to the clipboard. Inherits the run's ref.
@@ -21,10 +21,10 @@ function Show-PasteCommands {
   $prefix = if ($ref -ne 'main') { "BUMP_REF=$ref " } else { '' }
   $idstr = ($Ids -join ' ')
 
-  $mac = "${prefix}/bin/bash -c `"`$(curl -fsSL https://raw.githubusercontent.com/$script:BumpRepo/main/vibe)`" _ $idstr"
+  $mac = "${prefix}/bin/bash -c `"`$(curl -fsSL https://raw.githubusercontent.com/$script:BumpRepo/main/bumpstart)`" _ $idstr"
   $winRef = if ($ref -ne 'main') { "`$env:BUMP_REF='$ref'; " } else { '' }
-  $win = "${winRef}irm https://raw.githubusercontent.com/$script:BumpRepo/main/vibe.ps1 | iex"
-  if ($idstr) { $win = "${winRef}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/$script:BumpRepo/main/vibe.ps1))) $idstr" }
+  $win = "${winRef}irm https://raw.githubusercontent.com/$script:BumpRepo/main/bumpstart.ps1 | iex"
+  if ($idstr) { $win = "${winRef}& ([scriptblock]::Create((irm https://raw.githubusercontent.com/$script:BumpRepo/main/bumpstart.ps1))) $idstr" }
 
   Write-Host "`n  Share the paste for your audience:`n"
   Write-Host "  macOS:"
@@ -95,7 +95,7 @@ function Invoke-BumpWizard {
   # One guard, before the first question: the wizard is interactive throughout,
   # so a redirected stdin can never answer it.
   if ([Console]::IsInputRedirected) {
-    Err "No answers on stdin - the wizard needs a terminal. Run '-List' to browse, then 'vibe _ <id>...'."
+    Err "No answers on stdin - the wizard needs a terminal. Run '-List' to browse, then 'bumpstart _ <id>...'."
     return $result
   }
 

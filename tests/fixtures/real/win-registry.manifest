@@ -3,7 +3,7 @@
 #
 # HAND-WRITTEN, not probe output - no Windows machine is reachable from the fast
 # suite, so this states what the runner image documents: Git, Node and gh arrive on
-# the MACHINE PATH, so vibe's SATISFIED_WIN cells find them and the INSTALL_WIN cells
+# the MACHINE PATH, so bumpstart's SATISFIED_WIN cells find them and the INSTALL_WIN cells
 # never run. Only claude is really under test here, and the baseline is what says so
 # out loud instead of three vacuous passes. The first Windows CI run after this lands
 # is what confirms it.
@@ -17,7 +17,7 @@ mode	apply
 run	1
 blocks	claude-cli claude-desktop gh-auth git node welcome concise ask-first verify secrets
 env.root	0
-precheck.vibe_marker	absent
+precheck.bumpstart_marker	absent
 precheck.shell.kind	registry
 precheck.shell.regpath.user.claude	0
 precheck.shell.regpath.machine.claude	0

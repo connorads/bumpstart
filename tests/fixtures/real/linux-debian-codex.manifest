@@ -16,7 +16,7 @@ precheck.git	present
 precheck.gpg	present
 precheck.brew	absent
 precheck.nopasswd	present
-precheck.vibe_marker	absent
+precheck.bumpstart_marker	absent
 precheck.shell.kind	bash
 precheck.shell.lic.claude	0
 precheck.shell.lic.codex	0

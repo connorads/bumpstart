@@ -6,7 +6,7 @@
 #
 # The case that earns this file: 1 beats 2. A numeric max reads the pair
 # (assertion failed, then a transient DNS failure) as class 2, CI turns that into a
-# green ::warning, and the log bundle proving vibe is wrong is never written.
+# green ::warning, and the log bundle proving bumpstart is wrong is never written.
 
 load helpers/common
 

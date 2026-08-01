@@ -1,13 +1,13 @@
 # shellcheck shell=bash
-# shellpath.sh: make the dirs vibe installs into survive the terminal window.
+# shellpath.sh: make the dirs bumpstart installs into survive the terminal window.
 #
 # fixup_path (common.sh) fixes PATH for THIS run only. That is why a beginner can
 # watch an agent install, open a new terminal, and be told "command not found" —
 # the single most demoralising way for a setup to fail, because nothing looked
-# broken. So vibe writes exactly one marker-wrapped line into the startup file of
+# broken. So bumpstart writes exactly one marker-wrapped line into the startup file of
 # the shell they log in with.
 #
-# This is the ONLY file outside vibe's own config paths that vibe edits, and it is
+# This is the ONLY file outside bumpstart's own config paths that bumpstart edits, and it is
 # disclosed at the confirm gate (_render_expectations in plan.sh). The markers are
 # what make removing it mechanical, which is the deal the README states.
 #
@@ -18,11 +18,11 @@
 #
 # Depends on common.sh (success/info/warn). bash-3.2-clean.
 
-BUMP_PATH_MARKER_BEGIN="# >>> vibe-setup >>>"
-BUMP_PATH_MARKER_END="# <<< vibe-setup <<<"
+BUMP_PATH_MARKER_BEGIN="# >>> bumpstart >>>"
+BUMP_PATH_MARKER_END="# <<< bumpstart <<<"
 
 # _shell_rc — echo the startup file of the shell the user LOGS IN with ($SHELL,
-# not the bash running this script — that one is gone the moment vibe exits), or
+# not the bash running this script — that one is gone the moment bumpstart exits), or
 # nothing for a shell we don't know how to edit. Keyed on the basename, so
 # /bin/zsh, /usr/bin/zsh and a Nix store path all answer the same.
 _shell_rc() {
@@ -66,7 +66,7 @@ persist_path() {
   fi
 
   if [ -f "$_sp_rc" ] && grep -Fq -- "$BUMP_PATH_MARKER_BEGIN" "$_sp_rc"; then
-    success "Your shell already knows where vibe installs things"
+    success "Your shell already knows where bumpstart installs things"
     return 0
   fi
 

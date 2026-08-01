@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# vibe: fetch the vibe-setup repo at BUMP_REF and hand the id list to the applier.
+# bumpstart: fetch the bumpstart repo at BUMP_REF and hand the id list to the applier.
 #
-#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/vibe-setup/main/vibe)" _ claude react node
-#   BUMP_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/vibe)" _ claude starter   # pinned workshop
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude react node
+#   BUMP_REF=<sha> /bin/bash -c "$(curl -fsSL .../main/bumpstart)" _ claude starter   # pinned workshop
 #
 # The `bash -c "SCRIPT" _ a b` form sets $@ = a b. exec keeps stdin on the tty
 # for the interactive prompts; the curl|tar pipe below uses its own stdin.
 
 BUMP_REF="${BUMP_REF:-main}"
-REPO="connorads/vibe-setup"
+REPO="connorads/bumpstart"
 
 # This paste serves macOS and Linux — send a native-Windows reader to the PowerShell
 # paste that does work, before fetching anything. Exit 0: an honest redirect, not a
@@ -19,7 +19,7 @@ REPO="connorads/vibe-setup"
 # Deliberately duplicated, NOT routed through bump_os(): this guard runs before
 # the tarball fetch below, so lib/os.sh does not exist yet — the whole point is to
 # refuse without downloading anything. The cost is that the two guards must be
-# changed together or a supported OS is still refused at the paste; tests/vibe.bats
+# changed together or a supported OS is still refused at the paste; tests/bumpstart.bats
 # holds them to the same verdict for the same machine.
 #
 # WSL 1 first, for the same reason apply.sh checks it first: it passes for a
@@ -43,11 +43,11 @@ case "$(uname -s)" in
   *)
     printf 'This paste runs on macOS and Linux.\n'
     printf 'On Windows, open PowerShell and paste this instead:\n'
-    printf '  irm https://raw.githubusercontent.com/%s/main/vibe.ps1 | iex\n' "$REPO"
+    printf '  irm https://raw.githubusercontent.com/%s/main/bumpstart.ps1 | iex\n' "$REPO"
     exit 0 ;;
 esac
 
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/vibe.XXXXXX")"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/bumpstart.XXXXXX")"
 
 # The same curl-else-wget fallback as lib/common.sh's bump_fetch, spelled inline:
 # this runs BEFORE the tarball that contains lib/common.sh exists. Ubuntu Desktop
@@ -59,24 +59,24 @@ fetch() {
   elif command -v wget >/dev/null 2>&1; then
     wget -qO- "$1"
   else
-    printf 'vibe: need curl or wget to download anything — install one and re-run.\n' >&2
+    printf 'bumpstart: need curl or wget to download anything — install one and re-run.\n' >&2
     return 1
   fi
 }
 
 if ! fetch "https://codeload.github.com/$REPO/tar.gz/$BUMP_REF" | tar -xz -C "$tmp"; then
-  printf 'vibe: could not fetch %s@%s — check the ref and your connection.\n' "$REPO" "$BUMP_REF" >&2
+  printf 'bumpstart: could not fetch %s@%s — check the ref and your connection.\n' "$REPO" "$BUMP_REF" >&2
   rm -rf "$tmp"
   exit 1
 fi
 
-# The extracted top-level dir is named after the ref (e.g. vibe-setup-main), and
+# The extracted top-level dir is named after the ref (e.g. bumpstart-main), and
 # that name varies, so glob for it rather than hard-code.
 root=""
 for d in "$tmp"/*/; do root="$d"; break; done
 
 if [ -z "$root" ] || [ ! -f "${root}lib/apply.sh" ]; then
-  printf 'vibe: unexpected tarball layout under %s\n' "$tmp" >&2
+  printf 'bumpstart: unexpected tarball layout under %s\n' "$tmp" >&2
   rm -rf "$tmp"
   exit 1
 fi

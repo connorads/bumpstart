@@ -27,7 +27,7 @@ description = "Shellcheck all scripts"
 # The path list is explicit, so a new directory of scripts cannot join the repo and
 # silently escape the gate — which is exactly what tests/real/ would have done.
 run = """
-shellcheck -x lib/*.sh blocks/*/apply.sh install.sh vibe tests/helpers/*.sh \
+shellcheck -x lib/*.sh blocks/*/apply.sh install.sh bumpstart tests/helpers/*.sh \
   tests/real/*.sh tests/real/lib/*.sh tests/real/lanes/*.sh tests/real/guests/*.sh \
   tests/real/bin/askpass tests/real/bin/sudo-forces-askpass
 """
@@ -50,11 +50,11 @@ depends = ["lint", "test"]
 
 # ── Real installs, on pristine machines ───────────────────────────────────────
 # The faked suite above is the commit-time gate and stays fast. These lanes really
-# install from vendor URLs into machines that have never seen vibe, so they are slow
+# install from vendor URLs into machines that have never seen bumpstart, so they are slow
 # (30-60 minutes for everything), hit third parties, and are invoked explicitly.
 # Prerequisites and the lane table are in the README's Development section.
 #
-# Three exit classes, not pass/fail: 1 = an assertion failed (vibe is wrong),
+# Three exit classes, not pass/fail: 1 = an assertion failed (bumpstart is wrong),
 # 2 = infrastructure (a guest, an image, a vendor URL), 3 = a harness bug.
 # Rationale and rejected alternatives: docs/adr/0003.
 
@@ -146,7 +146,7 @@ run = [
   # reason: a directory of scripts must not be able to join the repo and silently
   # escape the gate.
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path blocks -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
-  "pwsh -Command \"Invoke-ScriptAnalyzer -Path vibe.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path bumpstart.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path install.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path bootstrap.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   # The real-install probe runs under powershell.exe 5.1 in the guest, so it is held

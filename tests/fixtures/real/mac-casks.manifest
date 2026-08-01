@@ -3,7 +3,7 @@
 #
 # HAND-WRITTEN, not probe output - the 23 GB vanilla image cannot be driven from the
 # fast suite, so this fixture states the image's documented properties (no brew, no
-# CLT, none of vibe's tools) rather than recording a run. The baseline is therefore
+# CLT, none of bumpstart's tools) rather than recording a run. The baseline is therefore
 # all-zero: every fresh-shell pass here is a real delta. The first macos-vanilla run
 # after this lands is what confirms it; until then the negative cases below it are
 # the assertions that cannot rot.
@@ -22,7 +22,7 @@ env.userns.restricted	none
 precheck.curl	present
 precheck.git	absent
 precheck.brew	absent
-precheck.vibe_marker	absent
+precheck.bumpstart_marker	absent
 precheck.shell.kind	zsh
 precheck.shell.lic.claude	0
 precheck.shell.lic.codex	0

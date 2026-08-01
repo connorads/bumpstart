@@ -32,7 +32,7 @@ function Show-Catalogue {
     }
   }
 
-  Write-Host ("`n  Blocks you can compose - paste {0}vibe _ <id>...{1}" -f $script:Bold, $script:Reset)
+  Write-Host ("`n  Blocks you can compose - paste {0}bumpstart _ <id>...{1}" -f $script:Bold, $script:Reset)
 
   $last = ''
   foreach ($r in ($rows | Sort-Object Order, Axis, Rank, Id)) {
