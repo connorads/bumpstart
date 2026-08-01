@@ -56,6 +56,48 @@ jobs:
         shell: powershell
         run: powershell.exe -File lib/apply.ps1 -Plan -Yes claude starter
 
+      # The Windows paste itself, which nothing has ever executed: vibe.ps1 and
+      # install.ps1 are PSScriptAnalyzer targets and nothing else, while the POSIX
+      # equivalent is covered twice. This runs the tarball fetch, the layout check
+      # and the pwsh-vs-5.1 dispatch for real. --plan stops before any effect.
+      - name: the Windows paste, fresh-Windows branch (powershell.exe)
+        shell: powershell
+        env:
+          # The commit under test, not a branch name - otherwise this fetches main
+          # and asserts nothing about the change.
+          VIBE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          # 'Continue', for the reason the windows-real-install job spells out:
+          # GitHub prepends $ErrorActionPreference='stop', under which 5.1 turns a
+          # native command's stderr into a TERMINATING error the moment *>&1 merges
+          # it - and tar writes to stderr.
+          $ErrorActionPreference = 'Continue'
+
+          # Strip pwsh from PATH so the dispatch takes the branch a fresh Windows
+          # takes (vibe.ps1's else arm, same runspace) - the one with no coverage,
+          # because every test regime and CI lane has pwsh 7. -ErrorAction
+          # SilentlyContinue on the probe so an unreadable PATH entry cannot throw.
+          $pwshDirs = @(
+            Get-Command pwsh -All -ErrorAction SilentlyContinue |
+              ForEach-Object { Split-Path -Parent $_.Source }
+          )
+          $env:PATH = (($env:PATH -split ';') |
+            Where-Object { $_ -and ($pwshDirs -notcontains $_) }) -join ';'
+          if (Get-Command pwsh -ErrorAction SilentlyContinue) {
+            Write-Host '::error::pwsh is still on PATH - this would exercise the branch that is already covered'
+            exit 1
+          }
+
+          # Asserted on the OUTPUT, not the exit code: vibe.ps1 `return`s on a
+          # failed fetch and on an unexpected tarball layout, so the step would go
+          # green having run nothing at all.
+          $out = & powershell.exe -NoProfile -File vibe.ps1 -Plan -Yes claude starter *>&1 | Out-String
+          Write-Host $out
+          if ($out -notmatch 'Agent to launch: claude') {
+            Write-Host '::error::the paste did not reach a rendered plan'
+            exit 1
+          }
+
   check-linux:
     # The Linux lane, across the distro families the support claim covers. `docker
     # run` inside a step, deliberately NOT a container job: a container job mounts
