@@ -237,6 +237,38 @@ Describe 'apply.ps1 (Windows spine)' {
     $out | Should -Not -Match "Run 'claude' in"
   }
 
+  It 'records the launch rather than running it inside the value read as the exit code' {
+    # The launch branch had no coverage at all. Running the agent inside the
+    # assignment `$rc = Invoke-VibeSetup ...` puts whatever it printed on the
+    # success stream beside the return code, and `exit @('chatter', 1)` exits 0 -
+    # so a printing agent masked a failed setup. (On a real console it is worse:
+    # a native command in a captured pipeline gets a pipe, not the terminal.)
+    function global:claude { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'LAUNCHED claude' }
+    # Wait-Enter is a no-op only when input is redirected; mocked so a
+    # terminal-attached run of this suite cannot block on it.
+    Mock Wait-Enter { }
+    $cwd = (Get-Location).Path
+    try {
+      Invoke-VibeSetup -Yes -Ids @('claude-cli') 6>$null | Out-Null
+      (Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG) | Should -Not -Match 'LAUNCHED claude'
+      $script:VibeLaunch | Should -Be 'claude'
+      ($script:VibeLaunchDir -replace '\\', '/') | Should -Match 'git/first-project$'
+      (Get-Location).Path | Should -Be $cwd
+    } finally {
+      Remove-Item Function:claude -ErrorAction SilentlyContinue
+    }
+  }
+
+  It 'records no launch under -NoLaunch' {
+    function global:claude { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value 'LAUNCHED claude' }
+    try {
+      Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
+      $script:VibeLaunch | Should -BeNullOrEmpty
+    } finally {
+      Remove-Item Function:claude -ErrorAction SilentlyContinue
+    }
+  }
+
   It 'a non-Windows OS redirects to the mac paste before any effect' {
     $env:VIBE_OS = 'mac'
     $out = Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude') 6>&1 | Out-String

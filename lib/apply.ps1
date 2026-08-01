@@ -123,6 +123,8 @@ function Invoke-VibeSetup {
   # carry one run's failures into the next.
   $script:VibeWarnCount = 0
   $script:VibeWarnItems = @()
+  $script:VibeLaunch = ''
+  $script:VibeLaunchDir = ''
 
   # Count blocks that do real work (declarative cell or apply.ps1 tail).
   $total = 0
@@ -218,8 +220,15 @@ function Invoke-VibeSetup {
   } elseif (-not $NoLaunch) {
     Show-LoginFrame $resolved.DefaultHarness
     Wait-Enter "Press Enter to open $($resolved.DefaultHarness) and sign in"
-    Set-Location -LiteralPath $starter
-    & $resolved.DefaultHarness
+    # The intent is RECORDED here and carried out at the tail, outside the value
+    # this function returns. Two reasons, both fatal to running it here. This
+    # function's return value is read as the process exit code, so anything the
+    # agent printed would ride back beside the code - and `exit @('chatter', 1)`
+    # exits 0, so a printing agent would mask a failure. And a native command
+    # inside a captured pipeline is handed a pipe rather than the terminal, so on
+    # a real console the agent's TUI would open with no tty.
+    $script:VibeLaunch = $resolved.DefaultHarness
+    $script:VibeLaunchDir = $starter
   } else {
     Write-Host ''
     Info "Run '$($resolved.DefaultHarness)' in $starter to start (you'll sign in on first launch)."
@@ -233,5 +242,11 @@ function Invoke-VibeSetup {
 # Run only when executed directly (pwsh -File ...), not when dot-sourced by tests.
 if ($MyInvocation.InvocationName -ne '.') {
   $rc = Invoke-VibeSetup -Plan:$Plan -Yes:$Yes -NoLaunch:$NoLaunch -List:$List -Show $Show -Build:$Build -Force:$Force -Ids $Ids
+  # Outside the assignment above, deliberately - see the launch branch. The exit
+  # code stays the setup's verdict; the agent is what the person does next.
+  if ($script:VibeLaunch) {
+    Set-Location -LiteralPath $script:VibeLaunchDir
+    & $script:VibeLaunch
+  }
   exit $rc
 }
