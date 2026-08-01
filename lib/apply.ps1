@@ -79,6 +79,16 @@ function Invoke-VibeSetup {
     [string[]]$Ids
   )
 
+  # Pinned, because the applier's whole design is warn-and-continue and a
+  # non-terminating error outside an Invoke-Spin try/catch would otherwise end the
+  # setup. vibe.ps1 sets 'Stop' and then invokes this two ways: through a spawned
+  # pwsh 7 process (which resets the preference) when pwsh 7 is on PATH, and in
+  # the SAME runspace when it isn't. The second is the fresh-Windows branch - the
+  # beginner's path, and the only one that ever ran under 'Stop', since every test
+  # regime and CI lane has pwsh 7. Function scope, so dot-sourcing this file into
+  # Pester does not change the suite's own preference.
+  $ErrorActionPreference = 'Continue'
+
   $root = if ($env:VIBE_ROOT) { $env:VIBE_ROOT } else { (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
   if (-not $Ids) { $Ids = @() }
 

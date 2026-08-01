@@ -258,6 +258,30 @@ Describe 'apply.ps1 (Windows spine)' {
     }
   }
 
+  It "runs warn-and-continue whichever bootstrap branch invoked it" {
+    # vibe.ps1 sets 'Stop', then spawns a pwsh 7 process when one is on PATH (which
+    # resets the preference) but invokes the applier in the SAME runspace when there
+    # isn't - and that is the fresh-Windows branch, the beginner's path. Every test
+    # regime and CI lane has pwsh 7, so 'Stop' was the one condition nothing covered,
+    # and under it a non-terminating error outside an Invoke-Spin try/catch ends a
+    # setup whose whole design is to warn and carry on.
+    #
+    # A global shadow function rather than Mock: PowerShell resolves
+    # $ErrorActionPreference dynamically up the call stack, so a plain function
+    # reports the applier's effective value. A mock body resolves variables from
+    # where it was defined, and would assert nothing.
+    $ErrorActionPreference = 'Stop'
+    function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "EAP=$ErrorActionPreference" }
+    try {
+      Invoke-VibeSetup -Yes -NoLaunch -Ids @('claude', 'node') 6>$null | Out-Null
+      $log = Get-Content -Raw -LiteralPath $env:VIBE_FAKE_LOG
+      $log | Should -Match 'EAP=Continue'
+      $log | Should -Not -Match 'EAP=Stop'
+    } finally {
+      function global:winget { Add-Content -LiteralPath $env:VIBE_FAKE_LOG -Value "winget $($args -join ' ')" }
+    }
+  }
+
   It 'admits a missing agent binary instead of a run-it hint' {
     # claude is never defined as a shadow function, so the install dispatch runs
     # but no binary exists — the shape of an installer that landed off PATH.
