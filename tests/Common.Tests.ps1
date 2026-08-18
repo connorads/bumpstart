@@ -4,7 +4,8 @@
 # had none: every fake in the pwsh suite was silent, so the failure paths only
 # ever exercised a block that printed nothing.
 #
-# Plus the warning ledger's dedupe, the twin of the e2e.bats case.
+# Plus the warning ledger's dedupe, the twin of the e2e.bats case, and the roots
+# Set-BumpPath is allowed to draw a PATH entry from.
 
 BeforeAll {
   $env:NO_COLOR = '1'   # before common.ps1 loads, so UI stays plain + capturable
@@ -61,6 +62,68 @@ Describe 'Invoke-Spin' {
     $r = Invoke-Spin 'x' { throw 'nope' } 6>$null
     @($r).Count | Should -Be 1
     $r | Should -BeFalse
+  }
+}
+
+Describe 'Set-BumpPath' {
+  # Three roots, named here as a contract rather than as a description: $HOME,
+  # %APPDATA% and %ProgramFiles%. fixup_path, the POSIX twin, draws from $HOME
+  # alone, so a suite that sets $HOME is hermetic there; this one reaches outside
+  # it, and Apply.Tests.ps1 has to redirect all three to stay a statement about
+  # bumpstart rather than about the machine running it. It did not, and the cost was a
+  # Windows-only CI failure that read as "the winget install never dispatched": the
+  # runner's own C:\Program Files\nodejs went on PATH before the install loop, so
+  # node's `Get-Command node` CHECK reported satisfied. A fourth root added here
+  # without the same redirect would reintroduce that, so fail on the root list.
+  BeforeEach {
+    $script:origHome = $HOME
+    $script:origPath = $env:PATH
+    $script:origAppData = $env:APPDATA
+    $script:origProgramFiles = $env:ProgramFiles
+
+    $script:root = Join-Path $TestDrive ('fixup-' + [guid]::NewGuid().ToString('N'))
+    $script:fakeHome = Join-Path $script:root 'home'
+    $env:APPDATA = Join-Path $script:root 'appdata'
+    $env:ProgramFiles = Join-Path $script:root 'programfiles'
+    Set-Variable -Name HOME -Scope Global -Value $script:fakeHome -Force
+  }
+  AfterEach {
+    Set-Variable -Name HOME -Scope Global -Value $script:origHome -Force
+    $env:PATH = $script:origPath
+    foreach ($v in @{ APPDATA = $script:origAppData; ProgramFiles = $script:origProgramFiles }.GetEnumerator()) {
+      if ($null -eq $v.Value) { Remove-Item "Env:$($v.Key)" -ErrorAction SilentlyContinue }
+      else { Set-Item "Env:$($v.Key)" -Value $v.Value }
+    }
+  }
+
+  It 'prepends nothing that is not under $HOME, %APPDATA% or %ProgramFiles%' {
+    foreach ($d in @(
+        (Join-Path $script:fakeHome '.local/bin')
+        (Join-Path $script:fakeHome '.codex/bin')
+        (Join-Path $env:APPDATA 'npm')
+        (Join-Path $env:ProgramFiles 'nodejs'))) {
+      New-Item -ItemType Directory -Path $d -Force | Out-Null
+    }
+    $env:PATH = 'SENTINEL'
+    Set-BumpPath
+
+    $entries = @($env:PATH -split [regex]::Escape([System.IO.Path]::PathSeparator))
+    $entries[-1] | Should -Be 'SENTINEL'   # appended to, never replaced
+    $added = @($entries[0..($entries.Count - 2)])
+    $added.Count | Should -Be 4            # every candidate existed, so every one was added
+    foreach ($e in $added) { $e | Should -BeLike "$script:root*" }
+  }
+
+  It 'prepends only the dirs that exist' {
+    # The half that keeps the case above honest: without it a Set-BumpPath that
+    # added nothing at all would pass its root check vacuously.
+    New-Item -ItemType Directory -Path (Join-Path $script:fakeHome '.local/bin') -Force | Out-Null
+    $env:PATH = 'SENTINEL'
+    Set-BumpPath
+
+    $entries = @($env:PATH -split [regex]::Escape([System.IO.Path]::PathSeparator))
+    $entries.Count | Should -Be 2
+    ($entries[0] -replace '\\', '/') | Should -BeLike '*/.local/bin'
   }
 }
 
