@@ -16,6 +16,8 @@ BeforeAll {
   $script:origPath = $env:PATH
   $script:origHome = $HOME
   $script:origEnvHome = $env:HOME
+  $script:origAppData = $env:APPDATA
+  $script:origProgramFiles = $env:ProgramFiles
 
   # Every external tool is a global shadow function (functions beat applications
   # in command lookup), so the test never depends on host PATH: node/gh/claude/
@@ -46,6 +48,10 @@ AfterAll {
   $env:PATH = $script:origPath
   Set-Variable -Name HOME -Scope Global -Value $script:origHome -Force
   $env:HOME = $script:origEnvHome
+  foreach ($v in @{ APPDATA = $script:origAppData; ProgramFiles = $script:origProgramFiles }.GetEnumerator()) {
+    if ($null -eq $v.Value) { Remove-Item "Env:$($v.Key)" -ErrorAction SilentlyContinue }
+    else { Set-Item "Env:$($v.Key)" -Value $v.Value }
+  }
 }
 
 Describe 'apply.ps1 (Windows spine)' {
@@ -63,6 +69,21 @@ Describe 'apply.ps1 (Windows spine)' {
     $emptyBin = Join-Path $script:testHome 'bin'
     New-Item -ItemType Directory -Path $emptyBin -Force | Out-Null
     $env:PATH = $emptyBin
+
+    # ...and the same for the two dirs Set-BumpPath takes from the HOST rather than
+    # from $HOME. fixup_path's POSIX twin is entirely $HOME-relative, so setting $HOME
+    # is the whole story there; the Windows one also prepends %AppData%\npm and
+    # %ProgramFiles%\nodejs, which on a real Windows host are the runner's own. That
+    # is correct for the product - a node installed by an earlier run has to be
+    # findable - and fatal for a suite that asserts an install DISPATCHES: the
+    # fixup runs before the install loop, so C:\Program Files\nodejs lands on PATH
+    # and node's `Get-Command node` CHECK reports satisfied on a machine the test
+    # believes has no node. Point both inside $TestDrive so the dirs still exist and
+    # the prepend branch still runs, over content the test owns.
+    $env:APPDATA = Join-Path (Join-Path $script:testHome 'AppData') 'Roaming'
+    $env:ProgramFiles = Join-Path $script:testHome 'ProgramFiles'
+    New-Item -ItemType Directory -Path (Join-Path $env:APPDATA 'npm') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $env:ProgramFiles 'nodejs') -Force | Out-Null
 
     # The account PATH is faked for the same reason the installers are: an applied run
     # calls Set-BumpPersistedPath, which on a Windows host appends THIS TEST'S $TestDrive
