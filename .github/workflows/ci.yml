@@ -21,6 +21,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: jdx/mise-action@v4
         env:
           GITHUB_TOKEN: ${{ github.token }} # releases API rate limit for aqua pwsh
@@ -43,6 +45,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: jdx/mise-action@v4
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -146,6 +150,8 @@ jobs:
             deps: pacman -Sy --noconfirm --needed gnupg git
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Fetch bats
         run: |
           mkdir -p "$RUNNER_TEMP/bats"
@@ -195,6 +201,8 @@ jobs:
       linux: ${{ steps.matrix.outputs.linux }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - id: matrix
         run: |
           # The same lane_names() the local driver uses, so "local and CI run the
@@ -229,6 +237,8 @@ jobs:
         lane: ${{ fromJson(needs.real-lanes.outputs.linux) }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: real install lane
         env:
           LANE: ${{ matrix.lane }}
@@ -297,6 +307,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: real-verdict-*
@@ -333,6 +345,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: real-verdict-*
@@ -362,6 +376,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: disk before
         run: df -h /
       - name: de-brew
@@ -438,6 +454,8 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: is winget in the box?
         # Asserted BEFORE bootstrapping, so the day the ARM image ships winget
