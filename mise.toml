@@ -70,7 +70,7 @@ depends = ["lint", "lint-actions", "test"]
 # The faked suite above is the commit-time gate and stays fast. These lanes really
 # install from vendor URLs into machines that have never seen bumpstart, so they are slow
 # (30-60 minutes for everything), hit third parties, and are invoked explicitly.
-# Prerequisites and the lane table are in the README's Development section.
+# Prerequisites and the lane table are in CONTRIBUTING.md.
 #
 # Three exit classes, not pass/fail: 1 = an assertion failed (bumpstart is wrong),
 # 2 = infrastructure (a guest, an image, a vendor URL), 3 = a harness bug.
@@ -102,7 +102,7 @@ run = """
 set -eu
 image="$(awk -F'\t' 'NR > 1 && $2 == "tart" { print $3; exit }' tests/real/lanes.tsv)"
 if ! command -v tart >/dev/null 2>&1; then
-  echo "tart is not installed - see the README Development section" >&2
+  echo "tart is not installed - see CONTRIBUTING.md" >&2
   exit 1
 fi
 # --source local, and an exact name. A bare `tart list` shows the pulled OCI IMAGE

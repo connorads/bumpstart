@@ -27,7 +27,7 @@ small thing and installs the large one is the wrong shape.
 ## Decision
 
 **`git` installs git and gives it a name and an email. `github` installs the CLI and
-signs in. `github` INCLUDEs `git`; `git` includes nothing.**
+signs in. `github` declares `INCLUDE="git"`; `git` declares nothing.**
 
 Choosing GitHub means choosing git. Choosing git means nothing about GitHub.
 

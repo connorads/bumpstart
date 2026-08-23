@@ -6,7 +6,7 @@ set -euo pipefail
 # before this tail); what remains here is the part that needs a keyboard, so it
 # only runs with a terminal and when not already authenticated. Check-then-act.
 #
-# The block INCLUDEs `git`, not the other way round: choosing GitHub means
+# The block declares INCLUDE="git", not the other way round: choosing GitHub means
 # choosing git, while choosing git means nothing about GitHub. This is an `auth`
 # block and git is a `tool` one, so the sign-in below lands before git's identity
 # step reads it. ADR 0007.

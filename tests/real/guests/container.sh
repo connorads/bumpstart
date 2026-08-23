@@ -44,7 +44,7 @@ guest_start() {
     return 1
   fi
   if ! docker info >/dev/null 2>&1; then
-    printf 'guest: no running docker daemon — start colima first (see the README)\n' >&2
+    printf 'guest: no running docker daemon — start colima first (see CONTRIBUTING.md)\n' >&2
     return 1
   fi
   docker rm -f "$GUEST_NAME" >/dev/null 2>&1 || true

@@ -54,7 +54,7 @@ _tart_ssh() {
 
 guest_start() {
   if ! command -v tart >/dev/null 2>&1; then
-    printf 'guest: tart is not installed (see the README Development section)\n' >&2
+    printf 'guest: tart is not installed (see CONTRIBUTING.md)\n' >&2
     return 1
   fi
   if ! command -v sshpass >/dev/null 2>&1; then

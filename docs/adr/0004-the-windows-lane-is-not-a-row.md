@@ -102,7 +102,7 @@ language.
 
 ## Consequences
 
-- The README's lane table lists Windows without a lane name, because it has none.
+- CONTRIBUTING.md's lane table lists Windows without a lane name, because it has none.
   That is accurate and should stay that way until it does.
 - `verdicts.sh` cannot hold the Windows lane to account the way it does the others:
   the Windows job writes no `lane.verdict`, so "did the suite prove anything" is

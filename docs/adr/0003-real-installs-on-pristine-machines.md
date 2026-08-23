@@ -119,7 +119,7 @@ template disables Gatekeeper (`spctl --global-disable`, asserted in the build), 
 guest is *more permissive* than a real Mac: a cask install cannot hit a "developer
 cannot be verified" refusal there. It also bakes in `admin ALL=(ALL) NOPASSWD: ALL`, so
 macOS's own password path (`lib/brew.sh`) is not exercised either. Both are stated in
-the README, because a caveat only in a commit message is a caveat nobody reads. Tart is `openai/tart` under FSL-1.1-ALv2 (Apache-2.0 after two
+CONTRIBUTING.md, because a caveat only in a commit message is a caveat nobody reads. Tart is `openai/tart` under FSL-1.1-ALv2 (Apache-2.0 after two
 years), free for this use; `tart.run/licensing` still advertises the retired paid tiers
 and is stale. Reset is `tart clone`, which is an APFS `clonefile` and therefore instant.
 
@@ -300,7 +300,7 @@ guest honest.
 ## Consequences
 
 - **A new local prerequisite:** Tart, plus a 23 GB pull and ~30-43 GB resident. Documented
-  in the README's Development section, never auto-installed - a harness that silently
+  in CONTRIBUTING.md, never auto-installed - a harness that silently
   installs a hypervisor has the same manners problem bumpstart exists to avoid. Note nixpkgs
   currently supplies tart 2.30.6 against 2.34.0 upstream.
 - **One macOS guest at a time**, at 6 GB. Apple's floor is 4 GB and Tart hard-codes it
