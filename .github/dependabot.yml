@@ -1,0 +1,12 @@
+# Keeps the SHA-pinned actions current. The 7-day cooldown is the Actions arm of
+# the release-age quarantine (zizmor's dependabot-cooldown audit wants >= 7, and
+# it is more than the 3 days Dependabot has applied automatically since
+# 2026-07-14). A pinned SHA is only as good as the delay before it is replaced.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
