@@ -78,6 +78,41 @@ require_git() {
   command -v git >/dev/null 2>&1 || skip "git not available"
 }
 
+# --- a real terminal, for the prompts that insist on one ------------------------
+#
+# bats gives every test a redirected stdin, which is exactly the condition an
+# `[ -t 0 ]` gate exists to detect — so without a pty the prompt branches in the
+# product are unreachable, and the only thing a test could assert about them is
+# that they are skipped. script(1) supplies one.
+#
+# Two facts about script(1) shape tty_run. It closes the pty the instant its own
+# stdin closes, so the keystrokes are followed by a pause the program can read
+# inside; and macOS's BSD script does not pass the child's exit status back, so the
+# command reports its own as `__RC=<n>` and tty_status reads it out of $output. The
+# two flavours also spell "run this command" differently — util-linux needs -c,
+# BSD takes it as trailing args.
+
+# require_pty — skip a test that needs a real terminal when script(1) is absent.
+require_pty() {
+  command -v script >/dev/null 2>&1 || skip "script(1) not available"
+}
+
+# tty_run <bash-command-string> — run it with stdin on a pty; keystrokes come from
+# this function's own stdin. Pair with `run`, then read the status via tty_status.
+tty_run() {
+  _tty_cmd="$1; printf '__RC=%s\\n' \"\$?\""
+  if script --version >/dev/null 2>&1; then
+    { cat; sleep 1; } | script -qec "$_tty_cmd" /dev/null 2>&1 | tr -d '\r'
+  else
+    { cat; sleep 1; } | script -q /dev/null bash -c "$_tty_cmd" 2>&1 | tr -d '\r'
+  fi
+}
+
+# tty_status — the exit status tty_run's command reported, out of $output.
+tty_status() {
+  printf '%s\n' "$output" | sed -n 's/^__RC=\([0-9][0-9]*\)$/\1/p' | tail -1
+}
+
 # --- tiny assertions (avoid a bats-assert dependency) ---------------------------
 
 # fake_logged <pattern> — grep -F the invocation log.

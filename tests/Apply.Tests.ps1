@@ -97,7 +97,7 @@ Describe 'apply.ps1 (Windows spine)' {
     Mock Send-BumpEnvironmentChange { }
   }
   AfterEach {
-    foreach ($v in 'BUMP_OS', 'BUMP_ROOT', 'BUMP_FAKE_LOG', 'BUMP_LIB', 'BUMP_BLOCK_DIR', 'BUMP_BLOCK_ID') {
+    foreach ($v in 'BUMP_OS', 'BUMP_ROOT', 'BUMP_FAKE_LOG', 'BUMP_LIB', 'BUMP_BLOCK_DIR', 'BUMP_BLOCK_ID', 'BUMP_YES') {
       Remove-Item "Env:$v" -ErrorAction SilentlyContinue
     }
   }
@@ -128,6 +128,28 @@ Describe 'apply.ps1 (Windows spine)' {
     (Get-Content -Raw -LiteralPath $trust) | Should -Match 'hasCompletedOnboarding'
 
     Test-Path -LiteralPath (Join-Path $script:testHome 'git/first-project/.git') | Should -BeTrue
+  }
+
+  It 'git needs no GitHub account, and github brings git with it' {
+    # The direction that used to run the other way. `git` alone installs git and
+    # nothing else; gh is what `github` adds.
+    $solo = Invoke-BumpSetup -Plan -Ids @('claude-cli', 'git') 6>&1 | Out-String
+    $solo | Should -Match 'name, email, and default branch'
+    $solo | Should -Not -Match 'sign into GitHub'
+
+    $both = Invoke-BumpSetup -Plan -Ids @('claude-cli', 'github') 6>&1 | Out-String
+    $both | Should -Match 'sign into GitHub'
+    $both | Should -Match 'name, email, and default branch'
+  }
+
+  It '-Yes reaches the block, so no identity prompt can stall an unattended run' {
+    # BUMP_YES is how the flag gets past the confirm gate and into a tail. gh is
+    # never defined here, so without it the git tail would reach its question -
+    # and [Console]::ReadLine() on a real console has nobody to answer it.
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli', 'git') 6>&1 | Out-String
+    $out | Should -Match 'Setup complete'
+    $out | Should -Not -Match 'What name should show'
+    $out | Should -Match 'git config --global user\.name'
   }
 
   It 'a one-agent plan names the other agent at the gate; a two-agent plan does not' {

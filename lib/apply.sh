@@ -195,10 +195,19 @@ export -f bump_fetch
 # blocks (concise, ask-first) ship only meta + content.md, which the applier
 # assembles centrally. Best-effort otherwise: a failure warns and continues so
 # one fast-moving vendor step can't sink the whole setup.
+#
+# BUMP_YES carries --yes into the block. Without it a block can only ask "is stdin
+# a terminal", which on a real terminal is yes — so `--yes`, whose whole promise is
+# that nothing stops to ask, would still stop at a block's prompt. Empty rather
+# than 0 when unset, so a block reads it with -z.
+BUMP_YES=""
+if [ "$ASSUME_YES" = true ]; then BUMP_YES=1; fi
+
 run_block() {
   _b_dir="$(block_dir "$ROOT" "$1")"
   [ -f "$_b_dir/apply.sh" ] || return 0
   BUMP_LIB="$LIB" BUMP_ROOT="$ROOT" BUMP_BLOCK_DIR="$_b_dir" BUMP_BLOCK_ID="$1" \
+    BUMP_YES="$BUMP_YES" \
     bash "$_b_dir/apply.sh" || {
       warn "block '$1' failed — continuing"
       record_warning "$(_block_label "$ROOT" "$1")"

@@ -1,7 +1,6 @@
 KIND=tool
 AXIS=tools
-DESC="Set up git + your name/email (from GitHub)"
-INCLUDE="github"
+DESC="Set up git + your name and email"
 LABEL="git"
 CHECK_MAC='command -v git >/dev/null 2>&1'
 INSTALL_MAC='brew install git'

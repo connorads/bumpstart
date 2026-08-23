@@ -4,12 +4,13 @@ set -euo pipefail
 # git (interactive tail): give git an identity, so a beginner's first commit is
 # authored rather than rejected for a missing name/email. Installing git is
 # declarative now (CHECK_MAC/INSTALL_MAC in meta, run by the generic runner
-# before this tail); what remains here is the identity logic. The identity comes
-# from their GitHub account (gh is pulled in via INCLUDE, and is an `auth` kind
-# so it signs in before this `tool` step runs); the noreply email keeps their
-# real address private on pushes. We only ever SET config that is unset — never
-# clobber an identity the user already has. Non-fatal throughout: a missing
-# GitHub sign-in prints a hint and skips, never aborting the setup.
+# before this tail); what remains here is the identity logic.
+#
+# git needs a name and an email and nothing else, so this block requires no
+# account anywhere. It reads the identity off a GitHub sign-in when one happens
+# to be there, and otherwise asks. We only ever SET config that is unset — never
+# clobber an identity the user already has. Non-fatal throughout: nothing here
+# can abort the setup.
 
 # shellcheck source=lib/common.sh
 . "$BUMP_LIB/common.sh"
@@ -82,47 +83,81 @@ if ! command -v git >/dev/null 2>&1; then
   exit 0
 fi
 
-# 2a. Derive identity from GitHub — only when signed in. Separate --jq calls keep
-#    each value's source explicit (and easy to fake in tests). Never fatal.
+# can_ask — is there a person here to answer? Both halves matter. `--yes` reaches
+# us as BUMP_YES (run_block passes it), and a run that was told not to ask must not
+# then stop for a question; a redirected stdin means the same thing from the other
+# direction.
+can_ask() { [ -t 0 ] && [ -z "${BUMP_YES:-}" ]; }
+
+# 2a. Where the name and email come from. Two sources, neither of them a
+# dependency — `github` is not in every plan, and a machine with no keyboard is
+# not a machine to invent an identity on.
+#
+# A GitHub sign-in wins when it is there, for the ADDRESS more than the name:
+# {id}+{login}@users.noreply.github.com is what keeps a real address off every
+# public commit, and someone who types their own publishes it on their first push.
+# `github` is an `auth` block and this is a `tool` block, so its sign-in has
+# already happened by the time this runs. Separate --jq calls keep each value's
+# source explicit (and easy to fake in tests). Never fatal.
+#
+# Declared empty up front because 2b below is the single writer: a branch that
+# finds nothing to offer leaves both blank and 2b does nothing.
+name=""
+email=""
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   login="$(gh api user --jq .login 2>/dev/null || true)"
   id="$(gh api user --jq .id 2>/dev/null || true)"
   name="$(gh api user --jq '.name // ""' 2>/dev/null || true)"
 
-  email=""
   [ -n "$id" ] && [ -n "$login" ] && email="${id}+${login}@users.noreply.github.com"
 
-  # A blank GitHub profile name: ask when we have a keyboard, else fall back to
-  # the GitHub username so commits are still attributed to someone.
+  # A blank GitHub profile name: ask when we can, else fall back to the GitHub
+  # username so commits are still attributed to someone. Not asked at all when git
+  # already has a name — 2b would only report it back.
   if [ -z "$name" ]; then
-    if [ -t 0 ]; then
+    if can_ask && ! git config --global --get user.name >/dev/null 2>&1; then
       printf "\n    What name should show on your commits? (First Last) "
       read -r name || name=""
     fi
     [ -z "$name" ] && name="$login"
   fi
 
-  # 2b. Set GLOBAL identity, backing off from anything already set.
-  if [ -n "$name" ]; then
-    if git config --global --get user.name >/dev/null 2>&1; then
-      success "git already knows you as $(git config --global --get user.name)"
-    elif git config --global user.name "$name"; then
-      success "Set your git name to $name"
-    else
-      warn "couldn't set your git name — continuing"
-    fi
+# No GitHub here, so ask — but only when git has no name yet, and only when there
+# is someone to ask. Otherwise set nothing and say so: an unset identity is
+# honest, where a fabricated one ends up in commit metadata forever. git's own
+# error at the first commit names the exact command that fixes it, and the agent
+# can walk them through it.
+elif ! git config --global --get user.name >/dev/null 2>&1; then
+  if can_ask; then
+    printf "\n    What name should show on your commits? (First Last) "
+    read -r name || name=""
+    printf "    What email should show on your commits? "
+    read -r email || email=""
+  else
+    info "Nobody here to ask, so git has no name yet — set one with: git config --global user.name \"Your Name\""
+    info "...and an email with: git config --global user.email you@example.com"
   fi
-  if [ -n "$email" ]; then
-    if git config --global --get user.email >/dev/null 2>&1; then
-      success "git already uses $(git config --global --get user.email) for you"
-    elif git config --global user.email "$email"; then
-      success "Set your git email to $email"
-    else
-      warn "couldn't set your git email — continuing"
-    fi
+fi
+
+# 2b. Set GLOBAL identity, backing off from anything already set. One writer for
+# both sources above, so "only ever set what is unset" is stated once.
+if [ -n "$name" ]; then
+  if git config --global --get user.name >/dev/null 2>&1; then
+    success "git already knows you as $(git config --global --get user.name)"
+  elif git config --global user.name "$name"; then
+    success "Set your git name to $name"
+  else
+    warn "couldn't set your git name — continuing"
   fi
-else
-  info "Not signed into GitHub yet — sign in (gh auth login), then re-run to set your git name/email."
+fi
+if [ -n "$email" ]; then
+  if git config --global --get user.email >/dev/null 2>&1; then
+    success "git already uses $(git config --global --get user.email) for you"
+  elif git config --global user.email "$email"; then
+    success "Set your git email to $email"
+  else
+    warn "couldn't set your git email — continuing"
+  fi
 fi
 
 # New repos should start on 'main' unless the user already chose otherwise.

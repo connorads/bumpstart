@@ -51,8 +51,12 @@ function Ensure-Winget {
 # Invoke-BlockTail <root> <id>: run a block's apply.ps1 (its interactive tail) in
 # a child scope with the block contract in the environment. Missing tail = a
 # silent skip (pure-data blocks install declaratively via Invoke-Cell). Non-fatal.
+#
+# BUMP_YES carries -Yes into the block. Without it a block can only ask "is stdin
+# redirected", which on a real console is no - so -Yes, whose whole promise is that
+# nothing stops to ask, would still stop at a block's prompt. Mirrors apply.sh.
 function Invoke-BlockTail {
-  param([string]$Root, [string]$Id)
+  param([string]$Root, [string]$Id, [bool]$Yes)
   $dir = Get-BlockDir $Root $Id
   $tail = Join-Path $dir 'apply.ps1'
   if (-not (Test-Path -LiteralPath $tail)) { return }
@@ -60,6 +64,7 @@ function Invoke-BlockTail {
   $env:BUMP_ROOT = $Root
   $env:BUMP_BLOCK_DIR = $dir
   $env:BUMP_BLOCK_ID = $Id
+  if ($Yes) { $env:BUMP_YES = '1' } else { Remove-Item Env:BUMP_YES -ErrorAction SilentlyContinue }
   try { & $tail } catch {
     Warn "block '$Id' failed - continuing"
     Add-BumpWarning (Get-BlockLabel $Root $Id)
@@ -155,7 +160,7 @@ function Invoke-BumpSetup {
       Step $cur $total $resolved.StepDescs[$i]
     }
     Invoke-Cell $root $id
-    Invoke-BlockTail $root $id
+    Invoke-BlockTail $root $id ([bool]$Yes)
   }
 
   Write-Host ''

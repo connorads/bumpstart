@@ -409,13 +409,30 @@ apply() { run env BUMP_OS="${BUMP_OS:-mac}" bash "$REPO_ROOT/lib/apply.sh" "$@";
 @test "github-desktop pulls in git and discloses its own GitHub sign-in" {
   apply claude github-desktop --plan
   [ "$status" -eq 0 ]
-  # the GUI is useless on a non-repo, so the block pulls git (and so github) in
+  # the GUI is useless on a non-repo, so the block pulls git in — git alone, since
+  # git no longer drags a GitHub sign-in behind it
   [[ "$output" == *"name, email, and default branch"* ]]
   # two credential stores, two sign-ins — the second is disclosed, not hidden
   [[ "$output" == *"GitHub Desktop asks for its own GitHub sign-in"* ]]
   # a plan without the app makes no such promise
   apply claude starter --plan
   [[ "$output" != *"GitHub Desktop asks"* ]]
+}
+
+@test "git needs no GitHub account, and github brings git with it" {
+  # The direction that used to run the other way. A beginner who wants version
+  # control gets version control; the browser sign-in is what `github` adds.
+  apply claude git --plan
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"sign into GitHub"* ]]
+  [[ "$output" == *"name, email, and default branch"* ]]
+
+  # ...and asking for GitHub still gets you git, so `web` and `starter` are
+  # unchanged for the beginner who pastes them.
+  apply claude github --plan
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"sign into GitHub"* ]]
+  [[ "$output" == *"name, email, and default branch"* ]]
 }
 
 @test "full mode names the .gitconfig path when git is in the plan" {

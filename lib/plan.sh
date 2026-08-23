@@ -241,7 +241,7 @@ _render_expectations() {
   fi
   case " ${PLAN_STEP_IDS[*]} " in
     *" git "*)
-      _exp "Makes sure git has your name and email (from your GitHub account) and makes 'main' the default branch for new projects." ;;
+      _exp "Gives git a name and email to put on your commits - taken from your GitHub account when the plan signs you in, otherwise asked for - and makes 'main' the default branch for new projects." ;;
   esac
   case " ${PLAN_STEP_IDS[*]} " in
     *" node "*|*" pnpm "*)

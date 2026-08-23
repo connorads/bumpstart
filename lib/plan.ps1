@@ -206,7 +206,7 @@ function Show-Expectations {
   }
 
   if ($Plan.StepIds -contains 'git') {
-    Add-Expectation "Makes sure git has your name and email (from your GitHub account) and makes 'main' the default branch for new projects."
+    Add-Expectation "Gives git a name and email to put on your commits - taken from your GitHub account when the plan signs you in, otherwise asked for - and makes 'main' the default branch for new projects."
   }
   if ($Plan.StepIds -contains 'github') {
     Add-Expectation "You'll also sign into GitHub - create a free account first if you don't have one."
