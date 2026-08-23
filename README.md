@@ -408,8 +408,9 @@ Tooling via `mise`:
 ```bash
 # bash spine (macOS + Linux)
 mise run lint          # shellcheck
+mise run lint-actions  # actionlint + zizmor over .github/workflows
 mise run test-bash32   # the whole bats suite under /bin/bash (3.2)
-mise run check         # lint + test
+mise run check         # lint + lint-actions + test
 
 # PowerShell spine (Pester + PSScriptAnalyzer; run bootstrap once first)
 pwsh -File bootstrap.ps1   # install pinned Pester + PSScriptAnalyzer

@@ -6,6 +6,13 @@ shellcheck = "0.11"
 # under pwsh 7 + Pester 5; the Windows 5.1 floor is enforced by the compat rules
 # in lint-ps, not the test runtime (Pester 5 on 5.1 is painful).
 "aqua:PowerShell/PowerShell" = "7"
+# The workflow is the one script in the repo nothing gated: `lint`'s explicit path
+# list structurally cannot reach a `run:` block, so ci.yml's inline shell escaped
+# shellcheck entirely. actionlint reads those blocks (shellcheck included); zizmor
+# is the supply-chain half, and its unpinned-uses audit is what keeps the SHA pins
+# from quietly becoming tags again.
+actionlint = "1"
+zizmor = "1"
 
 # Declared here rather than inherited from a maintainer's global config: this is a
 # public repo, so `mise.lock` has to be maintained by whoever clones it. The
@@ -32,6 +39,17 @@ shellcheck -x lib/*.sh blocks/*/apply.sh install.sh bumpstart tests/helpers/*.sh
   tests/real/bin/askpass tests/real/bin/sudo-forces-askpass
 """
 
+[tasks.lint-actions]
+description = "actionlint + zizmor over the workflows (correctness + supply chain)"
+# --offline, deliberately: the four audits it drops (impostor-commit, ref-confusion,
+# known-vulnerable-actions, stale-action-refs) all query the GitHub API, so their
+# verdict changes with no commit — in a per-PR gate that turns unrelated PRs red.
+# Run those by hand at pin time: GH_TOKEN=$(gh auth token) zizmor --persona regular .
+run = [
+  "actionlint",
+  "zizmor --offline --persona regular .",
+]
+
 [tasks.test]
 description = "Run the bats suite (product code runs under /bin/bash via the isolated PATH)"
 run = "bats tests/"
@@ -46,7 +64,7 @@ run = "/bin/bash \"$(command -v bats)\" tests/"
 
 [tasks.check]
 description = "Lint + full suite (bash spine)"
-depends = ["lint", "test"]
+depends = ["lint", "lint-actions", "test"]
 
 # ── Real installs, on pristine machines ───────────────────────────────────────
 # The faked suite above is the commit-time gate and stays fast. These lanes really
