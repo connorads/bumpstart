@@ -121,7 +121,7 @@ _want_tool() {
 }
 has_block claude-cli && _want_tool claude
 has_block codex-cli  && _want_tool codex
-has_block gh-auth    && _want_tool gh
+has_block github    && _want_tool gh
 has_block git        && _want_tool git
 has_block node       && _want_tool node
 has_block pnpm       && _want_tool pnpm

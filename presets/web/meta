@@ -1,4 +1,4 @@
 KIND=preset
 AXIS=tools
 DESC="Web stack: GitHub, git, Node.js"
-INCLUDE="gh-auth git node"
+INCLUDE="github git node"

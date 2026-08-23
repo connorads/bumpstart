@@ -9,7 +9,7 @@ guest	debian:12
 axis	base
 mode	apply
 run	1
-blocks	codex-cli codex-desktop gh-auth git mise node welcome concise ask-first verify secrets
+blocks	codex-cli codex-desktop github git mise node welcome concise ask-first verify secrets
 precheck.curl	present
 precheck.wget	present
 precheck.git	present

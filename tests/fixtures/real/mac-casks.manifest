@@ -15,7 +15,7 @@ os	mac
 axis	base
 mode	apply
 run	1
-blocks	claude-cli claude-desktop github-desktop gh-auth git mise node pnpm safer-installs welcome concise ask-first verify secrets
+blocks	claude-cli claude-desktop github-desktop github git mise node pnpm safer-installs welcome concise ask-first verify secrets
 env.root	0
 env.login_shell	zsh
 env.userns.restricted	none

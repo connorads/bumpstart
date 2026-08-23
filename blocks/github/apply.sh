@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 #
-# gh-auth (interactive tail): offer a GitHub sign-in. Installing gh is
+# github (interactive tail): offer a GitHub sign-in. Installing gh is
 # declarative now (CHECK_MAC/INSTALL_MAC in meta, run by the generic runner
 # before this tail); what remains here is the part that needs a keyboard, so it
 # only runs with a terminal and when not already authenticated. Check-then-act.

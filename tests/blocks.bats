@@ -5,7 +5,7 @@
 # installed"; absent -> the INSTALL_<os> cell runs once. The harness (*-cli) and
 # app (*-desktop) blocks are separate; BUMP_APPS_DIR points the app blocks' check
 # at an empty dir so the cask install path is reachable without the real app
-# present. Escape-hatch blocks (gh-auth) split: run_cell installs, the trimmed
+# present. Escape-hatch blocks (github) split: run_cell installs, the trimmed
 # apply.sh owns the interactive login tail.
 
 load helpers/common
@@ -159,17 +159,17 @@ run_block() {
   fake_logged "CWD $HOME"
 }
 
-@test "gh-auth block installs gh via brew when absent" {
+@test "github block installs gh via brew when absent" {
   make_fake brew
-  run_cell gh-auth
+  run_cell github
   [ "$status" -eq 0 ]
   fake_logged "brew install gh"
 }
 
-@test "gh-auth block installs nothing when gh is present" {
+@test "github block installs nothing when gh is present" {
   make_fake brew
   make_fake_gh          # gh present -> CHECK passes
-  run_cell gh-auth
+  run_cell github
   [ "$status" -eq 0 ]
   refute_fake_logged "brew install gh"
   [[ "$output" == *"already installed"* ]]
@@ -224,13 +224,13 @@ run_block() {
   refute_fake_logged "brew install mise"
 }
 
-@test "gh-auth installs gh via mise on Linux, from the home dir" {
+@test "github installs gh via mise on Linux, from the home dir" {
   # A statically linked Go binary on every target, which deletes the signed-repo
   # keyring dance rather than expressing it per distro.
   make_fake brew
   make_fake mise 'if [ "$1" = "which" ]; then exit 1; fi' \
     'printf "CWD %s\n" "$PWD" >> "$BUMP_FAKE_LOG"'
-  run_cell_linux gh-auth
+  run_cell_linux github
   [ "$status" -eq 0 ]
   fake_logged "mise use -g gh"
   fake_logged "CWD $HOME"
@@ -285,16 +285,16 @@ run_block() {
   [ -z "$output" ]
 }
 
-@test "gh-auth apply.sh does not attempt login when already authenticated" {
+@test "github apply.sh does not attempt login when already authenticated" {
   make_fake_gh          # auth status -> 0
-  run_block gh-auth
+  run_block github
   [ "$status" -eq 0 ]
   refute_fake_logged "gh auth login"
 }
 
-@test "gh-auth apply.sh skips login without a terminal when unauthenticated" {
+@test "github apply.sh skips login without a terminal when unauthenticated" {
   make_fake_gh_unauth   # auth status -> 1
-  run_block gh-auth
+  run_block github
   [ "$status" -eq 0 ]
   refute_fake_logged "gh auth login"
   [[ "$output" == *"Not a terminal"* ]]

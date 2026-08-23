@@ -15,7 +15,7 @@ os	win
 axis	base
 mode	apply
 run	1
-blocks	claude-cli claude-desktop gh-auth git node welcome concise ask-first verify secrets
+blocks	claude-cli claude-desktop github git node welcome concise ask-first verify secrets
 env.root	0
 precheck.bumpstart_marker	absent
 precheck.shell.kind	registry

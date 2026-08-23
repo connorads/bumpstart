@@ -72,7 +72,7 @@ function Get-BumpAxes {
 
 # Get-BumpAxisDetail <root> <id> - " (pulls in: ...)" for a block that includes
 # others, else ''. The same containment detail Show-Catalogue prints: without it
-# `starter`, `web` and `gh-auth` read as three unrelated ticks.
+# `starter`, `web` and `github` read as three unrelated ticks.
 function Get-BumpAxisDetail {
   param([string]$Root, [string]$Id)
   $inc = Get-Meta (Get-BlockDir $Root $Id) 'INCLUDE'

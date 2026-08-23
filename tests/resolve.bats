@@ -120,7 +120,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 }
 
 @test "a plan with GitHub warns about needing a GitHub account; one without does not" {
-  plan claude gh-auth
+  plan claude github
   [ "$status" -eq 0 ]
   [[ "$output" == *"sign into GitHub"* ]]
   # a harness-only plan has no GitHub step, so no GitHub heads-up
@@ -142,7 +142,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 @test "preset expands to its included blocks" {
   plan claude starter
   [ "$status" -eq 0 ]
-  # starter INCLUDEs web (gh-auth node react context7) + beginner (concise);
+  # starter INCLUDEs web (github node react context7) + beginner (concise);
   # the harness comes from the separate agent axis
   [[ "$output" == *"[harness]"* ]]
   [[ "$output" == *"[auth]"* ]]
@@ -191,7 +191,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 }
 
 @test "a plan with no harness is a domain error" {
-  plan gh-auth
+  plan github
   [ "$status" -ne 0 ]
   [[ "$output" == *"no harness"* ]]
 }
@@ -237,7 +237,7 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 }
 
 @test "steps are ordered by kind regardless of input order" {
-  plan concise gh-auth claude
+  plan concise github claude
   [ "$status" -eq 0 ]
   h="$(line_of '[harness]')"
   a="$(line_of '[auth]')"
@@ -269,9 +269,9 @@ line_of() { printf '%s\n' "$output" | grep -n -F -- "$1" | head -1 | cut -d: -f1
 # --- metamorphic properties (by hand; no bash PBT framework) -------------------
 
 @test "permuting non-harness inputs yields an identical plan" {
-  plan claude gh-auth concise
+  plan claude github concise
   a="$output"
-  plan concise gh-auth claude
+  plan concise github claude
   b="$output"
   [ "$a" = "$b" ]
 }

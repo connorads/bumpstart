@@ -591,7 +591,7 @@ assert_plan_matches() {
 @test "mise is not expected on windows, where it has no install cell" {
   mani win-registry.manifest
   # node INCLUDEs mise, so a `claude starter` plan carries it even on Windows.
-  mset blocks 'claude-cli claude-desktop gh-auth git mise node welcome concise ask-first verify secrets'
+  mset blocks 'claude-cli claude-desktop github git mise node welcome concise ask-first verify secrets'
   judge
   [ "$status" -eq 0 ] || { echo "$output"; false; }
   printf '%s\n' "$output" | grep -q 'mise --version runs' && { echo "asserted mise on win"; false; }
@@ -600,7 +600,7 @@ assert_plan_matches() {
 
 @test "mise IS expected on linux even when the plan never names it" {
   mani linux-ubuntu-base.manifest
-  mset blocks 'claude-cli claude-desktop gh-auth git node welcome concise ask-first verify secrets'
+  mset blocks 'claude-cli claude-desktop github git node welcome concise ask-first verify secrets'
   judge
   [ "$status" -eq 0 ] || { echo "$output"; false; }
   printf '%s\n' "$output" | grep -q 'mise --version runs' || { echo "$output"; false; }
@@ -608,7 +608,7 @@ assert_plan_matches() {
 
 @test "safer-installs is not asserted on windows, which has no apply.ps1 for it" {
   mani win-registry.manifest
-  mset blocks 'claude-cli claude-desktop gh-auth git node safer-installs welcome concise ask-first verify secrets'
+  mset blocks 'claude-cli claude-desktop github git node safer-installs welcome concise ask-first verify secrets'
   judge
   [ "$status" -eq 0 ] || { echo "$output"; false; }
   printf '%s\n' "$output" | grep -q 'npm waits 4 days' && { echo "asserted safer-installs on win"; false; }

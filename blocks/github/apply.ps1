@@ -1,7 +1,7 @@
-# gh-auth (interactive tail): offer a GitHub sign-in. Installing gh is
+# github (interactive tail): offer a GitHub sign-in. Installing gh is
 # declarative (CHECK_WIN/INSTALL_WIN in meta, run by the generic runner before
 # this tail); what remains here needs a keyboard, so it only runs with a terminal
-# and when not already authenticated. The pwsh mirror of gh-auth/apply.sh.
+# and when not already authenticated. The pwsh mirror of github/apply.sh.
 # 5.1-safe.
 . (Join-Path $env:BUMP_LIB 'common.ps1')
 

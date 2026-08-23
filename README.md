@@ -89,7 +89,7 @@ irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1 | i
 Or compose your own setup from any list of block ids:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude gh-auth node concise
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude github node concise
 ```
 
 The `$(...)` form downloads the script first so your terminal stays the input -
@@ -136,8 +136,8 @@ question is adding a directory.
 | ---------------- | -------- | ------------ | ------------------------------------------------------------------ |
 | `claude-cli`     | agent    | harness      | Install Claude Code (CLI); can be the launched agent               |
 | `codex-cli`      | agent    | harness      | Install Codex (CLI); can be the launched agent                     |
-| `gh-auth`        | tools    | auth         | Install GitHub CLI + offer sign-in                                 |
-| `git`            | tools    | tool         | Install git + set your name/email from GitHub (pulls in `gh-auth`) |
+| `github`        | tools    | auth         | Install GitHub CLI + offer sign-in                                 |
+| `git`            | tools    | tool         | Install git + set your name/email from GitHub (pulls in `github`) |
 | `github-desktop` | tools    | app          | Install GitHub Desktop, so you can see and undo what the agent did (pulls in `git`) |
 | `node`           | tools    | tool         | Install Node.js LTS via mise (pulls in `mise`)                     |
 | `pnpm`           | tools    | tool         | Install pnpm via mise (pulls in `mise`)                            |
@@ -171,7 +171,7 @@ rarely what you want: you'd get both sets of habits).
 | ---------- | -------- | --------------------------- |
 | `claude`   | agent    | `claude-cli claude-desktop` |
 | `codex`    | agent    | `codex-cli codex-desktop`   |
-| `web`      | tools    | `gh-auth git node`          |
+| `web`      | tools    | `github git node`          |
 | `beginner` | steering | `welcome concise ask-first verify secrets` |
 | `dev`      | steering | `concise ask-first verify secrets check-first commit-often follow-conventions remember` |
 

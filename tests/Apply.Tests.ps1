@@ -111,7 +111,7 @@ Describe 'apply.ps1 (Windows spine)' {
     $log | Should -Match 'INSTALL claude'                        # claude-cli via irm|iex
     $log | Should -Match 'winget install --id Anthropic.Claude'  # claude-desktop
     $log | Should -Match 'winget install --id OpenJS.NodeJS.LTS' # node (winget, no mise)
-    $log | Should -Match 'winget install --id GitHub.cli'        # gh-auth
+    $log | Should -Match 'winget install --id GitHub.cli'        # github
 
     $canon = Join-Path $script:testHome '.agents/AGENTS.md'
     Test-Path -LiteralPath $canon | Should -BeTrue

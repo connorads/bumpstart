@@ -203,7 +203,7 @@ _render_expectations() {
     esac
   fi
   # Linux installs mise before the first block step, unconditionally — that is what
-  # lets a rank-20 step (gh-auth) use it at all. The cost is that an agent-only plan
+  # lets a rank-20 step (github) use it at all. The cost is that an agent-only plan
   # installs a version manager it never uses, so say so rather than let it be
   # discovered. Same trade macOS already makes by installing Homebrew for a
   # CLI-only plan.
@@ -256,7 +256,7 @@ _render_expectations() {
   esac
   # GitHub sign-in needs an account a from-zero person may not have yet.
   case " ${PLAN_STEP_IDS[*]} " in
-    *" gh-auth "*)
+    *" github "*)
       _exp "You'll also sign into GitHub - create a free account first if you don't have one." ;;
   esac
   # gh and GitHub Desktop keep separate credential stores, so a plan with both

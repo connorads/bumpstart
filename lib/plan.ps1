@@ -171,7 +171,7 @@ function Show-Expectations {
   # UAC narration - the honest analogue of mac's "password once". CLI agents are
   # the no-UAC critical path; winget-installed Node/Git each raise one prompt.
   Add-Expectation "Claude Code and Codex install just for you - no admin prompt."
-  $needsWinget = @('node', 'git', 'gh-auth', 'claude-desktop', 'codex-desktop', 'github-desktop') | Where-Object { $Plan.StepIds -contains $_ }
+  $needsWinget = @('node', 'git', 'github', 'claude-desktop', 'codex-desktop', 'github-desktop') | Where-Object { $Plan.StepIds -contains $_ }
   if (($Plan.StepIds -contains 'node') -or ($Plan.StepIds -contains 'git')) {
     Add-Expectation "Node.js and Git install for everyone via winget - Windows asks permission once for each."
   } elseif ($needsWinget) {
@@ -208,7 +208,7 @@ function Show-Expectations {
   if ($Plan.StepIds -contains 'git') {
     Add-Expectation "Makes sure git has your name and email (from your GitHub account) and makes 'main' the default branch for new projects."
   }
-  if ($Plan.StepIds -contains 'gh-auth') {
+  if ($Plan.StepIds -contains 'github') {
     Add-Expectation "You'll also sign into GitHub - create a free account first if you don't have one."
   }
   # gh and GitHub Desktop keep separate credential stores, so a plan with both

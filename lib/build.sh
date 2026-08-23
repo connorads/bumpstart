@@ -74,7 +74,7 @@ _axes_in_order() {
 
 # _axis_detail <root> <id> — echo " (pulls in: …)" for a block that includes
 # others, else "". The same containment detail render_catalogue prints: without
-# it `starter`, `web` and `gh-auth` read as three unrelated ticks.
+# it `starter`, `web` and `github` read as three unrelated ticks.
 _axis_detail() {
   _ad_inc="$(meta_get "$(block_dir "$1" "$2")" INCLUDE)"
   [ -n "$_ad_inc" ] && printf ' (pulls in: %s)' "$_ad_inc"

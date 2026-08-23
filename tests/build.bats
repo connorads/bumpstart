@@ -10,7 +10,7 @@
 #
 #   recipe   (multi) starter
 #   agent    (one)   1) claude  2) codex  3) claude-cli  4) codex-cli
-#   tools    (multi) web  context7  gh-auth  node  react
+#   tools    (multi) web  context7  github  node  react
 #   steering (multi) beginner  concise
 #   run now  (y/N)
 #

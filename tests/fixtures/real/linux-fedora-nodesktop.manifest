@@ -10,7 +10,7 @@ guest	fedora:42
 axis	base
 mode	apply
 run	1
-blocks	claude-cli claude-desktop gh-auth git mise node pnpm safer-installs welcome concise ask-first verify secrets
+blocks	claude-cli claude-desktop github git mise node pnpm safer-installs welcome concise ask-first verify secrets
 precheck.curl	present
 precheck.wget	present
 precheck.git	present

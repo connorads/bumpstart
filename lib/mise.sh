@@ -4,11 +4,11 @@
 #
 # Why a pre-loop step and not just the `mise` block's own cell: block steps run in
 # KIND rank order, and `auth` (20) runs before `tool` (30) — deliberately, so gh
-# signs in before the git block reads the identity from it. That puts gh-auth ahead
-# of the mise block, so a gh-auth cell that installs gh *via mise* would run before
+# signs in before the git block reads the identity from it. That puts github ahead
+# of the mise block, so a github cell that installs gh *via mise* would run before
 # mise existed, fail, warn, and leave gh missing for the rest of the run. Making
 # mise unconditional and early is what lets a rank-20 step use it. The alternative,
-# INCLUDE="mise" on gh-auth, is wrong: INCLUDE is OS-invariant, so it would pull
+# INCLUDE="mise" on github, is wrong: INCLUDE is OS-invariant, so it would pull
 # mise into every macOS plan too.
 #
 # The `mise` block keeps its own Linux cells regardless, so when node/pnpm pull it

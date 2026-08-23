@@ -2,7 +2,7 @@
 #
 # ensure_mise (mise.sh) — the Linux install substrate, the mirror of ensure_brew.
 # It runs pre-loop and unconditionally because block steps run in KIND rank order:
-# `auth` (gh-auth, 20) comes before `tool` (mise, 30), so a gh-auth cell that uses
+# `auth` (github, 20) comes before `tool` (mise, 30), so a github cell that uses
 # mise would otherwise run before mise existed. Driven under /bin/bash (3.2) in an
 # isolated HOME with PATH-shadow fakes; BUMP_MISE_BIN points the already-installed
 # probe at a path the test owns, so both branches run without a real install.
