@@ -2,9 +2,9 @@
 # Dot-sources apply.ps1 (which defines Invoke-BumpSetup without running) and
 # drives it in-process with $env:BUMP_OS=win, so the WIN command cells fire.
 # Installers are faked as global shadow functions (winget/npm/irm|iex/clipboard);
-# real git is kept on a hermetic PATH so repo init works, while node/gh/claude/
-# codex/pnpm are OFF PATH so their CHECK fails and the install dispatch is
-# observable. Asserts: canonical file, Claude @import line, Codex copy, trust
+# git is faked as well, so repo init works on a hermetic PATH with no real git,
+# while node/gh/claude/codex/pnpm are OFF PATH so their CHECK fails and the
+# install dispatch is observable. Asserts: canonical file, Claude @import line, Codex copy, trust
 # JSON/TOML, per-OS (no-mise) content, install dispatch, idempotent re-run.
 
 BeforeAll {
