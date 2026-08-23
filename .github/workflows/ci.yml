@@ -75,16 +75,39 @@ jobs:
 
           # Strip pwsh from PATH so the dispatch takes the branch a fresh Windows
           # takes (bumpstart.ps1's else arm, same runspace) - the one with no coverage,
-          # because every test regime and CI lane has pwsh 7. -ErrorAction
-          # SilentlyContinue on the probe so an unreadable PATH entry cannot throw.
-          $pwshDirs = @(
-            Get-Command pwsh -All -ErrorAction SilentlyContinue |
-              ForEach-Object { Split-Path -Parent $_.Source }
-          )
-          $env:PATH = (($env:PATH -split ';') |
-            Where-Object { $_ -and ($pwshDirs -notcontains $_) }) -join ';'
-          if (Get-Command pwsh -ErrorAction SilentlyContinue) {
-            Write-Host '::error::pwsh is still on PATH - this would exercise the branch that is already covered'
+          # because every test regime and CI lane has pwsh 7.
+          #
+          # By what a PATH entry HOLDS, not by what its text matches. Comparing the
+          # entries against `Split-Path -Parent` of a resolved pwsh.exe is a string
+          # equality between two spellings of a directory, and the runner carries
+          # 'C:\Program Files\PowerShell\7\' WITH a trailing separator while Split-Path
+          # returns it without one - so the entry survived, pwsh stayed findable, and
+          # the guard below stopped the step every time. Scanning each dir for a pwsh
+          # launcher is the rule the child's own lookup uses, so no spelling gets past.
+          # try/catch per probe so an unreadable or malformed entry cannot throw.
+          $exts = @(($env:PATHEXT -split ';') | Where-Object { $_ })
+          if (-not $exts) { $exts = @('.COM', '.EXE', '.BAT', '.CMD') }
+          $kept = @()
+          foreach ($entry in ($env:PATH -split ';')) {
+            if (-not $entry) { continue }
+            $holdsPwsh = $false
+            foreach ($ext in $exts) {
+              try {
+                if (Test-Path -LiteralPath (Join-Path $entry "pwsh$ext")) { $holdsPwsh = $true; break }
+              } catch { }
+            }
+            if (-not $holdsPwsh) { $kept += $entry }
+          }
+          $env:PATH = $kept -join ';'
+
+          # Application only, and the source NAMED: the child runs -NoProfile, so a
+          # pwsh function or alias in this shell (which GitHub starts WITH a profile)
+          # is not what it will see - and a guard that only says "still on PATH"
+          # leaves the next reader to guess which entry did it.
+          $left = @(Get-Command pwsh -All -CommandType Application -ErrorAction SilentlyContinue)
+          if ($left) {
+            $srcs = ($left | ForEach-Object { $_.Source }) -join '; '
+            Write-Host "::error::pwsh is still on PATH ($srcs) - this would exercise the branch that is already covered"
             exit 1
           }
 
