@@ -12,7 +12,7 @@ set -uo pipefail
 # and each is invisible from inside a lane:
 #
 #   - a renamed adapter token makes the matrix `awk` print nothing, `jq -sc .`
-#     yields `[]`, and eight lanes' worth of coverage vanishes into a green tick
+#     yields `[]`, and every container lane's coverage vanishes into a green tick
 #   - class 2 is a ::warning BY DESIGN, so a stopped docker daemon, a registry rate
 #     limit or a guest that will not boot turns EVERY leg green with an annotation
 #     nobody reads on a weekly schedule

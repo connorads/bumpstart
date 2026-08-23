@@ -202,7 +202,7 @@ jobs:
           . tests/real/lib/lanes.sh
           lanes="$(lane_names tests/real/lanes.tsv container | jq -R . | jq -sc .)"
           # awk exits 0 on no match, so a renamed adapter token yields `[]`, the
-          # matrix covers nothing, and eight lanes vanish into a green tick. The
+          # matrix covers nothing, and every container lane vanishes into a green tick. The
           # Windows job guards its derived list three steps down; this one has to
           # as well.
           if [ "$lanes" = "[]" ]; then
