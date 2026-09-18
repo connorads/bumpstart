@@ -129,13 +129,6 @@ function Invoke-BumpSetup {
   Write-Host ("`n  {0}{1}[.]{2} {0}Preparing Windows{2}" -f $script:Bold, $script:Cyan, $script:Reset)
   Ensure-Winget
 
-  # Before the loop, not after it, for the reason common.ps1 states and apply.sh
-  # already honours: a block's CHECK cell has to be able to see what an earlier
-  # block installed. Concretely on Windows, npm arrives with node's winget MSI
-  # (%ProgramFiles%\nodejs) and blocks/pnpm's cell is `npm install -g pnpm`, so
-  # run post-loop this fixed up a PATH nothing was left to use.
-  Set-BumpPath
-
   # Per-run state, reset here rather than at load: the tests dot-source this file
   # once and drive Invoke-BumpSetup repeatedly, so a load-time-only ledger would
   # carry one run's failures into the next.
@@ -143,6 +136,11 @@ function Invoke-BumpSetup {
   $script:BumpWarnItems = @()
   $script:BumpLaunch = ''
   $script:BumpLaunchDir = ''
+
+  # After confirmation and before the vendor installer, so its PATH diagnostics
+  # describe the environment that will also be used to launch the agent.
+  Set-BumpPersistedPath
+  Set-BumpPath
 
   # Count blocks that do real work (declarative cell or apply.ps1 tail).
   $total = 0
@@ -205,12 +203,6 @@ function Invoke-BumpSetup {
       Link-Harness -TargetLiteral $resolved.Targets[$i] -Method $resolved.TargetMethods[$i] -Force:$Force
     }
   }
-
-  # The other central persistent effect, beside the instructions file: make the dirs
-  # we installed into outlive this terminal. A block cannot own it - every block would
-  # want it, and the edit is one claim about bumpstart's own install dirs. Mirrors
-  # apply.sh:276, which calls persist_path in the same place for the same reason.
-  Set-BumpPersistedPath
 
   $canon = Get-CanonicalPath
   if ($script:InstructionsWrote) {

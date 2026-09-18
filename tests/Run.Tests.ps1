@@ -32,6 +32,7 @@ BeforeAll {
 
 Describe 'run.ps1' {
   BeforeEach {
+    Mock Get-BumpRegistryPath { '' }
     $script:root = Join-Path $TestDrive 'root'
     New-Item -ItemType Directory -Path (Join-Path $script:root 'blocks') -Force | Out-Null
     $env:BUMP_FAKE_LOG = Join-Path $TestDrive 'fake.log'
@@ -83,6 +84,35 @@ Describe 'run.ps1' {
     New-Block act @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", $logInstall)
     Invoke-Cell $script:root 'act' 6>&1 | Out-Null
     (Get-Content -Raw -LiteralPath $env:BUMP_FAKE_LOG) | Should -Match 'brew install thing'
+  }
+
+  It 'does not report installed when a zero-exit installer leaves its check false' {
+    New-Block empty @('KIND=tool', 'LABEL=empty tool', "CHECK_$script:osKey='`$false'", "INSTALL_$script:osKey='Write-Output `"vendor done`"'")
+    $script:BumpWarnCount = 0
+    $script:BumpWarnItems = @()
+    $out = Invoke-Cell $script:root 'empty' 6>&1 | Out-String
+    $out | Should -Not -Match 'empty tool installed'
+    $out | Should -Match 'verification failed'
+    $script:BumpWarnItems | Should -Contain 'empty tool'
+  }
+
+  It 'makes a command in a newly created install directory available before verification' {
+    $savedAppData = $env:APPDATA
+    $savedPath = $env:PATH
+    $env:APPDATA = Join-Path $TestDrive 'fresh-appdata'
+    try {
+      New-Block fresh @('KIND=tool', 'LABEL=fresh tool',
+        "CHECK_$script:osKey='Get-Command bumpstart-probe.ps1 -ErrorAction SilentlyContinue'",
+        "INSTALL_$script:osKey='`$dir = Join-Path `$env:APPDATA npm; New-Item -ItemType Directory -Path `$dir -Force | Out-Null; Set-Content (Join-Path `$dir bumpstart-probe.ps1) -Value `"Write-Output ready`"'")
+      Set-BumpPath
+      Get-Command bumpstart-probe.ps1 -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+      Invoke-Cell $script:root 'fresh' 6>$null
+      Get-Command bumpstart-probe.ps1 -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+      & bumpstart-probe.ps1 | Should -Be 'ready'
+    } finally {
+      $env:APPDATA = $savedAppData
+      $env:PATH = $savedPath
+    }
   }
 
   It 'Invoke-Cell is a silent no-op for an unmapped block' {

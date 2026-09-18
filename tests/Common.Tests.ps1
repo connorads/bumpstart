@@ -76,6 +76,7 @@ Describe 'Set-BumpPath' {
   # node's `Get-Command node` CHECK reported satisfied. A fourth root added here
   # without the same redirect would reintroduce that, so fail on the root list.
   BeforeEach {
+    Mock Get-BumpRegistryPath { '' }
     $script:origHome = $HOME
     $script:origPath = $env:PATH
     $script:origAppData = $env:APPDATA
@@ -112,6 +113,18 @@ Describe 'Set-BumpPath' {
     $added = @($entries[0..($entries.Count - 2)])
     $added.Count | Should -Be 4            # every candidate existed, so every one was added
     foreach ($e in $added) { $e | Should -BeLike "$script:root*" }
+  }
+
+  It 'refreshes registry paths without losing inherited entries or adding duplicates' {
+    $env:PATH = 'sentinel'
+    Mock Get-BumpRegistryPath { '/new/git;/new/gh;SENTINEL;/NEW/GIT/' }
+    Set-BumpPath
+    Set-BumpPath
+    $entries = @($env:PATH -split [regex]::Escape([IO.Path]::PathSeparator))
+    $entries | Should -HaveCount 3
+    $entries[0] | Should -Be 'sentinel'
+    $entries | Should -Contain '/new/git'
+    $entries | Should -Contain '/new/gh'
   }
 
   It 'prepends only the dirs that exist' {

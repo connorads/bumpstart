@@ -107,10 +107,29 @@ function Wait-Enter {
   [void][Console]::ReadLine()
 }
 
+# Registry values include paths added by winget's installers after this process
+# started. Reading them never replaces the caller's process-only PATH entries.
+function Get-BumpRegistryPath {
+  [Environment]::GetEnvironmentVariable('Path', 'Machine')
+  [Environment]::GetEnvironmentVariable('Path', 'User')
+}
+
+function Test-BumpCommand {
+  param([string]$Name)
+  $command = Get-Command $Name -ErrorAction SilentlyContinue | Select-Object -First 1
+  if (-not $command) { return $false }
+  $global:LASTEXITCODE = 0
+  try {
+    & $command --version *> $null
+    return ($? -and $LASTEXITCODE -eq 0)
+  } catch { return $false }
+}
+
 # Set-BumpPath: freshly-installed CLIs land in per-user dirs the current shell may
 # not have on PATH yet - prepend the Windows ones so the launch step and any
 # later cell sees them without a re-login. The mirror of common.sh's fixup_path.
-# Only dirs that exist are prepended, so a mac-hosted test run is a near no-op.
+# Existing owned dirs are prepended; registry entries are appended even before
+# their directory exists, so the agent installer sees its announced destination.
 #   Claude Code + Codex per-user installers -> %USERPROFILE%\.local\bin
 #   npm-global (pnpm + npm-installed Codex)  -> %AppData%\npm
 #   Node.js (winget machine MSI)             -> %ProgramFiles%\nodejs
@@ -123,11 +142,21 @@ function Set-BumpPath {
   if ($env:ProgramFiles) { $candidates += (Join-Path $env:ProgramFiles 'nodejs') }
 
   $sep = [System.IO.Path]::PathSeparator
+  $entries = @($env:PATH -split [regex]::Escape($sep) | Where-Object { $_ })
+  $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+  foreach ($entry in $entries) { [void]$seen.Add($entry.TrimEnd('\', '/')) }
   foreach ($dir in $candidates) {
-    if ((Test-Path -LiteralPath $dir) -and (($env:PATH -split [regex]::Escape($sep)) -notcontains $dir)) {
-      $env:PATH = "$dir$sep$($env:PATH)"
+    if ((Test-Path -LiteralPath $dir) -and $seen.Add($dir.TrimEnd('\', '/'))) {
+      $entries = @($dir) + $entries
     }
   }
+  foreach ($value in (Get-BumpRegistryPath)) {
+    foreach ($entry in ($value -split ';')) {
+      $dir = [Environment]::ExpandEnvironmentVariables($entry.Trim().Trim('"'))
+      if ($dir -and $seen.Add($dir.TrimEnd('\', '/'))) { $entries += $dir }
+    }
+  }
+  $env:PATH = $entries -join $sep
 }
 
 # Expand-BumpHome <path>: expand a leading $HOME or ~ in a meta path literal (e.g.

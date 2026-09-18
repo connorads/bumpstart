@@ -19,17 +19,33 @@ BeforeAll {
   $script:origAppData = $env:APPDATA
   $script:origProgramFiles = $env:ProgramFiles
 
-  # Every external tool is a global shadow function (functions beat applications
-  # in command lookup), so the test never depends on host PATH: node/gh/claude/
-  # codex/pnpm are simply never defined -> their Get-Command CHECK reports absent
-  # -> the install dispatch is observable. git IS faked (config no-op, init makes
-  # a .git dir) so the CHECK passes and repo init works without a real git.
-  function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')" }
+  # Successful installers change observable state, so verification and reruns
+  # exercise the real checks rather than trusting an invocation log.
+  function Invoke-FakeWinget {
+    Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')"
+    $global:LASTEXITCODE = 0
+    $id = $args[[array]::IndexOf([object[]]$args, '--id') + 1]
+    if ($args[0] -eq 'list') {
+      if (($env:BUMP_FAKE_PACKAGES -split ',') -contains $id) { Write-Output $id }
+      return
+    }
+    $env:BUMP_FAKE_PACKAGES += ",$id"
+    switch ($id) {
+      'OpenJS.NodeJS.LTS' { function global:node { $global:LASTEXITCODE = 0; 'v22.0.0' } }
+      'GitHub.cli' {
+        function global:gh {
+          $global:LASTEXITCODE = 0
+          if ($args -contains 'api') { '123' }
+        }
+      }
+    }
+  }
+  function global:winget { Invoke-FakeWinget @args }
   function global:npm    { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "npm $($args -join ' ')" }
   function global:Invoke-RestMethod {
     param([Parameter(Position = 0)][string]$Uri)
-    if ($Uri -match 'claude\.ai/install\.ps1') { return 'Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "INSTALL claude"' }
-    if ($Uri -match 'codex/install\.ps1')      { return 'Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "INSTALL codex"' }
+    if ($Uri -match 'claude\.ai/install\.ps1') { return 'Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "INSTALL claude"; function global:claude { $global:LASTEXITCODE = 0; "1.0.0" }' }
+    if ($Uri -match 'codex/install\.ps1')      { return 'Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "INSTALL codex"; function global:codex { $global:LASTEXITCODE = 0; "1.0.0" }' }
     return ''
   }
   function global:Set-Clipboard { param([Parameter(ValueFromPipeline = $true)]$Value) Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'CLIPBOARD' }
@@ -56,6 +72,8 @@ AfterAll {
 
 Describe 'apply.ps1 (Windows spine)' {
   BeforeEach {
+    function global:winget { Invoke-FakeWinget @args }
+    $env:BUMP_FAKE_PACKAGES = ''
     $script:testHome = Join-Path $TestDrive ('home-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $script:testHome -Force | Out-Null
     Set-Variable -Name HOME -Scope Global -Value $script:testHome -Force
@@ -95,11 +113,20 @@ Describe 'apply.ps1 (Windows spine)' {
     $script:regKey = New-FakeEnvKey $script:regPath
     Mock Get-BumpUserEnvKey { $script:regKey }
     Mock Send-BumpEnvironmentChange { }
+    Mock Get-BumpRegistryPath { $script:regPath.Value }
   }
   AfterEach {
+    Remove-Item Function:claude, Function:codex, Function:node, Function:gh -ErrorAction SilentlyContinue
+    Remove-Item Env:BUMP_FAKE_PACKAGES -ErrorAction SilentlyContinue
     foreach ($v in 'BUMP_OS', 'BUMP_ROOT', 'BUMP_FAKE_LOG', 'BUMP_LIB', 'BUMP_BLOCK_DIR', 'BUMP_BLOCK_ID', 'BUMP_YES') {
       Remove-Item "Env:$v" -ErrorAction SilentlyContinue
     }
+  }
+
+  It 'rejects a discoverable agent that cannot execute its version command' {
+    function global:claude { $global:LASTEXITCODE = 1 }
+    try { Test-BlockCheck $script:repoRoot 'claude-cli' | Should -BeFalse }
+    finally { Remove-Item Function:claude -ErrorAction SilentlyContinue }
   }
 
   It 'claude starter dispatches installs, lands per-OS content, links Claude via @import, pre-trusts' {
@@ -128,6 +155,27 @@ Describe 'apply.ps1 (Windows spine)' {
     (Get-Content -Raw -LiteralPath $trust) | Should -Match 'hasCompletedOnboarding'
 
     Test-Path -LiteralPath (Join-Path $script:testHome 'git/first-project/.git') | Should -BeTrue
+  }
+
+  It 'makes the agent destination visible before its vendor installer runs' {
+    Mock Invoke-RestMethod {
+      $script:regPath.Writes | Should -Be 1
+      $entries = $env:PATH -split [regex]::Escape([IO.Path]::PathSeparator)
+      $entries | Should -Contain (Join-Path $HOME '.local/bin')
+      'function global:claude { $global:LASTEXITCODE = 0; "1.0.0" }'
+    }
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
+    Should -Invoke Invoke-RestMethod -Times 1 -Exactly
+  }
+
+  It 'reruns skip verified installations and do not append PATH again' {
+    Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>$null | Out-Null
+    Set-Content -LiteralPath $env:BUMP_FAKE_LOG -Value ''
+    $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude', 'starter') 6>&1 | Out-String
+    $out | Should -Match 'Claude Code CLI already installed'
+    $log = Get-Content -Raw $env:BUMP_FAKE_LOG
+    $log | Should -Not -Match 'INSTALL claude|winget install'
+    $script:regPath.Writes | Should -Be 1
   }
 
   It 'git needs no GitHub account, and github brings git with it' {
@@ -319,7 +367,7 @@ Describe 'apply.ps1 (Windows spine)' {
       $out | Should -Match 'Node.js'
       $out | Should -Match "retries only what's missing"
     } finally {
-      function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')" }
+      function global:winget { Invoke-FakeWinget @args }
     }
   }
 
@@ -339,13 +387,12 @@ Describe 'apply.ps1 (Windows spine)' {
       $log | Should -Match 'EAP=Continue'
       $log | Should -Not -Match 'EAP=Stop'
     } finally {
-      function global:winget { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value "winget $($args -join ' ')" }
+      function global:winget { Invoke-FakeWinget @args }
     }
   }
 
   It 'admits a missing agent binary instead of a run-it hint' {
-    # claude is never defined as a shadow function, so the install dispatch runs
-    # but no binary exists — the shape of an installer that landed off PATH.
+    Mock Invoke-RestMethod { 'Write-Output "installer did not create a command"' }
     $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>&1 | Out-String
     $out | Should -Match "isn't installed, so there's nothing to open yet"
     $out | Should -Not -Match "Run 'claude' in"
@@ -357,7 +404,7 @@ Describe 'apply.ps1 (Windows spine)' {
     # success stream beside the return code, and `exit @('chatter', 1)` exits 0 -
     # so a printing agent masked a failed setup. (On a real console it is worse:
     # a native command in a captured pipeline gets a pipe, not the terminal.)
-    function global:claude { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' }
+    function global:claude { $global:LASTEXITCODE = 0; if ($args -contains '--version') { '1.0.0' } else { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' } }
     # Wait-Enter is a no-op only when input is redirected; mocked so a
     # terminal-attached run of this suite cannot block on it.
     Mock Wait-Enter { }
@@ -374,7 +421,7 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It 'records no launch under -NoLaunch' {
-    function global:claude { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' }
+    function global:claude { $global:LASTEXITCODE = 0; if ($args -contains '--version') { '1.0.0' } else { Add-Content -LiteralPath $env:BUMP_FAKE_LOG -Value 'LAUNCHED claude' } }
     try {
       Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>$null | Out-Null
       $script:BumpLaunch | Should -BeNullOrEmpty

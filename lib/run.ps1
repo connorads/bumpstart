@@ -63,6 +63,12 @@ function Invoke-Cell {
     return
   }
   $ok = Invoke-Spin "Installing $label" { Invoke-Expression $install }
+  Set-BumpPath
+  if ($ok -eq $true -and (Test-BlockCheck $Root $Id) -eq $false) {
+    Warn "Installation verification failed for $label - continuing"
+    Add-BumpWarning $label
+    return
+  }
   # -eq $true, not truthiness: Invoke-Spin's contract is one boolean, and if it
   # ever regresses to returning more than that, this reads the regression as a
   # failure rather than as a success. For a non-fatal step that is the safe

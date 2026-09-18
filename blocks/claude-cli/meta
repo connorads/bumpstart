@@ -11,5 +11,5 @@ CHECK_LINUX='command -v claude >/dev/null 2>&1'
 INSTALL_LINUX='bump_fetch https://claude.ai/install.sh | bash'
 TARGET_WIN='$HOME/.claude/CLAUDE.md'
 LINK_WIN=import
-CHECK_WIN='Get-Command claude -ErrorAction SilentlyContinue'
+CHECK_WIN='Test-BumpCommand claude'
 INSTALL_WIN='irm https://claude.ai/install.ps1 | iex'
