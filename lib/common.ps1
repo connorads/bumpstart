@@ -59,8 +59,8 @@ function Hrule {
   Write-Host "  $($script:Dim)$([char]0x2500 * 40)$($script:Reset)"
 }
 
-# Invoke-Spin <label> <scriptblock>: run a block while showing (in fancy mode) a
-# calm working indicator. Returns ONE boolean - $true on success, $false when the
+# Invoke-Spin <label> <scriptblock>: run a foreground block with a label and
+# elapsed time. Returns ONE boolean - $true on success, $false when the
 # block throws or leaves a non-zero native exit code. Non-fatal by contract:
 # callers warn-and-continue on $false.
 #
@@ -82,7 +82,10 @@ function Invoke-Spin {
   param([string]$Label, [scriptblock]$Script)
   if ($script:UiFancy) {
     Write-Host "  $($script:Cyan)*$($script:Reset) $Label"
+  } else {
+    Info $Label
   }
+  $timer = [System.Diagnostics.Stopwatch]::StartNew()
   $global:LASTEXITCODE = 0
   $ok = $true
   $encoding = [Console]::OutputEncoding
@@ -99,6 +102,8 @@ function Invoke-Spin {
     $ok = $false
   } finally {
     [Console]::OutputEncoding = $encoding
+    $timer.Stop()
+    Info ("Installer ran for {0:0.0}s." -f $timer.Elapsed.TotalSeconds)
   }
   return $ok
 }

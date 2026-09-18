@@ -121,6 +121,21 @@ Describe 'run.ps1' {
     $out.Trim() | Should -BeNullOrEmpty
   }
 
+  It 'explains winget permission prompts before running the foreground installer' {
+    function winget { Write-Output 'vendor started' }
+    New-Block desktop @('KIND=tool', 'LABEL=desktop app', "INSTALL_$script:osKey='winget install Example.Desktop'")
+    $out = Invoke-Cell $script:root 'desktop' 6>&1 | Out-String
+    $out | Should -Match '(?s)permission.*another window.*vendor started'
+    $out | Should -Match '(?s)Installing desktop app.*vendor started.*Installer ran for [0-9.,]+s.*desktop app installed'
+  }
+
+  It 'reports elapsed time and failure when an installer throws' {
+    New-Block timed @('KIND=tool', 'LABEL=timed tool', $printThenThrow)
+    $out = Invoke-Cell $script:root 'timed' 6>&1 | Out-String
+    $out | Should -Match '(?s)Installing timed tool.*vendor chatter.*Installer ran for [0-9.,]+s.*Couldn.t install timed tool'
+    $out | Should -Not -Match 'timed tool installed'
+  }
+
   It 'Invoke-Cell warns but does not throw when the install fails (non-fatal)' {
     New-Block boom @('KIND=tool', 'LABEL=thing', "CHECK_$script:osKey='`$false'", "INSTALL_$script:osKey='throw `"fail`"'")
     $out = Invoke-Cell $script:root 'boom' 6>&1 | Out-String

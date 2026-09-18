@@ -62,6 +62,9 @@ function Invoke-Cell {
     Success "$label already installed"
     return
   }
+  if ($install -match '^\s*winget\s+install\b') {
+    Info 'Windows may ask permission in another window. Keep this window open while installation runs.'
+  }
   $ok = Invoke-Spin "Installing $label" { Invoke-Expression $install }
   Set-BumpPath
   if ($ok -eq $true -and (Test-BlockCheck $Root $Id) -eq $false) {
