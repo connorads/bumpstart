@@ -60,7 +60,9 @@ if (-not $apply -or -not (Test-Path -LiteralPath $apply)) {
 $pwsh = Get-Command pwsh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 $hostExe = if ($pwsh) { $pwsh.Source } else { Join-Path $PSHOME 'powershell.exe' }
 try {
-  & $hostExe -NoProfile -Command $checkPolicy.ToString()
+  # The policy cmdlet's module must load under an inherited Restricted policy.
+  # The process override still leaves MachinePolicy and UserPolicy authoritative.
+  & $hostExe -NoProfile -ExecutionPolicy Bypass -Command $checkPolicy.ToString()
   if ($LASTEXITCODE -ne 0) { exit 1 }
   & $hostExe -NoProfile -ExecutionPolicy Bypass -File $apply @args
   exit $LASTEXITCODE
