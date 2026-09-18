@@ -55,6 +55,11 @@ jobs:
       - run: pwsh -File bootstrap.ps1
       - run: mise run lint-ps
       - run: mise run test-ps
+      - name: Native output decoding under Windows PowerShell 5.1
+        shell: pwsh
+        run: |
+          $env:BUMP_PESTER_PATH = (Get-Module -ListAvailable Pester | Where-Object Version -eq '5.9.0' | Select-Object -First 1).Path
+          powershell.exe -NoProfile -Command 'Import-Module $env:BUMP_PESTER_PATH; $r = Invoke-Pester -Path tests/Common.Tests.ps1 -PassThru; if ($r.FailedCount -or $r.SkippedCount -or $r.PassedCount -eq 0) { exit 1 }'
       # Layer-4 backstop: the beginner paste runs in Windows PowerShell 5.1, not
       # pwsh 7. Render the plan under real 5.1 to catch runtime breakage the static
       # compat rules can't see. --plan stops before any effect.

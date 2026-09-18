@@ -163,3 +163,44 @@ Describe 'Add-BumpWarning' {
     $script:BumpWarnItems | Should -Contain 'Node.js'
   }
 }
+
+Describe 'native installer output encoding' {
+  BeforeAll {
+    $script:encodingHost = (Get-Process -Id $PID).Path
+  }
+  BeforeEach { $script:savedEncoding = [Console]::OutputEncoding }
+  AfterEach { [Console]::OutputEncoding = $script:savedEncoding }
+
+  It 'decodes native UTF-8 <Stream> and preserves exit <Code>' -TestCases @(
+    @{ Stream = 'Output'; Code = 0 }
+    @{ Stream = 'Error'; Code = 0 }
+    @{ Stream = 'Output'; Code = 7 }
+  ) {
+    param($Stream, $Code)
+    $ErrorActionPreference = 'Continue'
+    [Console]::OutputEncoding = [Text.Encoding]::GetEncoding(850)
+    $emit = '$b=[byte[]](226,134,146,32,226,154,160,10); $s=[Console]::OpenStandard' + $Stream + '(); $s.Write($b,0,$b.Length); exit ' + $Code
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($emit))
+    $out = @(Invoke-Spin 'native encoding probe' {
+      & $script:encodingHost -NoProfile -OutputFormat Text -EncodedCommand $encoded
+    } 2>&1 6>&1)
+    $expected = [string][char]0x2192 + ' ' + [char]0x26A0
+    ($out | Out-String).Contains($expected) | Should -BeTrue
+    $flags = @($out | Where-Object { $_ -is [bool] })
+    $flags | Should -HaveCount 1
+    $flags[0] | Should -Be ($Code -eq 0)
+    [Console]::OutputEncoding.CodePage | Should -Be 850
+  }
+
+  It 'uses UTF-8 during an installer and restores encoding after an exception' {
+    [Console]::OutputEncoding = [Text.Encoding]::GetEncoding(850)
+    $script:insideEncoding = 0
+    $ok = Invoke-Spin 'throwing installer' {
+      $script:insideEncoding = [Console]::OutputEncoding.CodePage
+      throw 'installer failure'
+    } 6>$null
+    $ok | Should -BeFalse
+    $script:insideEncoding | Should -Be 65001
+    [Console]::OutputEncoding.CodePage | Should -Be 850
+  }
+}

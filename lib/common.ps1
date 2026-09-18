@@ -85,7 +85,11 @@ function Invoke-Spin {
   }
   $global:LASTEXITCODE = 0
   $ok = $true
+  $encoding = [Console]::OutputEncoding
   try {
+    # Native installers emit UTF-8; PowerShell decodes their captured output
+    # using Console.OutputEncoding, which may still be an OEM code page in 5.1.
+    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
     & $Script | Write-Host
     if ($LASTEXITCODE -ne 0) { $ok = $false }
   } catch {
@@ -93,6 +97,8 @@ function Invoke-Spin {
     # "Couldn't install X" alone leaves nothing to act on.
     Warn $_.Exception.Message
     $ok = $false
+  } finally {
+    [Console]::OutputEncoding = $encoding
   }
   return $ok
 }
