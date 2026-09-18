@@ -1,106 +1,133 @@
-<img alt="A bumpstart plan: the blocks it will install, what it will change, and a prompt asking whether to continue"
-     src="docs/assets/demo.svg">
-
 # bumpstart
 
-[![ci](https://github.com/connorads/bumpstart/actions/workflows/ci.yml/badge.svg)](https://github.com/connorads/bumpstart/actions/workflows/ci.yml)
-![macOS, Linux and Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)
-[![MIT licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+## Set up your computer to build with AI
 
-Paste one line into a terminal. When it finishes you are talking to a coding agent,
-inside a real project, with the tools installed and the instructions already written.
+Bumpstart installs and connects the tools you need to build websites, small apps and
+automations with Claude or ChatGPT.
 
-It runs on macOS, Linux including WSL 2, and native Windows. You choose one thing:
-which agent, because that follows the AI subscription you already pay for.
+You run one setup command. Bumpstart installs the tools for you, including Git and
+Node.js. You do not need to install mise yourself or follow separate tool setup guides.
+
+When setup finishes, Claude Code or Codex opens in your terminal, ready for your first
+request. A terminal is an app where you type commands and messages to the coding agent.
+
+Choose your computer: [Windows](#windows), [Mac](#macos) or [Linux](#linux).
 
 ## Before you start
 
-You need two accounts:
+For the setup below, have these accounts ready:
 
-- a GitHub account, which is how your work gets saved and how you undo a mistake you
-  cannot unpick by hand. It is free
-- a Claude or ChatGPT subscription, which is what the agent itself runs on. This is
-  the one you pay for, and you probably already have it
+- a Claude or ChatGPT subscription, which you use to sign in to the coding agent
+- a free GitHub account, which lets the agent save your work online
 
-bumpstart opens a browser to sign you in to each, at the point it needs them.
-
-Neither is a hard requirement of the tool. `starter`, the setup below, includes GitHub
-because saving your work matters more than saving five minutes. To start without one,
-see [a setup without GitHub](#a-setup-without-github).
+Bumpstart prompts you to sign in during setup. Having a GitHub account is enough;
+bumpstart installs the GitHub tools for you.
 
 ## Quick start
 
-Find your platform, then the line matching what you pay for.
-
-### macOS
-
-Open Terminal.
-
-If you pay for Claude:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
-```
-
-If you pay for ChatGPT:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ codex starter
-```
-
-### Linux
-
-The same lines, plus a `wget` fallback, because Ubuntu Desktop ships no `curl`. Your
-login password is asked for once, and only if `git` needs installing.
-
-If you pay for Claude:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
-```
-
-If you pay for ChatGPT:
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ codex starter
-```
-
-Tested on Ubuntu, Debian, Fedora and Arch, on x86-64 and arm64, and inside WSL 2 and
-containers. Derivatives (Mint, Pop!\_OS, openSUSE, …) are found by capability, not by
-name, so they generally work too.
-
-Not supported: Alpine and other musl systems, because the tools we install publish no
-musl builds; NixOS, because the vendor binaries need `/lib64`; and WSL 1, which
-bumpstart refuses, printing the one command that upgrades it to WSL 2.
+Choose the instructions for your computer. Copy only the command for the subscription
+you use.
 
 ### Windows
 
-Open PowerShell, the one already on your PC.
+When Node.js or Git needs installing, Windows asks permission to install it for
+everyone on the PC. Other app installers may also ask permission.
 
-If you pay for Claude:
+1. Press the Windows key, type "PowerShell" and open Windows PowerShell.
+2. Copy one command below.
 
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1))) claude starter
-```
+   If you pay for Claude:
 
-If you pay for ChatGPT:
+   ```powershell
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1))) claude starter
+   ```
 
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1))) codex starter
-```
+   If you pay for ChatGPT:
 
-Node.js and Git install for everyone on the PC and each ask permission once. The
-coding agents install just for you and need no admin.
+   ```powershell
+   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart.ps1))) codex starter
+   ```
 
-## Why this exists
+3. Paste the command into PowerShell with Ctrl+V and press Enter.
+4. Read the setup list. Press Enter to start installing. Keep the window open and
+   follow any permission or sign-in prompts.
+5. When prompted, press Enter to open the coding agent. Sign in, then send your
+   [first message](#your-first-message).
 
-Setting up a coding agent means installing a runtime, a package manager, git and a
-command-line tool, signing in to two services, then writing the instructions that tell
-the agent how to behave. None of it is the thing you wanted to do, and plenty of people
-stop before they get through it.
+### macOS
 
-bumpstart does that setup and hands you the agent with the instructions already in
-place. It asks once, before it changes anything, and it shows you the whole plan first.
+Setup may ask for your Mac login password. Nothing appears as you type the password;
+press Enter when you have finished typing.
+
+1. Press Command+Space, type "Terminal" and press Enter.
+2. Copy one command below.
+
+   If you pay for Claude:
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
+   ```
+
+   If you pay for ChatGPT:
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ codex starter
+   ```
+
+3. Paste the command into Terminal with Command+V and press Enter.
+4. Read the setup list. Press Enter to start installing. Keep the window open and
+   follow any permission or sign-in prompts.
+5. When prompted, press Enter to open the coding agent. Sign in, then send your
+   [first message](#your-first-message).
+
+### Linux
+
+Setup may ask for your login password when installing system software.
+
+1. Open your applications menu, search for "Terminal" and open it.
+2. Copy one command below.
+
+   If you pay for Claude:
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ claude starter
+   ```
+
+   If you pay for ChatGPT:
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart 2>/dev/null || wget -qO- https://raw.githubusercontent.com/connorads/bumpstart/main/bumpstart)" _ codex starter
+   ```
+
+3. Paste the command into Terminal using its right-click menu and press Enter.
+4. Read the setup list. Press Enter to start installing. Keep the window open and
+   follow any permission or sign-in prompts.
+5. When prompted, press Enter to open the coding agent. Sign in, then send your
+   [first message](#your-first-message).
+
+## Your first message
+
+You are ready when Claude Code or Codex is open in the terminal and waiting for your
+message. The agent starts in a project folder called `first-project` inside `git` in
+your home folder.
+
+Bumpstart provides a starter message asking the agent to help you choose something to
+build. Follow the on-screen instruction to paste it, then press Enter. If the message
+could not be copied, open `first-message.txt` in the project folder and copy its text.
+You can also type your own request, such as "Help me build a website for my football
+league. Ask me one question at a time."
+
+The standard setup also installs the Claude or ChatGPT desktop app where supported.
+The coding agent opens in the terminal. A website saved as an app in your browser is
+separate from the desktop app that bumpstart installs.
+
+If setup reports a failed step, read the named error before continuing.
+
+<img alt="Example setup preview listing the tools bumpstart will install, followed by a prompt to press Enter"
+     src="docs/assets/demo.svg">
+
+<details>
+<summary>Advanced setup and technical details</summary>
 
 ## What happens when you run it
 
@@ -162,6 +189,16 @@ else on that PATH was put there by an installer, not by bumpstart.
 
 Everything else lives under `~/.agents/`, `~/.claude*`, `~/.codex/`, `~/.local/` and
 `~/git/first-project`.
+
+### Linux compatibility
+
+Tested on Ubuntu, Debian, Fedora and Arch, on x86-64 and arm64, and inside WSL 2 and
+containers. Derivatives (Mint, Pop!\_OS, openSUSE, …) are found by capability, not by
+name, so they generally work too.
+
+Not supported: Alpine and other musl systems, because the tools we install publish no
+musl builds; NixOS, because the vendor binaries need `/lib64`; and WSL 1, which
+bumpstart refuses, printing the one command that upgrades it to WSL 2.
 
 ### What differs by platform
 
@@ -430,7 +467,13 @@ the pin: they always install the latest.
 - Why `git` and `github` are separate blocks, and the privacy the prompted path gives
   up: [0007](docs/adr/0007-git-and-github-are-separate-blocks.md).
 
+</details>
+
 ## Contributing
+
+[![ci](https://github.com/connorads/bumpstart/actions/workflows/ci.yml/badge.svg)](https://github.com/connorads/bumpstart/actions/workflows/ci.yml)
+![macOS, Linux and Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)
+[![MIT licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
 
 Two spines, one shared fixture contract, and a set of lanes that really install on
 machines that have never seen bumpstart. See [CONTRIBUTING.md](CONTRIBUTING.md).
