@@ -170,6 +170,7 @@ run = [
   # The real-install probe runs under powershell.exe 5.1 in the guest, so it is held
   # to the same floor as the spine — it would otherwise escape every gate.
   "pwsh -Command \"Invoke-ScriptAnalyzer -Path tests/real -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
+  "pwsh -Command \"Invoke-ScriptAnalyzer -Path scripts/check-windows-bootstrap.ps1 -Settings ./PSScriptAnalyzerSettings.psd1 -EnableExit\"",
   "pwsh -File scripts/lint-automatic-os-vars.ps1",
 ]
 

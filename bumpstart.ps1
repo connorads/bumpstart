@@ -21,15 +21,30 @@ if (-not $isWin) {
   return
 }
 
+# PowerShell 7 has separate managed-policy settings. Check the incoming host
+# before selecting another one, so a host switch cannot evade its restrictions.
+$checkPolicy = {
+  foreach ($scope in @('MachinePolicy', 'UserPolicy')) {
+    $policy = Get-ExecutionPolicy -Scope $scope
+    if ($policy -in @('Restricted', 'AllSigned')) {
+      Write-Host "bumpstart: managed execution policy ($scope=$policy) blocks this unsigned setup. Contact your administrator."
+      exit 1
+    }
+    if ($policy -ne 'Undefined') { break }
+  }
+}
+& $checkPolicy
+
 $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('bumpstart-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 $tgz = Join-Path $tmp 'src.tar.gz'
 try {
   Invoke-RestMethod -Uri "https://codeload.github.com/$repo/tar.gz/$ref" -OutFile $tgz
   tar -xzf $tgz -C $tmp
+  if ($LASTEXITCODE -ne 0) { throw "archive extraction failed ($LASTEXITCODE)" }
 } catch {
   Write-Host "bumpstart: could not fetch $repo@$ref - check the ref and your connection."
-  return
+  exit 1
 }
 
 # The extracted top-level dir is named after the ref (e.g. bumpstart-main); glob.
@@ -37,13 +52,19 @@ $root = Get-ChildItem -LiteralPath $tmp -Directory | Select-Object -First 1
 $apply = if ($root) { Join-Path $root.FullName 'lib/apply.ps1' } else { $null }
 if (-not $apply -or -not (Test-Path -LiteralPath $apply)) {
   Write-Host "bumpstart: unexpected tarball layout under $tmp"
-  return
+  exit 1
 }
 
-# Prefer pwsh 7 if on PATH (nicer UX); otherwise run under the current 5.1.
-$pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
-if ($pwsh) {
-  & $pwsh.Source -NoProfile -File $apply @args
-} else {
-  & $apply @args
+# A child keeps the execution-policy override scoped to setup. The calling
+# terminal and registry policy are unchanged; Group Policy still takes precedence.
+$pwsh = Get-Command pwsh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+$hostExe = if ($pwsh) { $pwsh.Source } else { Join-Path $PSHOME 'powershell.exe' }
+try {
+  & $hostExe -NoProfile -Command $checkPolicy.ToString()
+  if ($LASTEXITCODE -ne 0) { exit 1 }
+  & $hostExe -NoProfile -ExecutionPolicy Bypass -File $apply @args
+  exit $LASTEXITCODE
+} catch {
+  Write-Host "bumpstart: could not start setup - $($_.Exception.Message)"
+  exit 1
 }

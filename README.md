@@ -216,6 +216,8 @@ The ChatGPT app and GitHub Desktop have no official Linux build, so those blocks
 do not appear in the plan.
 
 On **Windows** installs go through winget and the CLIs' own PowerShell installers.
+Setup allows scripts in its own child process only. Permanent execution policy stays
+unchanged, and managed execution-policy restrictions still apply.
 Instead of a symlink, each agent is linked to the canonical file its own way: Claude via
 an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
 `~/.codex/AGENTS.md`, because Codex has no import. PATH is persisted to your account's

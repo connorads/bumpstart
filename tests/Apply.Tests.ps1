@@ -324,12 +324,8 @@ Describe 'apply.ps1 (Windows spine)' {
   }
 
   It "runs warn-and-continue whichever bootstrap branch invoked it" {
-    # bumpstart.ps1 sets 'Stop', then spawns a pwsh 7 process when one is on PATH (which
-    # resets the preference) but invokes the applier in the SAME runspace when there
-    # isn't - and that is the fresh-Windows branch, the beginner's path. Every test
-    # regime and CI lane has pwsh 7, so 'Stop' was the one condition nothing covered,
-    # and under it a non-terminating error outside an Invoke-Spin try/catch ends a
-    # setup whose whole design is to warn and carry on.
+    # A caller may set Stop before invoking the applier. Native operations must
+    # still run with Continue so diagnostic stderr alone cannot end setup.
     #
     # A global shadow function rather than Mock: PowerShell resolves
     # $ErrorActionPreference dynamically up the call stack, so a plain function
