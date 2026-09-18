@@ -134,8 +134,6 @@ function Get-BumpUserPathRaw {
   if (-not $key) { return '' }
   try {
     return [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-  } catch {
-    return ''
   } finally {
     $key.Close()
   }
@@ -196,7 +194,11 @@ function Test-BumpPersistedPath {
 # and rewriting the kind would break every reference in it.
 function Set-BumpPersistedPath {
   $script:BumpPathPersisted = ''
-  if (-not (Test-BumpUserEnvironment)) { return }
+  if (-not (Test-BumpUserEnvironment)) {
+    Warn "couldn't read your account's environment - new terminals may not find your tools"
+    Add-BumpWarning 'Account PATH'
+    return
+  }
 
   $upd = Get-BumpPathUpdate -Current (Get-BumpUserPathRaw) -Dirs (Get-BumpOwnedPathDir)
   if (-not $upd.Changed) {
@@ -207,12 +209,14 @@ function Set-BumpPersistedPath {
   $key = Get-BumpUserEnvKey -Writable
   if (-not $key) {
     Warn "couldn't open your account's environment - new terminals may not find your tools"
+    Add-BumpWarning 'Account PATH'
     return
   }
   try {
     $key.SetValue('Path', $upd.Value, [Microsoft.Win32.RegistryValueKind]::ExpandString)
   } catch {
     Warn "couldn't update your account's PATH - new terminals may not find your tools"
+    Add-BumpWarning 'Account PATH'
     return
   } finally {
     $key.Close()

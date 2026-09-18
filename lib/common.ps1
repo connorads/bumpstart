@@ -178,7 +178,7 @@ function Copy-ToClipboard {
   param([string]$Text)
   if (-not (Get-Command Set-Clipboard -ErrorAction SilentlyContinue)) { return $false }
   try {
-    Set-Clipboard -Value $Text
+    Set-Clipboard -Value $Text -ErrorAction Stop
     return $true
   } catch {
     return $false

@@ -480,8 +480,8 @@ jobs:
               "blocks$tab$env:BUMP_BLOCKS"
             ) | Set-Content -LiteralPath (Join-Path $state 'lane.tsv')
 
-            # Every stream captured: the UI goes to Write-Host and apply.ps1 exits 0
-            # even when steps warned, so the verdict has to come from the text.
+            # Capture both the exit status and every stream, including Write-Host,
+            # so the judge can check completion and name any failed steps.
             $out = & powershell.exe -NoProfile -File lib\apply.ps1 -Yes -NoLaunch claude starter *>&1
             $rc = $LASTEXITCODE
             # Out-String -Width, then .NET: `Out-File` renders through the host's

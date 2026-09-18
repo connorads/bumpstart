@@ -71,6 +71,17 @@ function Invoke-BlockTail {
   }
 }
 
+# Required preparation uses terminating filesystem errors and contributes to the
+# final verdict. Output is retained for steps such as creating the project folder.
+function Invoke-BumpPreparation {
+  param([string]$Label, [scriptblock]$Action)
+  $ErrorActionPreference = 'Stop'
+  try { & $Action } catch {
+    Warn "$Label failed - $($_.Exception.Message)"
+    Add-BumpWarning $Label
+  }
+}
+
 function Invoke-BumpSetup {
   [CmdletBinding()]
   param(
@@ -139,8 +150,7 @@ function Invoke-BumpSetup {
 
   # After confirmation and before the vendor installer, so its PATH diagnostics
   # describe the environment that will also be used to launch the agent.
-  Set-BumpPersistedPath
-  Set-BumpPath
+  Invoke-BumpPreparation 'Account PATH' { Set-BumpPersistedPath; Set-BumpPath }
 
   # Count blocks that do real work (declarative cell or apply.ps1 tail).
   $total = 0
@@ -155,25 +165,6 @@ function Invoke-BumpSetup {
     }
     Invoke-Cell $root $id
     Invoke-BlockTail $root $id ([bool]$Yes)
-  }
-
-  Write-Host ''
-  Hrule
-  # A green 'Setup complete.' over a machine where a step failed is the one message
-  # that costs trust: the warning scrolled past and a beginner cannot tell a real
-  # failure from noise. So the verdict follows the ledger - unchanged wording when
-  # nothing warned, a named list when something did. Mirrors apply.sh.
-  if ($script:BumpWarnCount -eq 0) {
-    Success 'Setup complete.'
-    Write-Host ("  {0}You're all set - the hard part is done.{1}" -f $script:Green, $script:Reset)
-  } else {
-    if ($script:BumpWarnCount -eq 1) {
-      Warn "Setup finished, but one step didn't work:"
-    } else {
-      Warn "Setup finished, but $($script:BumpWarnCount) steps didn't work:"
-    }
-    foreach ($w in $script:BumpWarnItems) { Write-Host "    $w" }
-    Info "Everything else is set up. Re-run the same paste and it retries only what's missing."
   }
 
   # Instructions: assemble the canonical file, then link each harness to it via
@@ -197,10 +188,12 @@ function Invoke-BumpSetup {
   # canonical already exists. So "exists" covers the fresh write, the back-off,
   # and a canonical left by an earlier run, and excludes exactly the broken case.
   $script:LinkBackoffs = @()
-  Assemble-Instructions -Plan $resolved -Root $root -Force:$Force
+  Invoke-BumpPreparation 'Agent instructions' { Assemble-Instructions -Plan $resolved -Root $root -Force:$Force }
   if (Test-Path -LiteralPath (Get-CanonicalPath)) {
     for ($i = 0; $i -lt $resolved.Targets.Count; $i++) {
-      Link-Harness -TargetLiteral $resolved.Targets[$i] -Method $resolved.TargetMethods[$i] -Force:$Force
+      Invoke-BumpPreparation 'Agent instruction link' {
+        Link-Harness -TargetLiteral $resolved.Targets[$i] -Method $resolved.TargetMethods[$i] -Force:$Force
+      }
     }
   }
 
@@ -223,22 +216,39 @@ function Invoke-BumpSetup {
     Warn "Point them at $canon yourself, or re-run with -Force."
   }
 
-  # Starter project + trust preseed.
-  $starter = New-StarterDir
-  Set-BumpTrust $resolved.DefaultHarness $starter
-  if ($resolved.StepIds -contains 'git') { Initialize-StarterRepo $starter }
+  $starter = Invoke-BumpPreparation 'Starter project' { New-StarterDir }
+  if ($starter) {
+    Invoke-BumpPreparation 'Agent trust' { Set-BumpTrust $resolved.DefaultHarness $starter }
+    if ($resolved.StepIds -contains 'git') {
+      Invoke-BumpPreparation 'Project git repository' { Initialize-StarterRepo $starter }
+    }
+    Invoke-BumpPreparation 'Starter message' { Copy-StarterPrompt $root }
+  }
 
-  Copy-StarterPrompt $root
+  if (-not (Test-BumpCommand $resolved.DefaultHarness)) {
+    Err "$($resolved.DefaultHarness) isn't installed or cannot run, so there's nothing to open yet."
+    $harnessId = $resolved.StepIds | Where-Object {
+      (Get-Meta (Get-BlockDir $root $_) 'AGENT') -eq $resolved.DefaultHarness
+    } | Select-Object -First 1
+    Add-BumpWarning (Get-BlockLabel $root $harnessId)
+  }
 
-  # Three outcomes, not two. 'Chose not to launch' and 'could not launch' both
-  # skipped the launch, but only the first leaves a runnable binary behind -
-  # telling someone to run an agent that failed to install sends them to a
-  # 'not recognized' error with no idea why. Mirrors apply.sh.
-  if (-not (Get-Command $resolved.DefaultHarness -ErrorAction SilentlyContinue)) {
-    Write-Host ''
-    Err "$($resolved.DefaultHarness) isn't installed, so there's nothing to open yet."
-    Info "Scroll up for the step that didn't work, then re-run the same paste - it retries only what's missing."
-  } elseif (-not $NoLaunch) {
+  Write-Host ''
+  Hrule
+  if ($script:BumpWarnCount -gt 0) {
+    if ($script:BumpWarnCount -eq 1) {
+      Warn "Setup finished, but one step didn't work:"
+    } else {
+      Warn "Setup finished, but $($script:BumpWarnCount) steps didn't work:"
+    }
+    foreach ($w in $script:BumpWarnItems) { Write-Host "    $w" }
+    Info "Read the errors above, then re-run the same paste - it retries only what's missing."
+    return 1
+  }
+  Success 'Setup complete.'
+  Write-Host ("  {0}You're all set - the hard part is done.{1}" -f $script:Green, $script:Reset)
+
+  if (-not $NoLaunch) {
     Show-LoginFrame $resolved.DefaultHarness
     Wait-Enter "Press Enter to open $($resolved.DefaultHarness) and sign in"
     # The intent is RECORDED here and carried out at the tail, outside the value

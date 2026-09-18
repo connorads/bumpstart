@@ -46,13 +46,17 @@ function Get-BumpPathVariants {
 function Initialize-StarterRepo {
   param([string]$Dir)
   if (Test-Path -LiteralPath (Join-Path $Dir '.git')) { return }
-  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return }
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    throw 'git is not available to create the project repository'
+  }
+  $ErrorActionPreference = 'Continue'
   git -C $Dir init -b main *> $null
   if ($LASTEXITCODE -ne 0) { git -C $Dir init *> $null }
   if ($LASTEXITCODE -eq 0) {
     Success 'Made your project a git project (so we can save your work)'
   } else {
     Warn "couldn't set up git in your project - continuing"
+    Add-BumpWarning 'Project git repository'
   }
 }
 
@@ -116,7 +120,7 @@ function Set-BumpTrust {
 
 # Copy-StarterPrompt <root> - put the friendly first message where the novice can
 # retrieve it after the browser sign-in, and paste into the empty agent prompt.
-# Reads <root>/starter-prompt.txt (no-op if missing/empty). Never fatal.
+# Reads <root>/starter-prompt.txt. A missing message is a preparation failure.
 #
 # Written to first-message.txt in the starter dir either way, exactly as
 # copy_starter_prompt does. Printing it is not a fallback at all: the agent is
@@ -133,20 +137,24 @@ function Copy-StarterPrompt {
   $script:StarterPromptCopied = $false
   $script:StarterPromptFile = ''
   $file = Join-Path $Root 'starter-prompt.txt'
-  if (-not (Test-Path -LiteralPath $file)) { return }
+  if (-not (Test-Path -LiteralPath $file)) { throw 'Starter message template is missing' }
   $text = (Get-Content -LiteralPath $file -Raw)
-  if ([string]::IsNullOrWhiteSpace($text)) { return }
+  if ([string]::IsNullOrWhiteSpace($text)) { throw 'Starter message template is empty' }
 
   if (Copy-ToClipboard $text) { $script:StarterPromptCopied = $true }
 
   $starter = Get-StarterDir
   $dest = Join-Path $starter 'first-message.txt'
   try {
-    New-Item -ItemType Directory -Path $starter -Force | Out-Null
-    Set-Content -LiteralPath $dest -Value $text
+    New-Item -ItemType Directory -Path $starter -Force -ErrorAction Stop | Out-Null
+    Set-Content -LiteralPath $dest -Value $text -ErrorAction Stop
     $script:StarterPromptFile = $dest
   } catch {
     $script:StarterPromptFile = ''
+  }
+
+  if (-not $script:StarterPromptCopied -and -not $script:StarterPromptFile) {
+    throw 'Could not copy or save your first message'
   }
 
   if (-not $script:StarterPromptCopied -and $script:StarterPromptFile) {

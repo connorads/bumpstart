@@ -131,15 +131,14 @@ Describe 'the effect half, where there is no user registry' {
     Mock Send-BumpEnvironmentChange { }
   }
 
-  It 'is a no-op rather than a crash' {
-    # apply.ps1 guards non-Windows before any of this runs, but the Pester suite
-    # drives the whole applier with BUMP_OS=win on a Mac - so this path is real and
-    # has to stay quiet.
+  It 'records a persistence failure without attempting a notification' {
+    $script:BumpWarnCount = 0
+    $script:BumpWarnItems = @()
     Test-BumpUserEnvironment | Should -BeFalse
     Get-BumpUserPathRaw | Should -Be ''
     Test-BumpPersistedPath | Should -BeFalse
     { Set-BumpPersistedPath } | Should -Not -Throw
-    # Quiet all the way out: nothing to write means nothing to announce either.
+    $script:BumpWarnItems | Should -Contain 'Account PATH'
     Should -Invoke Send-BumpEnvironmentChange -Times 0 -Exactly
   }
 }
@@ -209,8 +208,7 @@ Describe 'the effect half, where there is a user registry' {
   }
 
   It 'warns rather than throwing when the write itself is refused' {
-    # A managed or locked-down account. The setup has already done everything else it
-    # promised, so this ends in a warning, not a failure.
+    # A refused write is non-throwing but contributes to the final failure verdict.
     $script:reg.Writable = $false
     { Set-BumpPersistedPath 3>$null 6>$null } | Should -Not -Throw
   }

@@ -136,7 +136,8 @@ If setup reports a failed step, read the named error before continuing.
    kind, pick the launch agent. Any bad id, cycle or missing agent fails **here**,
    before anything is installed.
 3. Print the plan and ask **once** to proceed.
-4. Put the install substrate in place - Homebrew on macOS, mise on Linux - then apply
+4. On Windows, persist the agent folders on your account's PATH before installing.
+   Put the install substrate in place - Homebrew on macOS, mise on Linux - then apply
    each block. Check-then-act, so re-runs skip what is already there.
 5. Assemble the block instructions into **one canonical file**, `~/.agents/AGENTS.md`,
    then point each installed agent's own path at it (`~/.claude/CLAUDE.md` for Claude,
@@ -218,6 +219,8 @@ do not appear in the plan.
 On **Windows** installs go through winget and the CLIs' own PowerShell installers.
 Setup allows scripts in its own child process only. Permanent execution policy stays
 unchanged, and managed execution-policy restrictions still apply.
+Windows setup returns exit code 1 if a required step fails and leaves the agent closed.
+A successful setup returns 0.
 Instead of a symlink, each agent is linked to the canonical file its own way: Claude via
 an `@import` line in `~/.claude/CLAUDE.md`, Codex via a physical copy of
 `~/.codex/AGENTS.md`, because Codex has no import. PATH is persisted to your account's

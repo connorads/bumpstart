@@ -349,6 +349,66 @@ Describe 'apply.ps1 (Windows spine)' {
     (Get-Content -Raw -LiteralPath "$canon.bak").Trim() | Should -Be 'MY OWN NOTES'
   }
 
+  It 'returns failure and suppresses launch when persistent PATH cannot be written' {
+    $script:regPath.Writable = $false
+    Mock Wait-Enter { }
+    $out = @(Invoke-BumpSetup -Yes -Ids @('claude-cli') 6>&1)
+    $out[-1] | Should -Be 1
+    ($out | Out-String) | Should -Not -Match 'Setup complete'
+    $script:BumpWarnItems | Should -Contain 'Account PATH'
+    $script:BumpLaunch | Should -BeNullOrEmpty
+  }
+
+  It 'records <Label> failure without a success verdict' -TestCases @(
+    @{ Path = '.agents'; Kind = 'File'; Agent = 'claude-cli'; Label = 'Agent instructions' }
+    @{ Path = '.claude'; Kind = 'File'; Agent = 'claude-cli'; Label = 'Agent instruction link' }
+    @{ Path = 'git'; Kind = 'File'; Agent = 'claude-cli'; Label = 'Starter project' }
+    @{ Path = '.codex/config.toml'; Kind = 'Directory'; Agent = 'codex-cli'; Label = 'Agent trust' }
+    @{ Path = 'git/first-project/first-message.txt'; Kind = 'Directory'; Agent = 'claude-cli'; Label = 'Starter message' }
+  ) {
+    param($Path, $Kind, $Agent, $Label)
+    $blocker = Join-Path $script:testHome $Path
+    New-Item -ItemType Directory -Path (Split-Path -Parent $blocker) -Force | Out-Null
+    New-Item -ItemType $Kind -Path $blocker -Force | Out-Null
+    Mock Set-Clipboard { throw 'clipboard unavailable' }
+    Mock Wait-Enter { }
+    $out = @(Invoke-BumpSetup -Yes -Ids @($Agent, 'concise') 2>&1 6>&1)
+    $out[-1] | Should -Be 1
+    ($out | Out-String) | Should -Not -Match 'Setup complete'
+    $script:BumpWarnItems | Should -Contain $Label
+    $script:BumpLaunch | Should -BeNullOrEmpty
+  }
+
+  It 'reports success only after instructions and project preparation finish' {
+    $out = @(Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli', 'concise') 6>&1)
+    $text = $out | Out-String
+    $out[-1] | Should -Be 0
+    $text.IndexOf('Setup complete') | Should -BeGreaterThan $text.IndexOf('Pre-trusted')
+    Test-Path (Join-Path $script:testHome 'git/first-project/first-message.txt') | Should -BeTrue
+  }
+
+  It 'records native git initialisation failure and keeps the agent closed' {
+    $savedGit = (Get-Command git).ScriptBlock
+    function global:git {
+      $global:LASTEXITCODE = 0
+      if ($args -contains 'init') { $global:LASTEXITCODE = 1 }
+    }
+    try {
+      $out = @(Invoke-BumpSetup -Yes -Ids @('claude-cli', 'git') 6>&1)
+      $out[-1] | Should -Be 1
+      $script:BumpWarnItems | Should -Contain 'Project git repository'
+      $script:BumpLaunch | Should -BeNullOrEmpty
+    } finally { Set-Item Function:global:git $savedGit }
+  }
+
+  It 'allows clipboard failure when the starter message was saved to a file' {
+    Mock Set-Clipboard { throw 'clipboard unavailable' }
+    $out = @(Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>&1)
+    $out[-1] | Should -Be 0
+    $script:StarterPromptCopied | Should -BeFalse
+    Test-Path $script:StarterPromptFile | Should -BeTrue
+  }
+
   It 'names a step that failed instead of a green Setup complete' {
     # winget fails, so every winget-backed cell in the plan warns. The verdict has
     # to follow: an unqualified success line over a broken machine is the one
@@ -394,7 +454,7 @@ Describe 'apply.ps1 (Windows spine)' {
   It 'admits a missing agent binary instead of a run-it hint' {
     Mock Invoke-RestMethod { 'Write-Output "installer did not create a command"' }
     $out = Invoke-BumpSetup -Yes -NoLaunch -Ids @('claude-cli') 6>&1 | Out-String
-    $out | Should -Match "isn't installed, so there's nothing to open yet"
+    $out | Should -Match "isn't installed or cannot run, so there's nothing to open yet"
     $out | Should -Not -Match "Run 'claude' in"
   }
 
