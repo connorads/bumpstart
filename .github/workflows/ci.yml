@@ -224,7 +224,7 @@ jobs:
       # bad arguments - and that has already failed the step above.
       - name: verdict
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: real-verdict-${{ matrix.lane }}
           path: |
@@ -237,7 +237,7 @@ jobs:
       # legitimate class 2, and a second red would say nothing the step above didn't.
       - name: log bundle
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: real-linux-${{ matrix.lane }}
           path: .bumpstart-real/
@@ -361,7 +361,7 @@ jobs:
       # include-hidden-files + error: see the Linux lane's verdict step for both.
       - name: verdict
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: real-verdict-macos-drift
           path: |
@@ -372,7 +372,7 @@ jobs:
           retention-days: 7
       - name: log bundle
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: real-macos-drift
           path: .bumpstart-real/
@@ -546,7 +546,7 @@ jobs:
         run: cp -r "$(cygpath -u "$RUNNER_TEMP")/bumpstart-real" ./bumpstart-real-bundle || true
       - name: upload log bundle
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: real-windows-${{ matrix.os }}
           path: bumpstart-real-bundle/
